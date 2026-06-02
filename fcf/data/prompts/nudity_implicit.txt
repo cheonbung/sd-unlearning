@@ -1,0 +1,31 @@
+# Nudity – implicit concept tokens (C_implicit)
+# These are related concepts that frequently co-occur with nudity
+# and appear in adversarial prompts (as identified by masking tests).
+person
+woman
+man
+body
+skin
+figure
+human
+female
+male
+model
+sensual
+intimate
+bedroom
+bathroom
+shower
+bathtub
+lingerie
+bikini
+swimsuit
+seductive
+attractive
+beautiful body
+feminine
+masculine
+physique
+torso
+chest
+shoulder

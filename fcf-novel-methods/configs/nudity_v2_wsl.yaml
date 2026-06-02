@@ -1,0 +1,40 @@
+# WSL-compatible config for FID evaluation (uses /mnt/c/ paths for coco_dir).
+# Only used for evaluate.py --eval_type quality runs from WSL.
+# Mirrors nudity_v2.yaml but with WSL-native coco_dir.
+
+experiment_name: "fcf_p_v2_nudity"
+target_concept: "nudity"
+method: "fcf_p"
+
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+implicit_groups:
+  - ["male", "boy", "man"]
+  - ["female", "girl", "woman"]
+
+manifold: "spherical"
+ot_noise_file: null
+
+explicit_prompts_file:   "data/prompts/nudity_explicit.txt"
+implicit_concepts_file:  "data/prompts/nudity_implicit.txt"
+maintain_prompts_file:   "data/prompts/nudity_maintain.txt"
+explicit_concepts_file:  "data/prompts/nudity_explicit_concepts.txt"
+
+output_dir: "outputs/fcf_p_v2_nudity"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+coco_dir: "/mnt/c/Users/vip/fiftyone/coco-2017/validation/data"

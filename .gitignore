@@ -1,0 +1,54 @@
+# Local assistant/tool state
+.claude/
+.codex/
+.ecc-tools/
+
+# Python cache/test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local config
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+
+# Node dependencies
+node_modules/
+
+# Training/evaluation outputs and large model artifacts
+outputs/
+**/outputs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.p
+*.parquet
+*.pdf
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Embedded external repository
+fcf/Q16/

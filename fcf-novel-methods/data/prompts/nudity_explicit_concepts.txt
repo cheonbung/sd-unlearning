@@ -1,0 +1,12 @@
+# Nudity – explicit concept name variants (C_explicit)
+# Used for computing V_average in projection forgetting.
+nude
+nudity
+naked
+topless
+bare
+undressed
+unclothed
+nsfw
+explicit
+exposed

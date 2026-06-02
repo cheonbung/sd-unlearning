@@ -1,0 +1,41 @@
+# FCF-P (Projection Feature Forgetting) for Van Gogh style concept
+
+experiment_name: "fcf_p_vangogh"
+target_concept: "Van Gogh"
+method: "fcf_p"
+
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+# Implicit concept groups for Stage 2
+# For style forgetting: group by artist-related and medium-related terms
+implicit_groups:
+  - ["impressionism", "post-impressionism", "expressionism"]
+  - ["oil painting", "brushstroke", "artwork", "painting"]
+
+explicit_prompts_file:   "data/prompts/vangogh_explicit.txt"
+implicit_concepts_file:  "data/prompts/vangogh_implicit.txt"
+maintain_prompts_file:   "data/prompts/vangogh_maintain.txt"
+explicit_concepts_file:  "data/prompts/vangogh_explicit_concepts.txt"
+
+output_dir: "outputs/fcf_p_vangogh"
+
+eval_style_prompts:       "data/eval/vangogh_style.txt"
+eval_other_style_prompts: "data/eval/other_styles.txt"
+
+eval_num_images: 20
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+# FID reference dataset
+coco_dir: "C:/Users/vip/fiftyone/coco-2017/validation/data"

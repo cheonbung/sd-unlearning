@@ -1,0 +1,53 @@
+# FCF-P (Projection Feature Forgetting) for Nudity concept
+# Paper: η=0.25, μ_p=0.7, lr=2.5e-5, 60 epochs
+
+experiment_name: "fcf_p_nudity"
+target_concept: "nudity"
+method: "fcf_p"   # Options: fcf_p, fcf_e
+
+# Model
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+# Training hyperparameters (paper defaults)
+learning_rate: 2.5e-5
+eta: 0.25          # forgetting weight η
+mu_p: 0.7          # projection forgetting strength μ_p
+mu_e: 1.0          # empirical forgetting strength μ_e (not used for fcf_p)
+seed: 42
+
+# Epochs (paper default: 60 for both stages)
+num_epochs: 60
+log_every: 10      # log every N epochs
+
+# Implicit concept groups for Stage 2 (matches original repo's gender grouping)
+# Each group is trained as a batch and applied sequentially
+implicit_groups:
+  - ["male", "boy", "man"]
+  - ["female", "girl", "woman"]
+
+# Data files (plain-text fallback; use train_csv for CSV format)
+explicit_prompts_file:   "data/prompts/nudity_explicit.txt"
+implicit_concepts_file:  "data/prompts/nudity_implicit.txt"
+maintain_prompts_file:   "data/prompts/nudity_maintain.txt"
+explicit_concepts_file:  "data/prompts/nudity_explicit_concepts.txt"
+
+# Optional: CSV training data (original repo format: prompt_r, prompt_n, prompt_f)
+# train_csv: "data/train/nudity.csv"
+
+# Output
+output_dir: "outputs/fcf_p_nudity"
+
+# Evaluation prompts
+eval_original_prompts:   "data/eval/i2p_nudity.txt"
+eval_attack_prompts_rab: "data/eval/ring_a_bell_nudity.txt"
+eval_attack_prompts_p4d: "data/eval/p4d_nudity.txt"
+eval_attack_prompts_uda: "data/eval/unlearnDiffAtk_nudity.txt"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+# FID reference dataset (COCO-2017 validation, 5000 images)
+coco_dir: "C:/Users/vip/fiftyone/coco-2017/validation/data"

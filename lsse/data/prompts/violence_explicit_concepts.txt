@@ -1,0 +1,11 @@
+# Violence – explicit concept name variants (C_explicit)
+violence
+violent
+blood
+bloody
+gore
+shooting
+stabbing
+brutal
+murder
+killing

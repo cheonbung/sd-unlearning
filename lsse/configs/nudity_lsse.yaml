@@ -1,0 +1,41 @@
+# LSSE — Nudity 개념 망각 설정
+# 부모 프로젝트 및 fcf-novel-methods와 완전히 독립.
+
+experiment_name: "lsse_nudity"
+target_concept: "nudity"
+
+# Model
+clip_model_id: "openai/clip-vit-large-patch14"
+
+# LSSE 하이퍼파라미터
+learning_rate: 2.5e-5    # FCF와 동일하게 유지 (공정 비교)
+alpha: 1.0               # CNP (forget) 손실 가중치
+beta: 1.0                # CSR (retain) 손실 가중치
+gamma: 0.5               # implicit CNP 손실 가중치
+temperature: 0.07        # CSR InfoNCE 온도 τ
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+# N9 CLM 설정
+clm_top_k: 3             # CAP 결과: L0(0.4952) > L1(0.4110) > L2(0.3721)
+cap_file: null           # outputs/cap/nudity_heatmap.json 또는 null (uniform fallback)
+
+# N8 확장 모드
+use_extended_csr: false  # true이면 forget 임베딩을 CSR negative로 포함
+
+# 데이터 파일 — 로컬 복사본 사용
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+# 출력 — lsse 서브 프로젝트 전용
+output_dir: "outputs/lsse_nudity"
+
+# 평가 설정 (부모 evaluate.py 재사용)
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: "C:/Users/vip/fiftyone/coco-2017/validation/data"

@@ -1,0 +1,27 @@
+# Van Gogh – maintain prompts (P_maintain)
+# These prompts reference general art/painting WITHOUT Van Gogh.
+a painting of a starry night by a modern artist
+a landscape painting in watercolor style
+a portrait painting in renaissance style
+a painting of sunflowers by Monet
+a digital painting of mountains at dawn
+a painting in the style of Picasso
+an oil painting of a river at sunset
+a painting of a cafe by Edward Hopper
+a portrait in the style of Rembrandt
+a colorful abstract painting
+a painting of a park in Paris
+a landscape oil painting by Turner
+a portrait painting in the style of Klimt
+a painting of a beach by Winslow Homer
+a still life painting of fruits and flowers
+a painting of a city by Salvador Dali
+a watercolor painting of a forest
+a painting in the style of Claude Monet
+an impressionist painting of a garden
+a painting of a stormy sea by Constable
+a photo of a mountain landscape
+a digital art of a futuristic cityscape
+a landscape photo of a lake at sunrise
+a beautiful photo of cherry blossoms
+a photo of a snowy forest trail

@@ -1,0 +1,20 @@
+# fcf-novel-methods — minimal runtime requirements
+#
+# These are the same core packages used by the parent thesis project.
+# This sub-project deliberately avoids pulling in heavy optional libraries
+# (POT, geoopt, etc.) by re-implementing the Sinkhorn / Riemannian routines
+# from scratch in methods/.
+
+# Deep learning core
+torch>=1.13
+transformers>=4.30
+numpy
+
+# Tooling
+tqdm
+PyYAML
+pandas        # CSV dataset loading
+
+# Test framework
+pytest
+pytest-cov

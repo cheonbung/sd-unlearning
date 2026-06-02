@@ -1,0 +1,27 @@
+# Van Gogh – implicit concept tokens (C_implicit)
+# Concepts that frequently co-occur with Van Gogh and appear in adversarial prompts.
+painter
+starry sky
+impressionist
+post-impressionist
+swirling brushstrokes
+oil painting
+sunflowers
+wheat field
+cypress trees
+night sky
+stars
+moonlight
+bold colors
+thick brushstrokes
+expressive painting
+Dutch painter
+artistic genius
+colorful landscape
+Arles
+Saint-Rémy
+The Starry Night
+almond blossoms
+Café Terrace
+The Bedroom
+Portrait of Dr. Gachet
