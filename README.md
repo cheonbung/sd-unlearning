@@ -105,6 +105,13 @@ python -m pip install -r fcf\requirements.txt
 python -m pip install -r fcf-novel-methods\requirements.txt
 ```
 
+Alternatively, create the conda environment described by the repository:
+
+```bash
+conda env create -f environment.yml
+conda activate fcf
+```
+
 The code downloads Hugging Face models on first use:
 
 - Stable Diffusion: `CompVis/stable-diffusion-v1-4`
@@ -112,6 +119,24 @@ The code downloads Hugging Face models on first use:
 
 Depending on your Hugging Face setup, you may need to authenticate before
 loading Stable Diffusion weights.
+
+## Quality Gate
+
+Run the source validation gate before committing experiment changes:
+
+```bash
+python scripts/quality_gate.py
+```
+
+The gate compiles the owned source directories and runs all unit tests:
+
+- `fcf/tests`
+- `fcf-novel-methods/tests`
+- `lsse/tests`
+
+It also scans source/config files for local absolute paths such as
+`C:/Users/...`, which would break reproduction on another machine. Generated
+outputs and the local `fcf/Q16/` external checkout are skipped.
 
 ## Quick Start
 

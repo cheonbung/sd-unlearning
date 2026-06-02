@@ -37,4 +37,4 @@ eval_steps: 50
 eval_guidance_scale: 7.5
 eval_image_size: 512
 
-coco_dir: "/mnt/c/Users/vip/fiftyone/coco-2017/validation/data"
+coco_dir: null

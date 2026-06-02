@@ -333,9 +333,9 @@ def main():
     parser.add_argument("--device",         type=str, default=None)
     # ── Multi-GPU ─────────────────────────────────────────────────────────────
     parser.add_argument("--rank",       type=int, default=0,
-                        help="이 프로세스가 담당할 GPU rank (0-based)")
+                        help="GPU rank handled by this process (0-based)")
     parser.add_argument("--world_size", type=int, default=1,
-                        help="총 병렬 프로세스 수 (default 1 = single GPU)")
+                        help="Total number of parallel processes (default 1 = single GPU)")
     args = parser.parse_args()
 
     # ── Device ────────────────────────────────────────────────────────────────

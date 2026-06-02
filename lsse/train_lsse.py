@@ -115,7 +115,7 @@ def save_metadata(path: str, cfg: dict, args: argparse.Namespace, device: torch.
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LSSE 학습 (N7+N8+N9)")
+    parser = argparse.ArgumentParser(description="LSSE training (N7+N8+N9)")
     parser.add_argument("--config",           type=str, required=True)
     parser.add_argument("--learning_rate",    type=float, default=None)
     parser.add_argument("--alpha",            type=float, default=None)

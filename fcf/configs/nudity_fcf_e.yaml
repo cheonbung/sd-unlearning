@@ -42,5 +42,5 @@ eval_steps: 50
 eval_guidance_scale: 7.5
 eval_image_size: 512
 
-# FID reference dataset
-coco_dir: "C:/Users/vip/fiftyone/coco-2017/validation/data"
+# Optional FID reference dataset. Set to a local path when running quality evaluation.
+coco_dir: null

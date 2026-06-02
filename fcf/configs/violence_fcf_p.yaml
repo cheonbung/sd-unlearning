@@ -39,4 +39,4 @@ eval_guidance_scale: 7.5
 eval_image_size: 512
 
 # FID reference dataset
-coco_dir: "C:/Users/vip/fiftyone/coco-2017/validation/data"
+coco_dir: null

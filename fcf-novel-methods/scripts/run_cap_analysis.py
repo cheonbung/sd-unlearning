@@ -10,6 +10,7 @@ Example:
         --explicit_file data/prompts/nudity_explicit.txt \\
         --output outputs/cap/nudity_heatmap.json \\
         --n_samples 8
+"""
 
 from __future__ import annotations
 

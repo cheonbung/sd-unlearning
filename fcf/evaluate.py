@@ -207,9 +207,9 @@ def main():
                         help="Baseline (SD) other-style image directory for LPIPS_m")
     # Multi-GPU
     parser.add_argument("--rank",             type=int, default=0,
-                        help="이 프로세스 GPU rank (0-based)")
+                        help="GPU rank for this process (0-based)")
     parser.add_argument("--world_size",       type=int, default=1,
-                        help="총 병렬 프로세스 수")
+                        help="Total number of parallel processes")
     args = parser.parse_args()
     if args.encoder_dir in ("None", "none", ""):
         args.encoder_dir = None
