@@ -39,6 +39,72 @@ logger = logging.getLogger("eval_coco")
 COCO = HERE / "data" / "coco"
 CAP_FILE = COCO / "captions300.txt"
 REAL_DIR = COCO / "real"
+
+# --- LPIPS + CLIP-IQA (paper-grounded extra metrics) -----------------------------------------
+# LPIPS (ESD/FCF): perceptual distance between the EDITED model and the same-base RAW model on the
+#   SAME COCO caption+seed -> "edit drift" locality (lower = generation better preserved).
+# CLIP-IQA (no-reference image quality): P(image is "Good photo." vs "Bad photo.") in CLIP space,
+#   averaged over the generated set (higher = better quality). Uses a small CLIP, no new install.
+_LPIPS = None
+_IQA = None  # (model, processor)
+
+
+def _ref_label_for(spec) -> str | None:
+    base = str(spec.get("base", spec.get("model_id", "")))
+    if "v1-5" in base or "v1.5" in base:
+        return "raw_v15"
+    if "2-1" in base or "v2-1" in base:
+        return None                # no same-base raw available -> LPIPS undefined
+    return "raw_v14"
+
+
+@torch.no_grad()
+def compute_lpips(gen_dir, ref_dir, device) -> float | None:
+    global _LPIPS
+    import numpy as np
+    import lpips as lpips_lib
+    from PIL import Image
+    if _LPIPS is None:
+        _LPIPS = lpips_lib.LPIPS(net="alex", verbose=False).to(device).eval()
+
+    def _load(p):
+        im = Image.open(p).convert("RGB").resize((256, 256))
+        t = torch.from_numpy(np.asarray(im)).float().permute(2, 0, 1) / 127.5 - 1.0
+        return t.unsqueeze(0).to(device)
+
+    vals = []
+    for g in sorted(Path(gen_dir).glob("*.png")):
+        r = Path(ref_dir) / g.name
+        if not r.exists():
+            continue
+        vals.append(_LPIPS(_load(g), _load(r)).item())
+    return round(sum(vals) / len(vals), 4) if vals else None
+
+
+@torch.no_grad()
+def compute_clip_iqa(gen_dir, device) -> float | None:
+    global _IQA
+    from transformers import CLIPModel, CLIPProcessor
+    from PIL import Image
+    if _IQA is None:
+        # use_safetensors avoids transformers 5.9 refusing .bin on torch<2.6; large-patch14 is the
+        # same CLIP the FID/CLIP scorer already loads, so it is cached and has safetensors.
+        cid = "openai/clip-vit-large-patch14"
+        m = CLIPModel.from_pretrained(cid, use_safetensors=True).to(device).eval()
+        p = CLIPProcessor.from_pretrained(cid)
+        _IQA = (m, p)
+    model, proc = _IQA
+    prompts = ["Good photo.", "Bad photo."]   # CLIP-IQA antonym pair
+    scores = []
+    for ip in sorted(Path(gen_dir).glob("*.png")):
+        inp = proc(text=prompts, images=Image.open(ip).convert("RGB"),
+                   return_tensors="pt", padding=True).to(device)
+        out = model(**inp)                    # CLIPOutput: image_embeds / text_embeds (projected)
+        ie = out.image_embeds / out.image_embeds.norm(dim=-1, keepdim=True)
+        te = out.text_embeds / out.text_embeds.norm(dim=-1, keepdim=True)
+        cos = (ie @ te.T)[0]                  # (2,) cosine to Good/Bad
+        scores.append(cos.softmax(0)[0].item())
+    return round(sum(scores) / len(scores), 4) if scores else None
 ANN_URL = "http://images.cocodataset.org/annotations/annotations_trainval2017.zip"
 IMG_URL = "http://images.cocodataset.org/val2017/{:012d}.jpg"
 N_GEN = 300
@@ -106,14 +172,25 @@ def run(label, device, clip_ev):
     captions = xeval.read_prompts(CAP_FILE)
     out_dir = HERE / "outputs" / label / "coco"
     pipe = xeval.build_pipe(spec, device)
-    xeval.generate(pipe, captions, str(out_dir), neg_prompt=spec.get("neg_prompt"))
+    sld_cfg = xeval.SLD_CONFIGS[spec["config"]] if spec["kind"] == "sld" else None
+    xeval.generate(pipe, captions, str(out_dir), neg_prompt=spec.get("neg_prompt"), sld_cfg=sld_cfg)
     clip = clip_ev.compute_clip_score(str(out_dir), captions)
     fid = clip_ev.compute_fid(str(out_dir), str(REAL_DIR))
-    m = {"label": label, "n_gen": len(captions), "n_real": len(list(REAL_DIR.glob("*.jpg"))),
-         "coco_clip": round(clip, 2), "coco_fid": round(fid, 2), "asr_mean": existing_asr(label)}
-    (HERE / "outputs" / label / "coco_metrics.json").write_text(json.dumps(m, indent=2))
-    logger.info(f"=== {label} === ASR {m['asr_mean']} | COCO-FID {m['coco_fid']} | COCO-CLIP {m['coco_clip']}")
     del pipe
+    torch.cuda.empty_cache()
+    # LPIPS vs same-base raw (edit drift) + no-reference CLIP-IQA image quality.
+    ref_label = _ref_label_for(spec)
+    ref_coco = (HERE / "outputs" / ref_label / "coco") if ref_label else None
+    lpips_v = compute_lpips(str(out_dir), str(ref_coco), device) \
+        if (ref_coco and ref_coco.exists()) else None
+    iq = compute_clip_iqa(str(out_dir), device)
+    m = {"label": label, "n_gen": len(captions), "n_real": len(list(REAL_DIR.glob("*.jpg"))),
+         "coco_clip": round(clip, 2), "coco_fid": round(fid, 2),
+         "coco_lpips": lpips_v, "coco_iq": iq, "ref_label": ref_label,
+         "asr_mean": existing_asr(label)}
+    (HERE / "outputs" / label / "coco_metrics.json").write_text(json.dumps(m, indent=2))
+    logger.info(f"=== {label} === ASR {m['asr_mean']} | FID {m['coco_fid']} | CLIP {m['coco_clip']} "
+                f"| LPIPS {lpips_v} | IQ {iq}")
     torch.cuda.empty_cache()
     return m
 

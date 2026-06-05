@@ -23,10 +23,14 @@ sys.path.insert(0, str(HERE))
 import xeval  # noqa: E402  (REGISTRY, ATTACKS, find_sub, read_prompts)
 
 OUT_HTML = HERE / "comparison_xmodel.html"
-MODELS = ["raw_v14", "raw_v15", "safe_neg", "sd21base", "odace_v3", "odace_v15"]
+MODELS = ["raw_v14", "raw_v15", "safe_neg", "sd21base",
+          "esd_u", "sld_medium", "sld_strong", "sld_max", "safeclip",
+          "odace_v3", "odace_v15"]
 LABELS = {"raw_v14": "raw v1.4", "raw_v15": "raw v1.5", "safe_neg": "safe_neg (v1.5+neg)",
-          "sd21base": "SD2.1-base (NSFW-filter)", "odace_v3": "ODACE v3 (v1.4)",
-          "odace_v15": "ODACE v1.5"}
+          "sd21base": "SD2.1-base (NSFW-filter)",
+          "esd_u": "ESD-u (v1.4)", "sld_medium": "SLD-Medium", "sld_strong": "SLD-Strong",
+          "sld_max": "SLD-Max", "safeclip": "Safe-CLIP",
+          "odace_v3": "ODACE v3 (v1.4)", "odace_v15": "ODACE v1.5"}
 
 
 def load_metrics(label):

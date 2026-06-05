@@ -35,11 +35,20 @@ from pathlib import Path
 
 import torch
 
+try:                                  # progress bars with ETA (optional dep)
+    from tqdm import tqdm
+    _HAS_TQDM = True
+except Exception:  # noqa: BLE001
+    _HAS_TQDM = False
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 LSSE = REPO / "lsse"
 sys.path.insert(0, str(LSSE))
+sys.path.insert(0, str(REPO))
 from evaluation import ASREvaluator  # noqa: E402
+from baselines.sld.sld_pipeline import sld_generate, SLD_CONFIGS  # noqa: E402
+from baselines.safeclip.safeclip_loader import load_safeclip_text_encoder  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("xeval")
@@ -85,6 +94,37 @@ REGISTRY = {
     "odace_v15": {"kind": "odace", "unet_dir": "odace/outputs/odace_v15/final", "base": [
         "stable-diffusion-v1-5/stable-diffusion-v1-5",
         "sd-legacy/stable-diffusion-v1-5", "runwayml/stable-diffusion-v1-5"]},
+    # --- Reproduced reference baselines (Phase 1-4), all on SD v1.4 to match each paper. ---
+    # ESD: trained UNET swapped in like odace. SLD: training-free 3-way safety guidance (config
+    # selects the paper preset). Safe-CLIP: training-free CLIP text-encoder swap.
+    "esd_u": {"kind": "esd", "base": "CompVis/stable-diffusion-v1-4",
+              "unet_dir": "baselines/esd/outputs/esd_u/final"},
+    "sld_medium": {"kind": "sld", "config": "medium", "model_id": "CompVis/stable-diffusion-v1-4"},
+    "sld_strong": {"kind": "sld", "config": "strong", "model_id": "CompVis/stable-diffusion-v1-4"},
+    "sld_max":    {"kind": "sld", "config": "max",    "model_id": "CompVis/stable-diffusion-v1-4"},
+    "safeclip": {"kind": "safeclip", "model_id": "CompVis/stable-diffusion-v1-4",
+                 "safeclip_id": "aimagelab/safeclip_vit-l_14"},
+    # --- Text-encoder-family checkpoints (CLIPTextModel swap on SD v1.4) to fill empty COCO
+    # cells. te_dir = local saved CLIPTextModel ("final" dir). Weights-only read of fcf/
+    # fcf-novel-methods/dace/lsse checkpoints (allowed by CLAUDE.md; no parent-code import). ---
+    "sph_ot":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "fcf-novel-methods/outputs/fcf_p_v2_nudity_spherical_ot/final"},
+    "fcf_p":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "fcf/outputs/fcf_p_nudity/final"},
+    "fcf_e":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "fcf/outputs/fcf_e_nudity/final"},
+    "lsse_plu":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "lsse/outputs/sweep/plu_seed42/final"},
+    "lsse_plu_w2":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "lsse/outputs/sweep/stack_plu_w2_seed42/final"},
+    "vanilla_lsse": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "lsse/outputs/sweep/baseline_seed42/final"},
+    "dace_v2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "dace/outputs/dace_nudity/final"},
+    "dace_plu":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "dace/outputs/dace_nudity_plu/final"},
+    "odace_v2":     {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                     "unet_dir": "odace/outputs/odace_nudity/final"},
 }
 
 
@@ -107,10 +147,17 @@ def build_pipe(spec, device):
     pipe, mid = _try_from_pretrained(StableDiffusionPipeline, base,
                                      torch_dtype=dtype, safety_checker=None)
     pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
-    if spec["kind"] == "odace":
+    if spec["kind"] in ("odace", "esd"):  # both swap in a fine-tuned UNET
         unet_path = REPO / spec["unet_dir"]
         pipe.unet = UNet2DConditionModel.from_pretrained(unet_path).to(device=device, dtype=dtype)
     pipe = pipe.to(device)
+    if spec["kind"] == "safeclip":        # swap the CLIP text encoder (after device move)
+        load_safeclip_text_encoder(pipe, spec.get("safeclip_id"))
+    if spec["kind"] == "te_swap":         # swap in a local saved CLIPTextModel checkpoint
+        from transformers import CLIPTextModel
+        te_path = REPO / spec["te_dir"]
+        pipe.text_encoder = CLIPTextModel.from_pretrained(te_path).to(device=device, dtype=dtype)
+        logger.info(f"swapped text encoder <- {spec['te_dir']}")
     pipe.safety_checker = None
     pipe.set_progress_bar_config(disable=True)
     logger.info(f"built pipe kind={spec['kind']} id={mid}")
@@ -118,16 +165,24 @@ def build_pipe(spec, device):
 
 
 @torch.no_grad()
-def generate(pipe, prompts, out_dir, neg_prompt=None):
+def generate(pipe, prompts, out_dir, neg_prompt=None, sld_cfg=None):
     os.makedirs(out_dir, exist_ok=True)
-    for i, p in enumerate(prompts):
+    desc = "/".join(Path(out_dir).parts[-2:])          # e.g. "<label>/i2p" or "<label>/coco"
+    it = enumerate(prompts)
+    if _HAS_TQDM:
+        it = tqdm(it, total=len(prompts), desc=f"gen {desc}", unit="img", leave=False)
+    for i, p in it:
         fp = os.path.join(out_dir, f"{i:04d}_00.png")
         if os.path.exists(fp):
             continue
         g = torch.Generator(device=pipe.device).manual_seed(SEED + i)
-        img = pipe(p, negative_prompt=neg_prompt, num_inference_steps=GEN_STEPS,
-                   guidance_scale=GEN_GUIDANCE, height=GEN_RES, width=GEN_RES,
-                   generator=g).images[0]
+        if sld_cfg is not None:  # SLD: custom 3-way safety-guided denoise loop
+            img = sld_generate(pipe, p, sld_cfg, generator=g, steps=GEN_STEPS,
+                               guidance_scale=GEN_GUIDANCE, height=GEN_RES, width=GEN_RES)
+        else:
+            img = pipe(p, negative_prompt=neg_prompt, num_inference_steps=GEN_STEPS,
+                       guidance_scale=GEN_GUIDANCE, height=GEN_RES, width=GEN_RES,
+                       generator=g).images[0]
         img.save(fp)
     return out_dir
 
@@ -158,6 +213,7 @@ def run(label, device, asr_ev, n_attack=50, regen=False):
     need_attacks = "attack_dir" not in spec or regen
     pipe = build_pipe(spec, device)
     neg = spec.get("neg_prompt")
+    sld_cfg = SLD_CONFIGS[spec["config"]] if spec["kind"] == "sld" else None
 
     # --- attack images: reuse existing dir or generate fresh ---
     attack_root = (REPO / spec["attack_dir"]) if ("attack_dir" in spec and not regen) \
@@ -167,7 +223,7 @@ def run(label, device, asr_ev, n_attack=50, regen=False):
         prompts = read_prompts(LSSE / "data/eval" / pfile)[:n_attack]
         if need_attacks:
             sub = attack_root / variants[0]
-            generate(pipe, prompts, str(sub), neg_prompt=neg)
+            generate(pipe, prompts, str(sub), neg_prompt=neg, sld_cfg=sld_cfg)
         else:
             sub = find_sub(attack_root, variants)
             if sub is None:

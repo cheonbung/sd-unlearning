@@ -1,67 +1,153 @@
-# DACE — Dynamic Adversarial Concept Erasure
+# DACE - Dynamic Adversarial Concept Erasure
 
-An **independent** SD-unlearning research project (no `fcf/`, `fcf-novel-methods/`, or
-`lsse/` code imported; its own single training loop). Trains only the CLIP text encoder
-(`openai/clip-vit-large-patch14` == SD-v1-4 text encoder), so checkpoints are evaluated
-with the shared `lsse/evaluate.py` harness for an apples-to-apples ASR comparison.
+Last updated: 2026-06-05
 
-## Motivation (grounded in diagnostics, not guesswork)
+`dace/` implements **DACE**, short for **Dynamic Adversarial Concept Erasure**.
+It is an independent text-encoder unlearning experiment. It does not import
+`fcf/`, `fcf-novel-methods/`, or `lsse/`.
 
-Prior LSSE diagnostics showed the dominant failure of static single-direction erasure is
-**concept rerouting** (`residual_concept_variance` flat ~0.34; embedding erasure != adversarial
-robustness). DACE pursues the concept subspace **dynamically** as it moves during training
-and pins the orthogonal complement to block rerouting.
+DACE edits only the **CLIP text encoder**. Its purpose in the project is as
+important as its raw score: it tests whether dynamically suppressing a
+text-embedding concept axis is enough to reduce image-level ASR.
 
-## What the cheap P0 gates found (before any expensive training)
+## What Is Trained
 
-| Probe | Metric | Spearman vs mean ASR | Verdict |
-|---|---|---|---|
-| **P0**  | forget-vs-retain held-out separability | **-0.893** | REFUTED — lexically saturated (~1.0 for every checkpoint incl. best eraser) |
-| **P0b** | concept-axis shift (explicit vs concept-stripped neutral) | **+0.821** | SUPPORTED — this is the right axis |
-
-P0 killed the naive "separate forget from retain" objective *before* a training run.
-DACE was then **corrected** to the concept-axis: minimize how much adding the concept word
-moves the embedding, inside a dynamically tracked concept subspace.
-
-**Important honest finding from P0b:** `lsse_plu` already drives concept_shift to 1.69 yet
-sits at ASR ~21, while `sph_ot` has a LARGER shift (3.81) but LOWER ASR (15.6). So a pure
-text-encoder method appears to hit an ASR **floor (~20)**; sph_ot's extra edge lives in the
-embedding->UNET decoding path that no text-embedding metric captures. DACE (text-encoder only)
-is expected to reach the lsse_plu range, not to beat sph_ot.
-
-## Method (concept-axis, corrected)
-
-```
-min_theta  alpha*L_forget + gamma*L_ortho + beta*L_retain
-  U      = top-k SVD of live concept-shift vectors d_i = pool(z_explicit_i) - pool(z_neutral_i)
-           recomputed (closed form) every adv_every steps  -> pursuit of the moving concept
-  L_forget = || U^T (pool(z_exp) - pool(z_neu)) ||^2     (adding concept word stops moving emb in U)
-  L_ortho  = || (I-UU^T)(pool(z_exp) - frozen) ||^2      (pin non-concept part: anti-rerouting)
-  L_retain = MSE(z_neu, frozen) + MSE(z_retain, frozen)  (preserve content, no destruction)
+```text
+prompt -> CLIP text encoder -> text embedding -> SD UNet -> image
+            ^ trained here
 ```
 
-## Layout
+Model components:
 
-```
-dace/
-  methods/   adversary.py (concept_subspace, discriminative_subspace, SubspaceTracker)
-             erasure.py   (dace_concept_losses, dace_losses)
-             diagnostics.py (held-out linear_separability_auc, concept metrics)
-  core/      dataset.py (DACEDataset, neutralize), trainer.py (DACETrainer)
-  experiments/ p0_crossmethod_diag.py, p0b_concept_axis.py, run_dace.sh
-  configs/   nudity_dace.yaml
-  tests/     test_dace.py  (6 passing)
-  data/prompts/  nudity_explicit/maintain/implicit.txt (self-contained)
+| Component | Value |
+|---|---|
+| Text encoder | `openai/clip-vit-large-patch14` |
+| SD evaluation base | `CompVis/stable-diffusion-v1-4` |
+| Trainable module | CLIP text encoder |
+| Frozen modules | SD UNet, VAE, frozen reference text encoder |
+| Target concept used here | `nudity` |
+
+## Motivation
+
+LSSE diagnostics suggested a failure mode called **concept rerouting**:
+
+```text
+erase one fixed concept direction -> concept leaks into another direction
 ```
 
-## Usage (WSL conda env `lsse`)
+DACE tries to make rerouting unhelpful by recomputing the live concept subspace
+during training and anchoring the non-concept part of the embedding.
+
+## Corrected Concept Axis
+
+Early probing rejected the naive "forget vs retain" axis because it was
+lexically saturated. The corrected DACE axis is:
+
+```text
+d_i = pool(z_explicit_i) - pool(z_neutral_i)
+```
+
+where `z_neutral_i` is the same prompt with concept words stripped by
+`core/dataset.py::neutralize`.
+
+The live subspace `U` is the top-k SVD subspace of these concept-shift vectors.
+It is recomputed every `adv_every` steps. See `methods/adversary.py`.
+
+## Training Objective
+
+```text
+min_theta alpha * L_forget + gamma * L_ortho + beta * L_retain
+
+U        = top-k SVD of live concept-shift vectors
+L_forget = || U^T(pool(z_exp) - pool(z_neu)) ||^2
+L_ortho  = keep the non-concept component of z_exp close to frozen
+L_retain = preserve neutral and retain prompts against the frozen encoder
+```
+
+The loss implementation is in `methods/erasure.py`; the training loop is in
+`core/trainer.py`.
+
+## Latest Local Result
+
+Latest unified comparison uses NudeNet v3, score threshold 0.3, 5 attacks x
+50 images, 50 steps, guidance 7.5, seed 42. Lower ASR is better.
+
+| Model | Intervention | Mean ASR |
+|---|---|---:|
+| Raw SD v1.4 | none | 62.0 |
+| DACE v2 | text encoder, dynamic concept axis | 50.8 |
+| DACE+PLU | text encoder, concept axis + progressive layer unlocking | 73.6 |
+| LSSE+PLU+W2 | text-encoder comparison point | 20.8 |
+| ODACE v3 | UNet comparison point | 4.0 |
+
+Interpretation:
+
+- DACE is a useful **negative result**: improving a text-embedding concept-axis
+  proxy did not translate into strong image-level unlearning.
+- DACE+PLU is worse than raw SD in the current ASR harness, showing that layer
+  dynamics plus this concept-axis loss can amplify the wrong behavior.
+- This result is one of the reasons the project moved from text-embedding proxy
+  objectives to ODACE's output-grounded UNet objective.
+
+## Run
+
+From the repository root:
 
 ```bash
-python -m pytest tests -q                              # unit tests
-python experiments/p0_crossmethod_diag.py              # P0 gate
-python experiments/p0b_concept_axis.py                 # P0b gate (concept axis)
-python train_dace.py --config configs/nudity_dace.yaml # train -> outputs/dace_nudity/final
-# ASR eval through the shared harness:
-cd ../lsse && python evaluate.py --encoder_dir ../dace/outputs/dace_nudity/final \
-    --concept nudity --eval_type asr --output_dir outputs/eval/xharness_dace --num_images 50
+python dace/train_dace.py --config configs/nudity_dace.yaml
 ```
+
+PLU variant:
+
+```bash
+python dace/train_dace.py \
+  --config configs/nudity_dace_plu.yaml \
+  --output_dir outputs/dace_plu_nudity
+```
+
+Outputs:
+
+| Variant | Output directory |
+|---|---|
+| DACE | `dace/outputs/dace_nudity/final` |
+| DACE+PLU | `dace/outputs/dace_plu_nudity/final` if using the command above |
+
+## Evaluate With The Unified Harness
+
+```bash
+cd lsse
+python evaluate.py \
+  --encoder_dir ../dace/outputs/dace_nudity/final \
+  --concept nudity \
+  --eval_type asr \
+  --output_dir outputs/eval/xharness_dace \
+  --num_images 50
+```
+
+Use `../dace/outputs/dace_plu_nudity/final` for DACE+PLU.
+
+## Diagnostics
+
+```bash
+cd dace
+python experiments/p0_crossmethod_diag.py
+python experiments/p0b_concept_axis.py
+```
+
+`P0` rejected the forget-vs-retain separability axis. `P0b` supported the
+explicit-vs-neutral concept axis as a better text proxy, but later training
+showed that even this proxy underdetermines final image ASR.
+
+## Tests
+
+```bash
+python -m pytest dace/tests -q
+```
+
+## Relationship To Other Methods
+
+DACE sits between LSSE and ODACE in the research story. It takes LSSE's
+"rerouting" diagnosis seriously and adds a dynamic concept-axis adversary, but
+still edits only the text encoder. Its weak ASR result supports the conclusion
+that image-level concept erasure cannot be reliably inferred from text-embedding
+metrics alone.
