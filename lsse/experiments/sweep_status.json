@@ -1,0 +1,70 @@
+{
+  "baseline_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T19:14:54"
+  },
+  "plu_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T19:30:17"
+  },
+  "w1_tokensel_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T19:45:45"
+  },
+  "w2_margin_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T20:01:16"
+  },
+  "w3_tokenwise_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T20:16:34"
+  },
+  "w4_membank_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T20:31:51"
+  },
+  "w5_dynclm_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T20:47:15"
+  },
+  "w6_adaptive_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T21:02:35"
+  },
+  "stack_plu_w1w3w6_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T21:18:14"
+  },
+  "stack_plu_w2_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T21:34:37"
+  },
+  "stack_plu_w2_w3_seed42": {
+    "status": "done",
+    "finished": "2026-06-03T21:50:15"
+  },
+  "plu_seed1": {
+    "status": "done",
+    "finished": "2026-06-03T22:08:40"
+  },
+  "plu_seed2": {
+    "status": "done",
+    "finished": "2026-06-03T22:24:06"
+  },
+  "plu_seed3": {
+    "status": "done",
+    "finished": "2026-06-03T22:39:22"
+  },
+  "stack_plu_w2_seed1": {
+    "status": "done",
+    "finished": "2026-06-03T22:54:52"
+  },
+  "stack_plu_w2_seed2": {
+    "status": "done",
+    "finished": "2026-06-03T23:10:26"
+  },
+  "stack_plu_w2_seed3": {
+    "status": "done",
+    "finished": "2026-06-03T23:25:56"
+  }
+}

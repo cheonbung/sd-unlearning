@@ -1,0 +1,50 @@
+# LSSE 개선 ablation 매트릭스 (sweep.py 입력)
+# 각 cell = train_lsse.py 플래그 조합. seed는 sweep --seeds 로 지정.
+# W1~W6 플래그는 Phase 1 구현 후 활성. baseline/plu 는 즉시 실행 가능.
+#
+# 사용:
+#   python experiments/sweep.py --matrix experiments/configs/improvements.yaml --seeds 42,1,2
+
+base_config: configs/nudity_lsse.yaml
+
+cells:
+  # --- Phase 0: 기존 결과 재현 + 진단 (diagnostics on) ---
+  - name: baseline
+    train_flags: []
+    diagnostics: true
+  - name: plu
+    train_flags: ["--use_plu"]
+    diagnostics: true
+
+  # --- Phase 1: 6개 약점 단독 개선 (W1~W6) ---
+  - name: w1_tokensel        # SVD 패딩 희석 → content 토큰만으로 방향 추출
+    train_flags: ["--use_tokensel_dir"]
+    diagnostics: true
+  - name: w2_margin          # 미지정 목표 → margin + 재출현 억제
+    train_flags: ["--use_margin_cnp"]
+    diagnostics: true
+  - name: w3_tokenwise       # CSR 평균 풀링 → 토큰별 InfoNCE
+    train_flags: ["--use_tokenwise_csr"]
+    diagnostics: true
+  - name: w4_membank         # 소배치 → MoCo 메모리뱅크
+    train_flags: ["--use_membank"]
+    diagnostics: true
+  - name: w5_dynclm          # 정적 CLM → 동적 CAP 재평가
+    train_flags: ["--use_dynamic_clm"]
+    diagnostics: true
+  - name: w6_adaptive        # 손실 충돌 → uncertainty 적응 가중
+    train_flags: ["--use_adaptive_weights"]
+    diagnostics: true
+
+  # --- Phase 2: best-of-breed 스택 (결과 보고 결정, 잠정) ---
+  - name: stack_plu_w1w3w6
+    train_flags: ["--use_plu", "--use_tokensel_dir", "--use_tokenwise_csr", "--use_adaptive_weights"]
+    diagnostics: true
+
+  # --- Phase 2b: seed42 결과 기반 재타깃 (PLU 지배 + W2만 유효) ---
+  - name: stack_plu_w2          # 최고 레버(PLU) + 유일 유효 손실(W2 직교앵커)
+    train_flags: ["--use_plu", "--use_margin_cnp"]
+    diagnostics: true
+  - name: stack_plu_w2_w3       # + 토큰별 CSR(retain 보존 강화 가설)
+    train_flags: ["--use_plu", "--use_margin_cnp", "--use_tokenwise_csr"]
+    diagnostics: true

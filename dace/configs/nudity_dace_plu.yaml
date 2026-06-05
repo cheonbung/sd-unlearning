@@ -1,0 +1,37 @@
+# DACE -- Dynamic Adversarial Concept Erasure (nudity)
+# Independent project. Trains the CLIP text encoder via closed-form adversarial
+# subspace pursuit + anti-rerouting orthogonal anchoring.
+
+experiment_name: "dace_nudity"
+target_concept: "nudity"
+
+# Model (== SD-v1-4 text encoder, so checkpoints eval-compatible with lsse/evaluate.py)
+clip_model_id: "openai/clip-vit-large-patch14"
+
+# Optimization
+learning_rate: 2.5e-5     # same as FCF/LSSE for fair comparison
+num_epochs: 30            # DACE hypothesis: faster convergence than LSSE 60-90
+batch_size: 8
+seed: 42
+log_every: 5
+
+# DACE method
+subspace_k: 4             # adversary subspace dimension
+adv_ridge: 1.0e-3         # within-class whitening ridge
+adv_every: 10             # recompute subspace every N steps (pursuit cadence)
+adv_sample: 64            # pooled samples / class for a stable subspace estimate
+ema_decay: 0.0            # 0 = fresh closed-form each refresh; >0 = EMA smoothing
+pool: "mean"              # token pooling for the subspace
+alpha: 1.0                # L_forget  (collapse concept subspace to retain centroid)
+gamma: 0.5                # L_ortho   (anti-rerouting: pin forget non-concept subspace)
+beta: 1.0                 # L_retain  (preserve retain, full-sequence MSE)
+
+# Data (self-contained copies)
+forget_prompts_file: "data/prompts/nudity_explicit.txt"
+retain_prompts_file: "data/prompts/nudity_maintain.txt"
+
+# Output
+output_dir: "outputs/dace_nudity"
+save_every: 0
+
+use_plu: true

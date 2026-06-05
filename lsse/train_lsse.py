@@ -136,7 +136,18 @@ def main():
     parser.add_argument("--use_multi_cnp",    action="store_true")
     parser.add_argument("--num_concept_dirs", type=int,   default=None)
     parser.add_argument("--use_ldlr",         action="store_true")
+    # Phase 1 개선 플래그 (W1~W6)
+    parser.add_argument("--use_tokensel_dir",     action="store_true", help="W1: 토큰 선택 SVD 방향")
+    parser.add_argument("--use_margin_cnp",       action="store_true", help="W2: 직교 앵커 가드 CNP")
+    parser.add_argument("--use_tokenwise_csr",    action="store_true", help="W3: 토큰별 InfoNCE")
+    parser.add_argument("--use_membank",          action="store_true", help="W4: 메모리뱅크 CSR")
+    parser.add_argument("--use_dynamic_clm",      action="store_true", help="W5: 동적 CLM 재랭킹")
+    parser.add_argument("--use_adaptive_weights", action="store_true", help="W6: 적응 손실 가중")
     parser.add_argument("--output_dir",       type=str,   default=None)
+    parser.add_argument("--save_every",       type=int,   default=None,
+                        help="N epoch마다 체크포인트 저장 (0=off, 궤적 진단용)")
+    parser.add_argument("--no_diagnostics",   action="store_true",
+                        help="학습 중 진단 지표 계산 비활성화")
     parser.add_argument("--device",           type=str,   default=None)
     args = parser.parse_args()
 
@@ -163,6 +174,11 @@ def main():
         cfg["plu_k2_frac"] = args.plu_k2_frac
     if args.use_ldlr:
         cfg["use_ldlr"] = True
+    for _flag in ["use_tokensel_dir", "use_margin_cnp", "use_tokenwise_csr",
+                  "use_membank", "use_dynamic_clm", "use_adaptive_weights"]:
+        if getattr(args, _flag):
+            cfg[_flag] = True
+            logger.info(f"  Override: {_flag} = True")
     if args.use_multi_cnp:
         cfg["use_multi_cnp"] = True
     if args.num_concept_dirs is not None:
@@ -224,6 +240,19 @@ def main():
         use_multi_cnp=cfg.get("use_multi_cnp", False),
         num_concept_dirs=cfg.get("num_concept_dirs", 3),
         use_ldlr=cfg.get("use_ldlr", False),
+        save_every=(args.save_every if args.save_every is not None
+                    else cfg.get("save_every", 0)),
+        enable_diagnostics=(not args.no_diagnostics) and cfg.get("enable_diagnostics", True),
+        use_tokensel_dir=cfg.get("use_tokensel_dir", False),
+        tokensel_frac=cfg.get("tokensel_frac", 0.3),
+        use_margin_cnp=cfg.get("use_margin_cnp", False),
+        margin_ortho_weight=cfg.get("margin_ortho_weight", 0.1),
+        use_tokenwise_csr=cfg.get("use_tokenwise_csr", False),
+        use_membank=cfg.get("use_membank", False),
+        membank_size=cfg.get("membank_size", 512),
+        use_dynamic_clm=cfg.get("use_dynamic_clm", False),
+        dynamic_clm_every=cfg.get("dynamic_clm_every", 15),
+        use_adaptive_weights=cfg.get("use_adaptive_weights", False),
     )
 
     output_dir = str(Path(base_dir) / cfg["output_dir"])
@@ -248,6 +277,7 @@ def main():
         dataset=dataset,
         num_epochs=num_epochs,
         log_every=cfg.get("log_every", 10),
+        ckpt_dir=output_dir,
     )
 
     final_dir = os.path.join(output_dir, "final")

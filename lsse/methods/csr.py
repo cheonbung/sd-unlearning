@@ -75,3 +75,88 @@ def csr_loss_with_negatives(
     labels = torch.arange(q.shape[0], device=q.device)        # positives = index 0..B-1
 
     return F.cross_entropy(logits, labels)
+
+
+def csr_loss_tokenwise(
+    z_retain_current: torch.Tensor,
+    z_retain_frozen: torch.Tensor,
+    temperature: float = 0.07,
+) -> torch.Tensor:
+    """W3: 토큰 평균 없이 전체 시퀀스를 InfoNCE (위치 구조 보존).
+
+    문제: base csr_loss는 z.mean(dim=1)로 77개 토큰을 1개로 압축 → SD 크로스어텐션이
+    실제로 사용하는 토큰별 위치 정보 소실. 평균이 같으면 손실 0이지만 생성은 다를 수 있음.
+    해법: (B, L*D) 전체를 정규화하여 query/key로 사용 → 모든 위치 정보 유지.
+
+    Args:
+        z_retain_current: (B, L, D) — 현재 인코더 retain 임베딩.
+        z_retain_frozen:  (B, L, D) — frozen 인코더 retain 임베딩.
+        temperature:      InfoNCE 온도 τ.
+    Returns:
+        scalar loss.
+    """
+    B = z_retain_current.shape[0]
+    q = F.normalize(z_retain_current.reshape(B, -1), dim=-1)  # (B, L*D)
+    k = F.normalize(z_retain_frozen.reshape(B, -1), dim=-1)   # (B, L*D)
+    logits = q @ k.T / temperature                            # (B, B)
+    labels = torch.arange(B, device=q.device)
+    return F.cross_entropy(logits, labels)
+
+
+class MemoryBank:
+    """W4: MoCo 스타일 frozen retain key 큐 (소배치 부정샘플 보강).
+
+    배치가 작으면(B=8 → negatives 7개) InfoNCE 대조 압력이 약함.
+    과거 step의 frozen retain key를 큐에 저장해 수백 개 negative 제공.
+    """
+
+    def __init__(self, max_size: int = 512):
+        self.max_size = max_size
+        self.queue = None  # (M, D) normalized, detached
+
+    @torch.no_grad()
+    def enqueue(self, keys: torch.Tensor):
+        keys = keys.detach()
+        if self.queue is None:
+            self.queue = keys
+        else:
+            self.queue = torch.cat([keys, self.queue], dim=0)[: self.max_size]
+
+    def get(self):
+        return self.queue
+
+
+def csr_loss_membank(
+    z_retain_current: torch.Tensor,
+    z_retain_frozen: torch.Tensor,
+    bank: "MemoryBank",
+    temperature: float = 0.07,
+) -> torch.Tensor:
+    """W4: 메모리뱅크 negative를 포함한 InfoNCE retain 손실.
+
+    in-batch key + 큐에 쌓인 과거 frozen retain key 전체를 negative로 사용.
+    매 step 종료 시 현재 frozen key를 큐에 enqueue.
+
+    Args:
+        z_retain_current: (B, L, D) — 현재 인코더 retain 임베딩.
+        z_retain_frozen:  (B, L, D) — frozen 인코더 retain 임베딩.
+        bank:             MemoryBank 인스턴스 (트레이너가 보유).
+        temperature:      InfoNCE 온도 τ.
+    Returns:
+        scalar loss.
+    """
+    B = z_retain_current.shape[0]
+    q = F.normalize(z_retain_current.mean(dim=1), dim=-1)  # (B, D)
+    k = F.normalize(z_retain_frozen.mean(dim=1), dim=-1)   # (B, D)
+
+    neg = bank.get()
+    if neg is not None and neg.shape[0] > 0:
+        k_all = torch.cat([k, neg.to(q.device)], dim=0)    # (B+M, D)
+    else:
+        k_all = k
+    logits = q @ k_all.T / temperature                     # (B, B+M)
+    labels = torch.arange(B, device=q.device)
+    loss = F.cross_entropy(logits, labels)
+
+    bank.enqueue(k)  # 현재 frozen key를 큐에 추가
+    return loss

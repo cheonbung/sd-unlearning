@@ -160,3 +160,83 @@ def cnp_loss_multi(embeddings: torch.Tensor, concept_dirs: torch.Tensor) -> torc
         proj = z_flat @ c_flat
         loss = loss + (proj ** 2).mean()
     return loss / K
+
+
+@torch.no_grad()
+def compute_concept_direction_token_selective(
+    embeddings: torch.Tensor,
+    top_frac: float = 0.3,
+) -> torch.Tensor:
+    """W1: 토큰 위치별 분산으로 content 토큰만 선택 후 SVD.
+
+    문제: (N, L*D) 전체 flatten SVD는 77개 토큰을 동등 취급 → padding(EOS) 토큰이
+    대다수라 2~4개 의미 토큰의 개념 신호가 희석됨.
+    해법: padding 토큰은 프롬프트 간 분산이 거의 0(항상 같은 EOS 임베딩).
+    위치별 분산 상위 top_frac 만 남기고(=content 토큰) 나머지는 0으로 마스킹 후 SVD.
+    → 임베딩만으로 마스크 불필요하게 content 위치를 자동 식별.
+
+    Args:
+        embeddings: (N, L, D) — frozen 인코더의 explicit 프롬프트 임베딩. N>=2.
+        top_frac:   분산 상위로 유지할 토큰 위치 비율 (0<frac<=1).
+    Returns:
+        c_dir: (L, D) — content 위치에서 추출된 개념 방향 (padding 위치는 0).
+    """
+    N, L, D = embeddings.shape
+    if N < 2:
+        raise ValueError(f"compute_concept_direction_token_selective requires N>=2, got N={N}")
+
+    # 위치별 분산: 각 위치 l에서 N개 D-벡터의 분산을 D에 대해 평균 → (L,)
+    pos_var = embeddings.var(dim=0, unbiased=False).mean(dim=1)  # (L,)
+    k_keep = max(1, int(round(L * top_frac)))
+    keep_idx = torch.topk(pos_var, k_keep).indices                # (k_keep,)
+    mask = torch.zeros(L, device=embeddings.device, dtype=embeddings.dtype)
+    mask[keep_idx] = 1.0
+
+    masked = embeddings * mask.view(1, L, 1)                       # padding 위치 0
+    flat = masked.reshape(N, L * D)
+    flat_centered = flat - flat.mean(dim=0, keepdim=True)
+    _, _, Vt = torch.linalg.svd(flat_centered, full_matrices=False)
+    return Vt[0].reshape(L, D)
+
+
+def cnp_loss_margin(
+    z_current: torch.Tensor,
+    z_frozen: torch.Tensor,
+    concept_dir: torch.Tensor,
+    ortho_weight: float = 0.1,
+) -> torch.Tensor:
+    """W2: 사영 제거 + 직교 보완 공간 약한 앵커링 (재라우팅 억제).
+
+    문제: base cnp_loss는 사영 스칼라만 0으로 → 개념이 c_dir 직교 방향으로
+    재라우팅되어도 손실이 0(미지정 목표).
+    DDF(ortho_weight=1.0 등가)는 과제약 → 개념 대부분 잔존(나쁜 결과).
+    W2는 그 사이: 사영은 0으로 강하게, 직교 성분은 frozen에 *약하게*(λ작게) 앵커.
+    → c_dir 성분 제거는 유지하되 다른 방향으로 새 개념 구조가 생기는 것 억제.
+
+    L = mean(proj^2) + ortho_weight * mean(||z_orth - z_frozen_orth||^2)
+
+    Args:
+        z_current:    (B, L, D) — 현재 인코더 출력 (gradient).
+        z_frozen:     (B, L, D) — frozen 인코더 출력 (no_grad).
+        concept_dir:  (L, D) — unit-normalized 개념 방향. 고정.
+        ortho_weight: 직교 앵커 가중 λ (0=base CNP, 1≈DDF). 권장 0.05~0.2.
+    Returns:
+        scalar loss.
+    """
+    B = z_current.shape[0]
+    c = concept_dir.detach().reshape(-1)
+    c = c / (c.norm() + 1e-12)
+
+    zc = z_current.reshape(B, -1)                       # (B, L*D)
+    zf = z_frozen.detach().reshape(B, -1)               # (B, L*D)
+
+    proj_c = zc @ c                                      # (B,) — 현재 사영
+    loss_proj = (proj_c ** 2).mean()
+
+    # 직교 성분 차이 (사영 성분 제거 후 비교)
+    zc_orth = zc - proj_c.unsqueeze(1) * c.unsqueeze(0)
+    proj_f = zf @ c
+    zf_orth = zf - proj_f.unsqueeze(1) * c.unsqueeze(0)
+    loss_orth = ((zc_orth - zf_orth) ** 2).mean()
+
+    return loss_proj + ortho_weight * loss_orth

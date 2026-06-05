@@ -1,0 +1,26 @@
+# ODACE on SD v1.5 (Gate C). Same strengthened recipe as v3 (full cross-attn, lr 1e-4, eta 3.0,
+# 1500 steps) but base = SD-v1-5. Tests whether the output-grounded edit transfers to another base.
+# NOTE: sd_model_id confirmed loadable in Gate B (raw_v15 _try_from_pretrained); adjust if needed.
+
+experiment_name: "odace_nudity_v15"
+target_concept: "nudity"
+sd_model_id: "stable-diffusion-v1-5/stable-diffusion-v1-5"
+
+learning_rate: 1.0e-4
+num_steps: 1500
+batch_size: 4
+seed: 42
+log_every: 25
+
+alpha: 1.0
+beta: 1.0
+t_min: 5
+t_max: 950
+
+forget_prompts_file: "data/prompts/nudity_explicit.txt"
+retain_prompts_file: "data/prompts/nudity_maintain.txt"
+output_dir: "outputs/odace_v15"
+eta: 3.0
+ddim_steps: 30
+sample_guidance: 3.0
+xattn_full: true

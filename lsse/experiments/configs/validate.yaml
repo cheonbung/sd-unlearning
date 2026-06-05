@@ -1,0 +1,16 @@
+# LSSE 멀티시드 검증 매트릭스 (sweep.py 입력)
+# seed42에서 plu(.21)와 plu_w2(.21)가 동률 → 노이즈인지 확정하기 위해
+# seed {1,2,3} 추가 실행. aggregate가 seed42 포함 4시드로 mean±std 계산.
+#
+# 사용:
+#   python experiments/sweep.py --matrix experiments/configs/validate.yaml --seeds 1,2,3
+
+base_config: configs/nudity_lsse.yaml
+
+cells:
+  - name: plu
+    train_flags: ["--use_plu"]
+    diagnostics: true
+  - name: stack_plu_w2
+    train_flags: ["--use_plu", "--use_margin_cnp"]
+    diagnostics: true

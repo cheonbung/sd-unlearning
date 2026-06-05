@@ -129,3 +129,46 @@ def apply_uniform_mask(
 def get_trainable_param_count(text_encoder: nn.Module) -> int:
     """학습 가능한 파라미터 수 반환 (로깅용)."""
     return sum(p.numel() for p in text_encoder.parameters() if p.requires_grad)
+
+
+def recompute_layer_mask_dynamic(
+    text_encoder: nn.Module,
+    layer_drifts: List[float],
+    top_k: int = 3,
+) -> Set[int]:
+    """W5: 학습 중 레이어별 drift로 top-K 재선택 (정적 CAP 가정 보정).
+
+    문제: CLM의 top-K는 학습 전 frozen 모델 CAP로 고정. 학습이 진행되면
+    개념 처리 위치가 이동(특히 PLU)하는데 마스크는 그대로 → 개념이 frozen
+    레이어에 잔류 가능.
+    해법: 주기적으로 각 레이어의 frozen 대비 drift를 측정, 가장 많이 변한
+    (=개념을 실제 처리/소거 중인) top-K 레이어만 다시 열어 학습 집중.
+
+    Args:
+        text_encoder: 학습 대상 CLIPTextModel.
+        layer_drifts: per_layer_drift 결과. 길이 (n_layers+1) = [embedding, layer0_out, ...].
+                      layer i의 drift ≈ layer_drifts[i+1].
+        top_k:        다시 열어둘 레이어 수.
+    Returns:
+        새 학습 가능 레이어 인덱스 집합.
+    """
+    layers = _get_encoder_layers(text_encoder)
+    n = len(layers)
+    if len(layer_drifts) >= n + 1:
+        scores = list(layer_drifts[1 : n + 1])   # layer i -> drifts[i+1]
+    else:
+        scores = list(layer_drifts[:n]) + [0.0] * max(0, n - len(layer_drifts))
+
+    if top_k >= n:
+        for layer in layers:
+            layer.requires_grad_(True)
+        return set(range(n))
+
+    top_indices = set(sorted(range(n), key=lambda i: -scores[i])[:top_k])
+    for i, layer in enumerate(layers):
+        layer.requires_grad_(i in top_indices)
+    logger.info(
+        f"[CLM-dyn] drift 재랭킹 top-{top_k}: {sorted(top_indices)} "
+        f"(drift: {[f'{scores[i]:.3e}' for i in sorted(top_indices)]})"
+    )
+    return top_indices

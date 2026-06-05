@@ -39,18 +39,28 @@ from tqdm import tqdm
 from .cnp import (
     compute_concept_direction,
     compute_concept_direction_macd,
+    compute_concept_direction_token_selective,
     compute_concept_directions,
     cnp_loss,
     cnp_loss_ddf,
+    cnp_loss_margin,
     cnp_loss_multi,
 )
-from .csr import csr_loss, csr_loss_with_negatives
+from .csr import (
+    csr_loss,
+    csr_loss_with_negatives,
+    csr_loss_tokenwise,
+    csr_loss_membank,
+    MemoryBank,
+)
 from .clm import (
     apply_layer_mask,
     apply_uniform_mask,
     load_cap_scores,
     get_trainable_param_count,
+    recompute_layer_mask_dynamic,
 )
+from . import diagnostics as diag
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +91,18 @@ class LSSETrainer:
         use_multi_cnp: bool = False,
         num_concept_dirs: int = 3,
         use_ldlr: bool = False,
+        save_every: int = 0,
+        enable_diagnostics: bool = True,
+        use_tokensel_dir: bool = False,
+        tokensel_frac: float = 0.3,
+        use_margin_cnp: bool = False,
+        margin_ortho_weight: float = 0.1,
+        use_tokenwise_csr: bool = False,
+        use_membank: bool = False,
+        membank_size: int = 512,
+        use_dynamic_clm: bool = False,
+        dynamic_clm_every: int = 15,
+        use_adaptive_weights: bool = False,
     ):
         """
         Args:
@@ -117,6 +139,23 @@ class LSSETrainer:
         self.use_multi_cnp = use_multi_cnp
         self.num_concept_dirs = num_concept_dirs
         self.use_ldlr = use_ldlr
+        self.save_every = save_every
+        self.enable_diagnostics = enable_diagnostics
+        self.use_tokensel_dir = use_tokensel_dir
+        self.tokensel_frac = tokensel_frac
+        self.use_margin_cnp = use_margin_cnp
+        self.margin_ortho_weight = margin_ortho_weight
+        self.use_tokenwise_csr = use_tokenwise_csr
+        self.use_membank = use_membank
+        self.use_dynamic_clm = use_dynamic_clm
+        self.dynamic_clm_every = dynamic_clm_every
+        self.use_adaptive_weights = use_adaptive_weights
+        self._clm_top_k = clm_top_k          # W5 동적 재랭킹용 보존
+        self.memory_bank = MemoryBank(membank_size) if use_membank else None
+        # W6 uncertainty weighting: 손실별 log-variance (cnp, csr, implicit)
+        self.log_vars = (
+            nn.Parameter(torch.zeros(3, device=device)) if use_adaptive_weights else None
+        )
         self.concept_dirs: Optional[torch.Tensor] = None  # (K, L, D) for multi-dir
 
         self.frozen_encoder = copy.deepcopy(text_encoder).to(device)
@@ -169,7 +208,10 @@ class LSSETrainer:
             except AttributeError:
                 pass
         trainable = [p for p in self.text_encoder.parameters() if p.requires_grad]
-        self.optimizer = Adam(trainable, lr=self.learning_rate)
+        groups = [{"params": trainable, "lr": self.learning_rate}]
+        if self.log_vars is not None:  # W6 적응가중 파라미터 포함
+            groups.append({"params": [self.log_vars], "lr": self.learning_rate})
+        self.optimizer = Adam(groups)
 
     def _tokenize(self, texts: List[str]) -> object:
         return self.tokenizer(
@@ -209,6 +251,11 @@ class LSSETrainer:
         elif self.use_macd:
             self.concept_dir = compute_concept_direction_macd(all_z_cat)
             logger.info("  [MACD] 구면 PCA 기반 개념 방향 사용")
+        elif self.use_tokensel_dir:
+            self.concept_dir = compute_concept_direction_token_selective(
+                all_z_cat, self.tokensel_frac
+            )
+            logger.info(f"  [W1] 토큰 선택 SVD 개념 방향 (top_frac={self.tokensel_frac})")
         else:
             self.concept_dir = compute_concept_direction(all_z_cat)
         logger.info(
@@ -228,26 +275,47 @@ class LSSETrainer:
         z_retain = self._encode(batch_retain)
         with torch.no_grad():
             z_retain_frozen = self._encode_frozen(batch_retain)
-            if self.use_ddf:
-                z_forget_frozen = self._encode_frozen(batch_forget)
+            need_forget_frozen = self.use_ddf or self.use_margin_cnp
+            z_forget_frozen = (
+                self._encode_frozen(batch_forget) if need_forget_frozen else None
+            )
 
+        # --- CNP explicit (forget) ---
         if self.use_multi_cnp and self.concept_dirs is not None:
             L_cnp_explicit = cnp_loss_multi(z_forget, self.concept_dirs)
+        elif self.use_margin_cnp:                                       # W2
+            L_cnp_explicit = cnp_loss_margin(
+                z_forget, z_forget_frozen, self.concept_dir, self.margin_ortho_weight
+            )
         elif self.use_ddf:
             L_cnp_explicit = cnp_loss_ddf(z_forget, z_forget_frozen, self.concept_dir)
         else:
             L_cnp_explicit = cnp_loss(z_forget, self.concept_dir)
 
-        if self.use_extended_csr:
+        # --- CSR (retain) ---
+        if self.use_membank and self.memory_bank is not None:           # W4
+            L_csr = csr_loss_membank(
+                z_retain, z_retain_frozen, self.memory_bank, self.temperature
+            )
+        elif self.use_tokenwise_csr:                                    # W3
+            L_csr = csr_loss_tokenwise(z_retain, z_retain_frozen, self.temperature)
+        elif self.use_extended_csr:
             L_csr = csr_loss_with_negatives(z_retain, z_retain_frozen, z_forget, self.temperature)
         else:
             L_csr = csr_loss(z_retain, z_retain_frozen, self.temperature)
 
+        # --- CNP implicit ---
         L_cnp_implicit = torch.tensor(0.0, device=self.device)
         if batch_implicit:
             z_implicit = self._encode(batch_implicit)
             if self.use_multi_cnp and self.concept_dirs is not None:
                 L_cnp_implicit = cnp_loss_multi(z_implicit, self.concept_dirs)
+            elif self.use_margin_cnp:                                   # W2
+                with torch.no_grad():
+                    z_implicit_frozen = self._encode_frozen(batch_implicit)
+                L_cnp_implicit = cnp_loss_margin(
+                    z_implicit, z_implicit_frozen, self.concept_dir, self.margin_ortho_weight
+                )
             elif self.use_ddf:
                 with torch.no_grad():
                     z_implicit_frozen = self._encode_frozen(batch_implicit)
@@ -255,11 +323,20 @@ class LSSETrainer:
             else:
                 L_cnp_implicit = cnp_loss(z_implicit, self.concept_dir)
 
-        L_total = (
-            self.alpha * L_cnp_explicit
-            + self.beta * L_csr
-            + self.gamma * L_cnp_implicit
-        )
+        # --- 총 손실 ---
+        if self.use_adaptive_weights and self.log_vars is not None:     # W6
+            # Kendall uncertainty weighting: Σ exp(-s_i)·L_i + s_i
+            losses = [L_cnp_explicit, L_csr, L_cnp_implicit]
+            L_total = sum(
+                torch.exp(-self.log_vars[i]) * losses[i] + self.log_vars[i]
+                for i in range(3)
+            )
+        else:
+            L_total = (
+                self.alpha * L_cnp_explicit
+                + self.beta * L_csr
+                + self.gamma * L_cnp_implicit
+            )
         L_total.backward()
         self.optimizer.step()
 
@@ -275,6 +352,7 @@ class LSSETrainer:
         dataset,
         num_epochs: int = 60,
         log_every: int = 10,
+        ckpt_dir: Optional[str] = None,
     ) -> List[Dict[str, float]]:
         """단일 루프 LSSE 학습.
 
@@ -310,6 +388,22 @@ class LSSETrainer:
                 elif epoch == unlock_full:
                     self._update_layer_mask(6)
 
+            # W5: 동적 CLM — drift 기반 top-K 재랭킹 후 optimizer 재생성
+            if self.use_dynamic_clm and epoch > 1 and (epoch - 1) % self.dynamic_clm_every == 0:
+                try:
+                    fb = explicit_p[: self.batch_size]
+                    for p in self.text_encoder.parameters():
+                        p.requires_grad_(True)
+                    _, hsc = self._encode_hidden(fb)
+                    _, hsf = self._encode_frozen_hidden(fb)
+                    drifts = diag.per_layer_drift(hsc, hsf)
+                    self.active_layers = recompute_layer_mask_dynamic(
+                        self.text_encoder, drifts, self._clm_top_k
+                    )
+                    self._reset_optimizer()
+                except Exception as exc:
+                    logger.warning(f"  [W5] 동적 CLM 재랭킹 실패: {exc}")
+
             epoch_losses: Dict[str, float] = {
                 "L_cnp_explicit": 0.0,
                 "L_csr": 0.0,
@@ -344,6 +438,12 @@ class LSSETrainer:
 
             for k in epoch_losses:
                 epoch_losses[k] /= n_batches
+
+            # 진단 지표 (log 시점마다, 고정 배치 기준)
+            if self.enable_diagnostics and (epoch % log_every == 0 or epoch == num_epochs):
+                epoch_losses.update(self.compute_diagnostics(dataset))
+
+            epoch_losses["epoch"] = epoch
             history.append(epoch_losses)
 
             if epoch % log_every == 0:
@@ -353,9 +453,92 @@ class LSSETrainer:
                     f"L_csr={epoch_losses['L_csr']:.4f}  "
                     f"L_impl={epoch_losses['L_cnp_implicit']:.4f}  "
                     f"L_total={epoch_losses['L_total']:.4f}"
+                    + (f"  resid={epoch_losses.get('diag_residual_var', float('nan')):.3f}"
+                       f"  gcos={epoch_losses.get('diag_grad_cosine', float('nan')):.3f}"
+                       if self.enable_diagnostics else "")
                 )
 
+            # 체크포인트 궤적 (W6/PLU 붕괴 규명용)
+            if ckpt_dir and self.save_every > 0 and epoch % self.save_every == 0 and epoch < num_epochs:
+                ep_dir = os.path.join(ckpt_dir, f"epoch_{epoch}")
+                self.text_encoder.eval()
+                self.save(ep_dir)
+                self.text_encoder.train()
+                logger.info(f"  [ckpt] epoch {epoch} -> {ep_dir}")
+
         return history
+
+    @torch.no_grad()
+    def _encode_hidden(self, texts: List[str]):
+        """진단용: last_hidden_state + 전체 레이어 hidden_states 반환."""
+        tokens = self._tokenize(texts)
+        out = self.text_encoder(tokens.input_ids, output_hidden_states=True)
+        return out.last_hidden_state, out.hidden_states
+
+    @torch.no_grad()
+    def _encode_frozen_hidden(self, texts: List[str]):
+        tokens = self._tokenize(texts)
+        out = self.frozen_encoder(tokens.input_ids, output_hidden_states=True)
+        return out.last_hidden_state, out.hidden_states
+
+    def compute_diagnostics(self, dataset, max_n: int = 64) -> Dict[str, float]:
+        """학습 상태 진단 지표 묶음 (diag_* 접두사).
+
+        no_grad 지표(사영/잔여분산/drift/AUC/레이어 drift) + grad 지표(손실 코사인).
+        고정 부분집합 사용 — 학습 데이터 순서 영향 최소화.
+        """
+        if self.concept_dir is None:
+            return {}
+        was_training = self.text_encoder.training
+        fp = dataset.explicit_prompts[:max_n]
+        rp = dataset.retain_prompts[: self.batch_size]
+
+        out: Dict[str, float] = {}
+        # --- no_grad 지표 ---
+        with torch.no_grad():
+            z_forget = torch.cat(
+                [self._encode(fp[i:i + self.batch_size]) for i in range(0, len(fp), self.batch_size)],
+                dim=0,
+            )
+            z_retain = self._encode(rp)
+            z_retain_frozen = self._encode_frozen(rp)
+            out["diag_proj_energy"] = diag.projection_energy(z_forget, self.concept_dir)
+            out["diag_residual_var"] = diag.residual_concept_variance(z_forget, self.concept_dir)
+            out["diag_retain_drift"] = diag.retain_drift(z_retain, z_retain_frozen)
+            out["diag_separability_auc"] = diag.separability_auc(
+                z_forget[: self.batch_size], z_retain, self.concept_dir
+            )
+            # 레이어별 drift (forget 한 배치) — output_hidden_states 미지원 모델은 skip
+            try:
+                _, hsc = self._encode_hidden(fp[: self.batch_size])
+                _, hsf = self._encode_frozen_hidden(fp[: self.batch_size])
+                drifts = diag.per_layer_drift(hsc, hsf)
+                out["diag_layer_drift_max"] = max(drifts) if drifts else 0.0
+                out["diag_layer_drift_argmax"] = (
+                    float(int(torch.tensor(drifts).argmax())) if drifts else -1.0
+                )
+            except TypeError:
+                pass  # mock/단순 모델: hidden_states 미지원
+
+        # --- grad 지표: L_cnp vs L_csr 충돌 ---
+        try:
+            self.optimizer.zero_grad()
+            zf = self._encode(fp[: self.batch_size])
+            zr = self._encode(rp)
+            with torch.no_grad():
+                zrf = self._encode_frozen(rp)
+            l_cnp = cnp_loss(zf, self.concept_dir)
+            l_csr = csr_loss(zr, zrf, self.temperature)
+            params = [p for p in self.text_encoder.parameters() if p.requires_grad]
+            out["diag_grad_cosine"] = diag.gradient_cosine(params, l_cnp, l_csr)
+            self.optimizer.zero_grad()
+        except Exception as exc:  # 진단 실패가 학습을 막지 않도록
+            logger.warning(f"  [diag] grad_cosine 계산 실패: {exc}")
+            out["diag_grad_cosine"] = float("nan")
+
+        if was_training:
+            self.text_encoder.train()
+        return out
 
     def save(self, save_dir: str):
         os.makedirs(save_dir, exist_ok=True)
