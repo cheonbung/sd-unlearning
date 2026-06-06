@@ -32,12 +32,12 @@ harness 동일 프로토콜로 측정.
 | 9 | **★ SLD-Max** (재현) | SLD | 추론 가이던스(δ0,sS5000) | v1.4 | 45.2 | 121.65 | 24.41 | 0.477 | 0.509 |
 | 10 | vanilla LSSE (N7+N8+N9) | LSSE | 텍스트인코더 | v1.4 | 46.0 | 147.71 | 24.20 | 0.641 | 0.506 |
 | 11 | DACE v2 (concept-axis) | DACE | 텍스트인코더 | v1.4 | 50.8 | 121.29 | 25.78 | 0.406 | 0.507 |
-| 12 | FCF-P (원조 논문) | FCF | 텍스트인코더 | v1.4 | 52.8 | 120.22 | 25.30 | 0.391 | 0.508 |
+| 12 | FCF-P (우리 fcf/ 재구현; 공식 16.9 → §③정정) | FCF | 텍스트인코더 | v1.4 | 52.8 | 120.22 | 25.30 | 0.391 | 0.508 |
 | 13 | **SD2.1-base** (NSFW-필터 사전학습) | 기준선 | (소거 없음) | v2.1 | 54.4 | 118.32 | 25.95 | — | 0.508 |
 | 14 | ODACE v2 (K/V-only, 약한 편집) | ODACE | UNET K/V | v1.4 | 56.0 | 116.39 | 25.98 | 0.265 | 0.508 |
 | 15 | **★ SLD-Strong** (재현) | SLD | 추론 가이던스(δ7,sS2000) | v1.4 | 58.4 | 121.58 | 24.92 | 0.349 | 0.508 |
 | 16 | raw v1.5 | 기준 | — | v1.5 | 60.0 | 117.99 | 26.45 | 0 (기준) | 0.508 |
-| 17 | FCF-E (원조 논문) | FCF | 텍스트인코더 | v1.4 | 61.2 | 119.33 | 25.58 | 0.345 | 0.508 |
+| 17 | FCF-E (우리 fcf/ 재구현; 공식 32.9 → §③정정) | FCF | 텍스트인코더 | v1.4 | 61.2 | 119.33 | 25.58 | 0.345 | 0.508 |
 | 18 | raw v1.4 | 기준 | — | v1.4 | 62.0 | 118.64 | 26.48 | 0 (기준) | 0.508 |
 | 18 | **★ SLD-Medium** (재현) | SLD | 추론 가이던스(δ10,sS1000) | v1.4 | 62.0 | 118.98 | 25.78 | 0.237 | 0.508 |
 | 20 | DACE+PLU (concept-axis+PLU) | DACE | 텍스트인코더 | v1.4 | 73.6 | 123.71 | 25.82 | 0.387 | 0.507 |
@@ -147,6 +147,10 @@ Safe-CLIP을 우리 harness로 재현하면 표 A의 ASR은 위 표 B 값보다 
 
 ### ③ FCF 재현 정량 검증 (Phase 7 — 프로토콜 정렬 재채점 + 통계)
 
+> ⚠️ **이 절(Phase 7)의 "FCF-P/E 재현 실패" 결론은 §③-정정(Phase 8)에서 번복되었다.** 아래는 *불충실한
+> 우리 `fcf/` 재구현*(FCF-P 4-label 38.0)을 기준으로 한 1차 분석으로 **기록 보존용**이다. 올바른 결론
+> (공식 저자 코드로 FCF 재현 성공, **FCF-P full-set 4-label 3.7 ≈ 논문 3.43**)은 아래 **§③-정정** 참조.
+
 **질문:** FCF(Fan 2026)가 보고한 정량 결과와 우리 재현이 *비슷한가?* 프로토콜이 달라 절대값은 직접
 비교 불가이므로, **(a) 탐지 confound를 제거한 뒤 (b) 방향·순위·감소%** 의 robust 축으로 검증한다.
 
@@ -214,33 +218,37 @@ ASR 직접비교 불가(raw 46.4 vs 75.79). (2) 장수: 우리 ×50 vs FCF 1 img
 | 하이퍼파라미터 | 2.5e-5/0.25/0.7/1.0 | 동일 ✓ |
 
 **검증:** 저자 원본 코드(`concept_forgetting_train.py`+`features_forgetting_P/E.py`, 순수 CLIPTextModel)를
-저자 데이터로 우리 env에서 학습 → `te_swap`으로 평가(`fcf_p_official`/`fcf_e_official`, 동일 50-prompt harness).
+저자 데이터로 우리 env에서 학습 → `te_swap`으로 평가. **두 프로토콜**으로 측정: (1) 우리 50-prompt harness,
+(2) **논문정렬 full-set**(`fcf/data/eval` 전체 — I2P 931·P4D 361·RaB 95·RaB(Re) 95·UDA 142, 1 img/prompt;
+`compare/fcf_repro/eval_fullset.py`).
 
-| 방법 (mean ASR%) | 우리 `fcf/`(8/4-label) | **공식 코드(8/4-label)** | 논문(4-label) | 밴드 |
+| 방법 (mean nudity ASR%) | 우리 `fcf/`(8/4-lab) | 공식 50-prompt(8/4-lab) | **공식 full-set(8/4-lab)** | 논문(4-lab) |
 |---|---|---|---|---|
-| **FCF-P** | 52.8 / 38.0 | **17.2 / 5.2** | **3.43** | **match** (Δ1.8) |
-| **FCF-E** | 61.2 / 49.2 | **28.0 / 17.2** | 8.87 | partial |
+| **FCF-P** | 52.8 / 38.0 | 17.2 / 5.2 | **16.9 / 3.7** | **3.43** ✅ 거의 정확(Δ0.3) |
+| **FCF-E** | 61.2 / 49.2 | 28.0 / 17.2 | 32.9 / 18.6 | 8.87 partial(동일 차수·순서) |
+| raw SD(참고) | 62.0 / 46.4 | — | 64.9 / 50.4 | 75.79 |
 
-특히 최대 모순이던 **Ring-A-Bell(Re)가 94→20**(8-label)으로 급감 → 공식 코드는 적대 강건성도 재현.
+full-set FCF-P per-attack(4-label): I2P 2.6(논문3.0)·RaB 3.2(1.05)·RaB(Re) 5.3(0.96)·P4D 4.4(5.26)·UDA 2.8(6.90)
+— **전 공격에서 논문과 같은 저-ASR 영역**. 최대 모순이던 **Ring-A-Bell(Re)가 우리 `fcf/` 94 → 공식 5.3**(4-label)으로 해소.
 
-**정정된 순위 상관:** **Spearman all5 = 0.90** (이전 −0.10) · baselines3 = 1.00. 논문 순위
-`FCF-P·FCF-E·ESD·Safe-CLIP·SLD` ↔ 우리 `FCF-P·ESD·FCF-E·Safe-CLIP·SLD`(FCF-E↔ESD만 교환). **FCF-P가
-논문·우리 모두 1위**. %감소도 FCF-P 88.8%(논문 95.5%)로 거의-전소거.
+**정정된 순위 상관(50-prompt 4-label, 전 방법 동일셋):** **Spearman all5 = 0.90**(이전 −0.10) · baselines3 = 1.00.
+논문 순위 `FCF-P·FCF-E·ESD·Safe-CLIP·SLD` ↔ 우리 `FCF-P·ESD·FCF-E·Safe-CLIP·SLD`(FCF-E↔ESD만 교환). **FCF-P가 논문·우리 모두 1위.**
 
-**최종 판정 (정정):** ✅ **FCF는 재현된다.** 저자 코드+데이터를 쓰면 FCF-P가 우리 50-prompt harness에서
-4-label ASR **5.2 ≈ 논문 3.43**. 앞선 §③의 음성 결론은 *우리 재구현 결함*의 산물이었고, [[dace-negative-result]]가
-주장한 "텍스트인코더 unlearning 무용"은 **FCF에 한해서는 과도한 일반화**였음(단, ODACE 4.0 우위·LSSE 붕괴 등
-다른 결론은 유지). 잔여 격차(FCF-E partial, RaB(Re) 절대값)는 50-prompt vs full-set·RaB(Re) 적응생성 차이.
+**최종 판정 (정정):** ✅ **FCF는 재현된다.** 저자 코드+데이터로 학습하면 FCF-P가 **논문정렬 full-set 4-label
+ASR 3.7 ≈ 논문 3.43**. 앞선 §③(Phase 7)의 음성 결론은 *우리 재구현 결함*(단어리스트·`/(1−η)` 정규화 누락)의
+산물. [[dace-negative-result]]의 "텍스트인코더 unlearning 무용"은 **FCF에 한해 과도한 일반화**였음 — 단,
+ODACE 4.0 우위·LSSE locality 붕괴 등 다른 결론은 유지. 잔여 격차(FCF-E partial, RaB(Re) 절대값)는 RaB(Re)
+적응생성·NudeNet 버전 차이.
 
-> 추가 산출물: 공식 학습 `compare/fcf_repro/`(official_fcf_{p,e}, train.log) · 모델 `fcf_p_official`/`fcf_e_official`
-> (xeval REGISTRY). 옵션(미실행): full I2P 4703 + RaB 95 × 1img/prompt 평가는 절대값을 더 정밀화하나 결론 불변.
+> 산출물: 공식 학습 `compare/fcf_repro/`(official_fcf_{p,e}·train.log) · full-set 평가
+> `compare/fcf_repro/eval_fullset.py`+`fullset_eval.json` · 모델 `fcf_p_official`/`fcf_e_official`(xeval REGISTRY).
 
 ### ④ 개입 지점별 강건성 (mean ASR↓, 우리 harness)
 
 | 개입 지점 | 방법(ASR) | 패턴 |
 |---|---|---|
 | 추론시 가이던스 | safe_neg 15.2 · SLD-Max 45.2 · SLD-Strong 58.4 · SLD-Med 62.0 | 가중치 미변경 → 적대공격에 가장 취약(RaB 76~94) |
-| CLIP 텍스트인코더 | Safe-CLIP 44.0 · Sph+OT 15.6 · FCF-P 52.8 · DACE 50.8~73.6 | 텍스트임베딩 proxy는 ASR을 underdetermine(분산 큼) |
+| CLIP 텍스트인코더 | Safe-CLIP 44.0 · Sph+OT 15.6 · FCF-P 52.8(우리 재구현)→**16.9(공식)** · DACE 50.8~73.6 | 분산 큼; 단 **충실히 학습한 FCF-P(공식)는 16.9로 ESD-u(21.6)보다 낮아** proxy가 *항상* underdetermine하진 않음(§③-정정) |
 | 사전학습 NSFW 필터 | SD2.1-base 54.4 | 잠재표현 잔존 → 적대 복원 취약 |
 | **UNET 비-cross-attn** | **ESD-u 21.6** | 가중치 직접 편집 → 추론·텍스트보다 강건 |
 | **UNET cross-attn(출력접지)** | **ODACE 4.0** | 출력 노이즈 직접 최적화 → 최심부 소거 |
