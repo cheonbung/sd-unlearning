@@ -145,17 +145,62 @@ Safe-CLIP을 우리 harness로 재현하면 표 A의 ASR은 위 표 B 값보다 
 
 ## 다방면 분석 (Phase 6)
 
-### ③ 재현 충실도 — 우리 harness(표 A) vs 원논문/외부 보고값(표 B)
+### ③ FCF 재현 정량 검증 (Phase 7 — 프로토콜 정렬 재채점 + 통계)
 
-| 방법 | 우리 harness ASR | 비교 기준값 | 해석 |
-|---|---|---|---|
-| **SLD-Medium** | 62.0 | FCF 보고 SLD-Med nudity mean **60.0** | Δ+2.0 — **거의 정확히 재현**. SLD가 적대공격에 약하다는 FCF 관찰 확인 |
-| **Safe-CLIP** | 44.0 | FCF 보고 Safe-CLIP mean **34.5** | 같은 차수(Δ+9.5). 우리 harness(고정 공격셋 ×50)가 FCF보다 적대적 |
-| **ESD-u** | 21.6 | FCF 보고 ESD mean 31.8 / 원논문 I2P 796→134(−83%) | 방향 일치(raw 62.0→21.6, −65%). ESD가 "중간 강도" 소거라는 점 재현 |
+**질문:** FCF(Fan 2026)가 보고한 정량 결과와 우리 재현이 *비슷한가?* 프로토콜이 달라 절대값은 직접
+비교 불가이므로, **(a) 탐지 confound를 제거한 뒤 (b) 방향·순위·감소%** 의 robust 축으로 검증한다.
 
-- **핵심:** 우리 harness는 원프로토콜보다 **체계적으로 더 적대적**이다(FCF-P가 원논문 3.4 → 우리 52.8로
-  치솟은 것과 동일 방향). 그럼에도 SLD-Medium은 60↔62로 거의 일치 → **재현 충실도 신뢰 가능**.
-- **표 A/B 병합 절대 금지**가 정당함을 데이터가 직접 보여줌(같은 방법이 프로토콜에 따라 크게 다른 값).
+**방법.** FCF Table 1(nudity ASR)·Table 3(FID/CLIP)을 PDF에서 직접 동결(`compare/fcf_reference_values.json`)하고,
+우리가 **이미 생성한 공격 이미지를 FCF의 정확한 NudeNet 규칙으로 재채점**(`compare/rescore_fcf_protocol.py`).
+핵심 confound는 **탐지 라벨셋** — 우리 harness는 8라벨(노출 4 + `BUTTOCKS_EXPOSED` + COVERED 3)·score>0.3,
+FCF는 **노출 4라벨만**(`EXPOSED_ANUS/BREAST_F/GENITALIA_F/GENITALIA_M`). 같은 임계(0.3)에서 라벨셋만 FCF로
+바꿔 재채점하면 confound가 분리된다. *(재채점의 8-label ASR이 표 A를 정확히 재현 → 채점 동일성 검증 완료.)*
+
+**검증 결과 (nudity, mean ASR%):**
+
+| 방법 | FCF 논문 | 우리(FCF 4-label) | 우리(8-label=표A) | 논문 감소% | 우리 감소% | 방향 | 절대 밴드 |
+|---|---|---|---|---|---|---|---|
+| ESD | 31.79 | 11.6 | 21.6 | −58.1 | −75.0 | ✓ | diverge |
+| SLD-Med | 59.97 | 43.2 | 62.0 | −20.9 | −6.9 | ✓ | partial |
+| Safe-CLIP | 34.52 | 29.2 | 44.0 | −54.5 | −37.1 | ✓ | partial |
+| **FCF-E** | 8.87 | **49.2** | 61.2 | −88.3 | **+6.0** | ✗ | **diverge** |
+| **FCF-P** | 3.43 | **38.0** | 52.8 | −95.5 | −18.1 | ✓ | **diverge** |
+
+*(감소%는 각 출처의 자기 raw 대비 → 프롬프트셋 차이로 인한 절대 baseline 이동(우리 raw FCF-rule **46.4** vs
+논문 SD **75.79**)을 상쇄해 크기를 비교 가능하게 만든다. 라벨셋 정렬만으로 우리 ASR이 크게 내려감(표A→FCF:
+ESD 21.6→11.6, FCF-P 52.8→38.0) = confound 실재 확인.)*
+
+**순위 상관 (Spearman, 방법별 효능 순위):**
+
+| 집합 | ρ | 해석 |
+|---|---|---|
+| baseline 3종(ESD/SLD/Safe-CLIP) | **+1.000** | 저자/캐논 재현 baseline은 논문의 **상대 순위를 완벽 재현** |
+| 전체 5종(+FCF-E/P) | **−0.10** | FCF 자체 방법을 넣으면 순위 일치 붕괴 |
+
+- 논문 순위(best→worst): **FCF-P · FCF-E · ESD · Safe-CLIP · SLD**
+- 우리 순위(best→worst): **ESD · Safe-CLIP · FCF-P · SLD · FCF-E** — FCF-P/E가 *논문 1·2위 → 우리 3·5위* 추락
+  (FCF-E는 우리 재현에서 **raw보다도 나쁨**, 방향 자체 실패).
+
+**판정.**
+- ✅ **baseline 재현 성공:** ESD/SLD/Safe-CLIP은 방향 전부 일치 + 순위 ρ=1.0. 특히 **공개 가중치 Safe-CLIP**
+  (우리 학습 아님)은 절대 차이도 가장 근접(29.2 vs 34.5). → FCF가 보고한 *baseline 상대 비교는 신뢰 가능*.
+- ❌ **FCF 자체 방법(FCF-P/E) 재현 실패:** 라벨셋 confound 제거(52.8→38.0) **후에도** 논문(3.43)과 10× 격차.
+  FCF-E는 raw보다도 나쁨(방향 실패).
+- 🔑 **격차의 국소화:** 같은 텍스트인코더 개입이라도 **저자 가중치(Safe-CLIP)는 재현되고 우리가 from-scratch
+  학습한 FCF-P/E만 발산** → 실패 원인은 프로토콜이 아니라 **FCF 학습 재현**. 텍스트임베딩 proxy가 ASR을
+  underdetermine한다는 [[dace-negative-result]]·[[odace-breakthrough]]와 정확히 일치.
+
+**한계(재채점으로 제거 불가한 잔차).** (1) 프롬프트셋: 우리 50개 큐레이션 vs FCF 전체 I2P+도구 기본셋 → 절대
+ASR 직접비교 불가(raw 46.4 vs 75.79). (2) 장수: 우리 ×50 vs FCF 1 img/prompt. (3) NudeNet 버전 drift.
+→ **절대값이 아니라 방향·순위·감소%로 해석**해야 하며, 위 판정은 모두 그 robust 축에 근거한다.
+**표 A/B 병합 절대 금지**가 정당함을 데이터가 직접 재확인.
+
+**품질(Table 3) 순위:** FID Spearman **0.43** · CLIP **0.26** (스케일 상이로 절대비교 금지, 순위만). 약한 양의
+상관 — "모든 방법이 충실도 보존"이라는 FCF 주장과 대체로 일치(우리 COCO-300에서도 전 방법 FID 117–120 밀집).
+
+> 산출물: `compare/fcf_reference_values.json`(논문 동결) · `compare/fcf_rescore.json`(재채점) ·
+> `compare/fcf_verification.json`(통계) · 스크립트 `compare/rescore_fcf_protocol.py`·`compare/verify_fcf_reproduction.py`.
+> 재현: `python compare/rescore_fcf_protocol.py && python compare/verify_fcf_reproduction.py`.
 
 ### ④ 개입 지점별 강건성 (mean ASR↓, 우리 harness)
 
