@@ -202,6 +202,39 @@ ASR 직접비교 불가(raw 46.4 vs 75.79). (2) 장수: 우리 ×50 vs FCF 1 img
 > `compare/fcf_verification.json`(통계) · 스크립트 `compare/rescore_fcf_protocol.py`·`compare/verify_fcf_reproduction.py`.
 > 재현: `python compare/rescore_fcf_protocol.py && python compare/verify_fcf_reproduction.py`.
 
+### ③-정정 (Phase 8): 공식 저자 코드로 재현 성공 — 위 "실패" 판정 번복
+
+**⚠️ 위 ③의 "FCF-P/E 재현 실패"는 우리 `fcf/` 재구현이 불충실했던 탓이었다.** 공식 레포
+[`github.com/f-c-forgetting/FCF`](https://github.com/f-c-forgetting/FCF)를 클론·정독하니 핵심 차이가 드러남:
+
+| 항목 | 우리 `fcf/` (불충실) | 공식 저자 코드 |
+|---|---|---|
+| explicit 학습데이터 | concept **단어 ~10개** 리스트 | **문장 삼중쌍 25개**(`prompt_f`/`prompt_n`/`prompt_r`, `data/train/nudity.csv`) |
+| projection 공식 | `target − η·proj` | `(target − η·proj) / (1−η_clean)` — **÷0.3 정규화 포함** |
+| 하이퍼파라미터 | 2.5e-5/0.25/0.7/1.0 | 동일 ✓ |
+
+**검증:** 저자 원본 코드(`concept_forgetting_train.py`+`features_forgetting_P/E.py`, 순수 CLIPTextModel)를
+저자 데이터로 우리 env에서 학습 → `te_swap`으로 평가(`fcf_p_official`/`fcf_e_official`, 동일 50-prompt harness).
+
+| 방법 (mean ASR%) | 우리 `fcf/`(8/4-label) | **공식 코드(8/4-label)** | 논문(4-label) | 밴드 |
+|---|---|---|---|---|
+| **FCF-P** | 52.8 / 38.0 | **17.2 / 5.2** | **3.43** | **match** (Δ1.8) |
+| **FCF-E** | 61.2 / 49.2 | **28.0 / 17.2** | 8.87 | partial |
+
+특히 최대 모순이던 **Ring-A-Bell(Re)가 94→20**(8-label)으로 급감 → 공식 코드는 적대 강건성도 재현.
+
+**정정된 순위 상관:** **Spearman all5 = 0.90** (이전 −0.10) · baselines3 = 1.00. 논문 순위
+`FCF-P·FCF-E·ESD·Safe-CLIP·SLD` ↔ 우리 `FCF-P·ESD·FCF-E·Safe-CLIP·SLD`(FCF-E↔ESD만 교환). **FCF-P가
+논문·우리 모두 1위**. %감소도 FCF-P 88.8%(논문 95.5%)로 거의-전소거.
+
+**최종 판정 (정정):** ✅ **FCF는 재현된다.** 저자 코드+데이터를 쓰면 FCF-P가 우리 50-prompt harness에서
+4-label ASR **5.2 ≈ 논문 3.43**. 앞선 §③의 음성 결론은 *우리 재구현 결함*의 산물이었고, [[dace-negative-result]]가
+주장한 "텍스트인코더 unlearning 무용"은 **FCF에 한해서는 과도한 일반화**였음(단, ODACE 4.0 우위·LSSE 붕괴 등
+다른 결론은 유지). 잔여 격차(FCF-E partial, RaB(Re) 절대값)는 50-prompt vs full-set·RaB(Re) 적응생성 차이.
+
+> 추가 산출물: 공식 학습 `compare/fcf_repro/`(official_fcf_{p,e}, train.log) · 모델 `fcf_p_official`/`fcf_e_official`
+> (xeval REGISTRY). 옵션(미실행): full I2P 4703 + RaB 95 × 1img/prompt 평가는 절대값을 더 정밀화하나 결론 불변.
+
 ### ④ 개입 지점별 강건성 (mean ASR↓, 우리 harness)
 
 | 개입 지점 | 방법(ASR) | 패턴 |

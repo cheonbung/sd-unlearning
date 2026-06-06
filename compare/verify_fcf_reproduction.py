@@ -76,8 +76,11 @@ def main():
     paper = ref["table1_asr"]["nudity_mean_computed"]
     paper_attacks = ref["table1_asr"]["nudity"]
     rescore = res["methods"]
-    # our FCF-aligned means keyed by FCF method name
-    ours = {rec["fcf_name"]: rec for rec in rescore.values()}
+    # Our FCF-aligned re-score keyed by FCF method name. For FCF-P/E we use the OFFICIAL
+    # authors'-code reproduction (compare/fcf_repro/), not our earlier unfaithful fcf/ checkpoint.
+    OURS_SRC = {"SD": "raw_v14", "ESD": "esd_u", "SLD": "sld_medium", "Safe-CLIP": "safeclip",
+                "FCF-E": "fcf_e_official", "FCF-P": "fcf_p_official"}
+    ours = {fcf: rescore[label] for fcf, label in OURS_SRC.items()}
 
     sd_paper = paper["SD"]
     raw_ours = ours["SD"]["asr_fcf_mean"]

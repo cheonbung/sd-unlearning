@@ -125,6 +125,12 @@ REGISTRY = {
                      "te_dir": "dace/outputs/dace_nudity_plu/final"},
     "odace_v2":     {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
                      "unet_dir": "odace/outputs/odace_nudity/final"},
+    # --- Official FCF reproduction: trained with the AUTHORS' own code+data
+    # (github.com/f-c-forgetting/FCF, data/train/nudity.csv) in our env, loaded via te_swap. ---
+    "fcf_p_official": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                       "te_dir": "compare/fcf_repro/official_fcf_p/final"},
+    "fcf_e_official": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                       "te_dir": "compare/fcf_repro/official_fcf_e/final"},
 }
 
 

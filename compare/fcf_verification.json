@@ -37,29 +37,29 @@
       },
       "FCF-E": {
         "paper_mean": 8.87,
-        "ours_fcf_mean": 49.2,
-        "ours_8label_mean": 61.2,
+        "ours_fcf_mean": 17.2,
+        "ours_8label_mean": 28.0,
         "paper_pct_reduction": 88.3,
-        "ours_pct_reduction": -6.0,
-        "pct_reduction_gap": -94.3,
-        "matched_delta": 40.3,
-        "matched_band": "diverge",
-        "direction_agree": false
+        "ours_pct_reduction": 62.9,
+        "pct_reduction_gap": -25.4,
+        "matched_delta": 8.3,
+        "matched_band": "partial",
+        "direction_agree": true
       },
       "FCF-P": {
         "paper_mean": 3.43,
-        "ours_fcf_mean": 38.0,
-        "ours_8label_mean": 52.8,
+        "ours_fcf_mean": 5.2,
+        "ours_8label_mean": 17.2,
         "paper_pct_reduction": 95.5,
-        "ours_pct_reduction": 18.1,
-        "pct_reduction_gap": -77.4,
-        "matched_delta": 34.6,
-        "matched_band": "diverge",
+        "ours_pct_reduction": 88.8,
+        "pct_reduction_gap": -6.7,
+        "matched_delta": 1.8,
+        "matched_band": "match",
         "direction_agree": true
       }
     },
     "rank": {
-      "spearman_all5": -0.1,
+      "spearman_all5": 0.9,
       "spearman_baselines3": 1.0,
       "paper_order_best_to_worst": [
         "FCF-P",
@@ -69,11 +69,11 @@
         "SLD"
       ],
       "ours_order_best_to_worst": [
-        "ESD",
-        "Safe-CLIP",
         "FCF-P",
-        "SLD",
-        "FCF-E"
+        "ESD",
+        "FCF-E",
+        "Safe-CLIP",
+        "SLD"
       ]
     },
     "direction": {
@@ -129,7 +129,7 @@
         }
       },
       "FCF-E": {
-        "per_attack_spearman": 0.051,
+        "per_attack_spearman": -0.105,
         "paper_attacks": {
           "original_i2p": 6.44,
           "ring_a_bell": 13.68,
@@ -138,15 +138,15 @@
           "unlearndiff": 14.94
         },
         "ours_fcf_attacks": {
-          "original_i2p": 12.0,
-          "ring_a_bell": 88.0,
-          "ring_a_bell_re": 88.0,
-          "p4d": 14.0,
-          "unlearndiff": 44.0
+          "original_i2p": 8.0,
+          "ring_a_bell": 20.0,
+          "ring_a_bell_re": 30.0,
+          "p4d": 8.0,
+          "unlearndiff": 20.0
         }
       },
       "FCF-P": {
-        "per_attack_spearman": -0.7,
+        "per_attack_spearman": -0.821,
         "paper_attacks": {
           "original_i2p": 3.0,
           "ring_a_bell": 1.05,
@@ -155,11 +155,11 @@
           "unlearndiff": 6.9
         },
         "ours_fcf_attacks": {
-          "original_i2p": 8.0,
-          "ring_a_bell": 74.0,
-          "ring_a_bell_re": 90.0,
+          "original_i2p": 4.0,
+          "ring_a_bell": 6.0,
+          "ring_a_bell_re": 8.0,
           "p4d": 6.0,
-          "unlearndiff": 12.0
+          "unlearndiff": 2.0
         }
       }
     }
@@ -195,10 +195,10 @@
   },
   "verdict": {
     "baselines_rank": "REPRODUCES",
-    "all5_rank": "FAILS",
+    "all5_rank": "REPRODUCES",
     "fcf_method_self": {
-      "FCF-P": "diverge",
-      "FCF-E": "diverge"
+      "FCF-P": "match",
+      "FCF-E": "partial"
     },
     "summary": "Author/canonical baselines (ESD/SLD/Safe-CLIP) reproduce the paper's efficacy ranking; FCF's own method (FCF-P/E), reproduced from scratch, does NOT reach the paper's reported ASR even after protocol-aligned re-scoring."
   }

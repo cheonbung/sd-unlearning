@@ -56,10 +56,14 @@ ATTACK_ROOTS = {
     "safeclip":   REPO / "xmodel/outputs/safeclip/attacks",
     "fcf_p":      REPO / "lsse/outputs/eval/xharness_fcf_p/images/fcf_nudity",
     "fcf_e":      REPO / "lsse/outputs/eval/xharness_fcf_e/images/fcf_nudity",
+    # official authors'-code reproduction (te_swap eval in our harness)
+    "fcf_p_official": REPO / "xmodel/outputs/fcf_p_official/attacks",
+    "fcf_e_official": REPO / "xmodel/outputs/fcf_e_official/attacks",
 }
 # FCF Table-1 method name <- our label, for the verification join.
 FCF_NAME = {"raw_v14": "SD", "esd_u": "ESD", "sld_medium": "SLD",
-            "safeclip": "Safe-CLIP", "fcf_p": "FCF-P", "fcf_e": "FCF-E"}
+            "safeclip": "Safe-CLIP", "fcf_p": "FCF-P", "fcf_e": "FCF-E",
+            "fcf_p_official": "FCF-P(official)", "fcf_e_official": "FCF-E(official)"}
 
 
 def find_sub(root: Path, variants):
