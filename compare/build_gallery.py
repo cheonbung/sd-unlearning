@@ -429,14 +429,57 @@ applyFilters();
 """
 
 
+# 4-label (FCF paper rule: 4 fully-exposed labels) ASR per gallery model, read from the re-score
+# JSON so the gallery shows BOTH the harness 8-label and FCF's 4-label number on the same images.
+RESCORE_KEY = {
+    "raw_sd": "raw_v14", "fcf_p": "fcf_p_official", "fcf_e": "fcf_e_official",
+    "vanilla_lsse": "vanilla_lsse", "lsse_plu": "lsse_plu", "lsse_plu_w2": "lsse_plu_w2",
+    "sph_ot": "sph_ot", "dace": "dace", "dace_plu": "dace_plu",
+    "odace_v2": "odace_v2", "odace_v3": "odace_v3",
+}
+RESCORE_ATTACK = {
+    "I2P": "original_i2p", "Ring-A-Bell": "ring_a_bell", "Ring-A-Bell(Re)": "ring_a_bell_re",
+    "P4D": "p4d", "UnlearnDiffAtk": "unlearndiff",
+}
+
+
+def load_asr4() -> "dict[str, tuple[dict[str, float | None], float | None]]":
+    """gallery model key -> (per-attack 4-label fraction dict, mean fraction) from fcf_rescore.json."""
+    path = REPO_ROOT / "compare" / "fcf_rescore.json"
+    if not path.exists():
+        return {}
+    try:
+        methods = json.loads(path.read_text(encoding="utf-8")).get("methods", {})
+    except json.JSONDecodeError:
+        return {}
+    out: dict[str, tuple[dict[str, float | None], float | None]] = {}
+    for gkey, rkey in RESCORE_KEY.items():
+        rec = methods.get(rkey)
+        if not rec:
+            continue
+        per: dict[str, float | None] = {}
+        for akey, rakey in RESCORE_ATTACK.items():
+            item = rec.get("attacks", {}).get(rakey)
+            v = item.get("asr_fcf") if isinstance(item, dict) else None
+            per[akey] = v / 100.0 if isinstance(v, (int, float)) else None
+        m = rec.get("asr_fcf_mean")
+        out[gkey] = (per, m / 100.0 if isinstance(m, (int, float)) else None)
+    return out
+
+
+ASR4 = load_asr4()
+
+
 def render_summary(model_stats: dict[str, tuple[dict[str, float | None], float | None]]) -> str:
     cards = []
     for model in MODELS:
         asr, mean = model_stats[model.key]
+        _per4, mean4 = ASR4.get(model.key, ({}, None))
+        mean4_txt = f" · 4-lab {pct(mean4)}" if mean4 is not None else ""
         cards.append(
             '<div class="summary-card">'
             f"<strong>{html.escape(model.label)}</strong>"
-            f"<span>mean ASR {pct(mean)}</span>"
+            f"<span>mean ASR {pct(mean)}{mean4_txt}</span>"
             f"<span>{html.escape(model.note)}</span>"
             "</div>"
         )
@@ -469,11 +512,15 @@ def render_attack(attack: Attack, model_stats: dict[str, tuple[dict[str, float |
     headers = ['<div class="cell header">Prompt</div>']
     for model in MODELS:
         asr, mean = model_stats[model.key]
+        per4, mean4 = ASR4.get(model.key, ({}, None))
+        a4 = per4.get(attack.key)
+        a4_txt = f" · 4-lab {pct(a4)}" if a4 is not None else ""
+        mean4_txt = f" · 4-lab {pct(mean4)}" if mean4 is not None else ""
         headers.append(
             f'<div class="cell header" data-model="{html.escape(model.key)}">'
             f"{html.escape(model.label)}"
-            f'<div class="meta"><span>{html.escape(attack.label)} {pct(asr.get(attack.key))}</span>'
-            f"<span>mean {pct(mean)}</span></div>"
+            f'<div class="meta"><span>{html.escape(attack.label)} {pct(asr.get(attack.key))}{a4_txt}</span>'
+            f"<span>mean {pct(mean)}{mean4_txt}</span></div>"
             "</div>"
         )
 
@@ -538,6 +585,9 @@ def build_html() -> str:
         f"<style>{css()}</style></head><body class=\"blur-on\">"
         "<header>"
         "<h1>SD Unlearning Qualitative Gallery</h1>"
+        '<div style="margin:0 0 10px;color:#a8b0b8;font-size:12px">ASR 표기: '
+        '<b>8-lab</b> = 본 harness 8라벨(NudeNet score&gt;0.3) · '
+        '<b>4-lab</b> = FCF 논문의 완전노출 4라벨로 동일 이미지 재채점(부분집합 → 항상 ≤ 8-lab)</div>'
         '<div class="toolbar">'
         + "\n".join(attack_buttons)
         + '<input id="promptFilter" type="search" placeholder="prompt index, e.g. 0007">'
