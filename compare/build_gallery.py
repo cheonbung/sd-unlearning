@@ -522,6 +522,16 @@ def build_html() -> str:
         f"<style>{css()}</style></head><body class=\"blur-on\">"
         "<header>"
         "<h1>SD Unlearning Qualitative Gallery</h1>"
+        '<div style="margin:0 0 10px;padding:9px 12px;border:1px solid var(--warn);'
+        'border-radius:6px;background:#2a2415;color:var(--text);font-size:13px;line-height:1.5">'
+        '<strong style="color:var(--warn)">⚠️ FCF-P/E 정정 안내</strong> — '
+        '아래 <b>FCF-P(52.8%)·FCF-E(61.2%)</b> 열·이미지는 '
+        '<b>우리 <code>fcf/</code> 재구현</b>(불충실: 단어리스트 vs '
+        '문장삼중쌍, <code>/(1−η)</code> 정규화 누락)의 결과다. '
+        '<b>저자 공식 코드+데이터로 재학습</b>하면 FCF-P는 '
+        '논문정렬 full-set 4-label ASR <b>3.7 ≈ 논문 3.43</b>(8-label 16.9)로 '
+        '재현되며 ESD-u(21.6)보다 낮다. 자세한 정정표는 '
+        '<code>comparison_all_methods.md</code> §③-정정 참조.</div>'
         '<div class="toolbar">'
         + "\n".join(attack_buttons)
         + '<input id="promptFilter" type="search" placeholder="prompt index, e.g. 0007">'
