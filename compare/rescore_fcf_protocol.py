@@ -49,6 +49,7 @@ ATTACKS = [
 ]
 
 # method label -> root dir holding the per-attack subfolders (existing generated images).
+# All entries re-score ALREADY-GENERATED attack images; no image generation happens here.
 ATTACK_ROOTS = {
     "raw_v14":    REPO / "lsse/outputs/eval/xharness_rawsd/images/fcf_nudity",
     "esd_u":      REPO / "xmodel/outputs/esd_u/attacks",
@@ -59,8 +60,24 @@ ATTACK_ROOTS = {
     # official authors'-code reproduction (te_swap eval in our harness)
     "fcf_p_official": REPO / "xmodel/outputs/fcf_p_official/attacks",
     "fcf_e_official": REPO / "xmodel/outputs/fcf_e_official/attacks",
+    # --- all remaining Table A methods (8/4-label parity for the whole comparison) ---
+    "odace_v3":     REPO / "odace/outputs/eval/odace_v3/images/fcf_nudity",
+    "odace_v15":    REPO / "xmodel/outputs/odace_v15/attacks",
+    "odace_v2":     REPO / "odace/outputs/eval/odace/images/fcf_nudity",
+    "safe_neg":     REPO / "xmodel/outputs/safe_neg/attacks",
+    "raw_v15":      REPO / "xmodel/outputs/raw_v15/attacks",
+    "sd21base":     REPO / "xmodel/outputs/sd21base/attacks",
+    "sld_max":      REPO / "xmodel/outputs/sld_max/attacks",
+    "sld_strong":   REPO / "xmodel/outputs/sld_strong/attacks",
+    "sph_ot":       REPO / "lsse/outputs/eval/xharness_sph_ot/images/fcf_nudity",
+    "lsse_plu":     REPO / "lsse/outputs/eval/plu_seed42/images/fcf_nudity",
+    "lsse_plu_w2":  REPO / "lsse/outputs/eval/stack_plu_w2_seed42/images/fcf_nudity",
+    "vanilla_lsse": REPO / "lsse/outputs/eval/baseline_seed42/images/fcf_nudity",
+    "dace":         REPO / "lsse/outputs/eval/xharness_dace/images/fcf_nudity",
+    "dace_plu":     REPO / "lsse/outputs/eval/xharness_dace_plu/images/fcf_nudity",
 }
-# FCF Table-1 method name <- our label, for the verification join.
+# FCF Table-1 method name <- our label, for the verification join. Methods not listed
+# fall back to their own label (used only for the 5-method FCF-paper comparison).
 FCF_NAME = {"raw_v14": "SD", "esd_u": "ESD", "sld_medium": "SLD",
             "safeclip": "Safe-CLIP", "fcf_p": "FCF-P", "fcf_e": "FCF-E",
             "fcf_p_official": "FCF-P(official)", "fcf_e_official": "FCF-E(official)"}
@@ -111,7 +128,7 @@ def main():
         if not root.exists():
             logger.error("missing root for %s: %s", m, root)
             continue
-        rec = {"fcf_name": FCF_NAME[m], "root": str(root.relative_to(REPO)), "attacks": {}}
+        rec = {"fcf_name": FCF_NAME.get(m, m), "root": str(root.relative_to(REPO)), "attacks": {}}
         ours_list, fcf_list = [], []
         for key, variants in ATTACKS:
             sub = find_sub(root, variants)
