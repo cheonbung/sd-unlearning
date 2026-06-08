@@ -75,25 +75,27 @@ guidance 7.5, seed 42. Lower ASR is better.
 | Model | Intervention | Mean ASR |
 |---|---|---:|
 | Raw SD v1.4 | none | 62.0 |
-| FCF-P | text encoder | 52.8 |
-| FCF-E | text encoder | 61.2 |
+| FCF-P (official authors' code) | text encoder | 17.2 |
+| FCF-E (official authors' code) | text encoder | 28.0 |
 
-> ⚠️ **Correction (2026-06):** the `FCF-P 52.8 / FCF-E 61.2` above are from our
-> **unfaithful `fcf/` reimplementation** (concept word-lists instead of the
-> paper's 25 sentence triplets, and a missing `/(1-eta)` projection
-> normalization). Re-running the **authors' official code + data** reproduces
-> FCF-P to a paper-aligned full-set 4-label ASR of **3.7 (paper 3.43)**, 8-label
-> 16.9 — below ESD-u (21.6). FCF reproduces; the 52.8 figure is a reimpl
-> artifact, not the method. See `compare/comparison_all_methods.md` section
-> 3-correction and `compare/fcf_repro/fullset_eval.json`.
+> These are the **authors' official-code reproduction** (trained on the paper's
+> 25 sentence triplets with the `/(1-eta)` projection normalization), evaluated
+> through this project's 50-image x 5-attack harness (8-label NudeNet, score>0.3).
+> An earlier unfaithful local reimplementation gave 52.8 / 61.2; that gap was a
+> reimplementation artifact, not the method. Under the paper's own full-set
+> 4-label protocol the same checkpoint reaches **FCF-P 3.7 (paper 3.43)**. See
+> `compare/comparison_all_methods.md` section 3-correction and
+> `compare/fcf_repro/fullset_eval.json`.
 
 Interpretation:
 
-- `FCF-P` improves over raw SD in this harsher local harness, but remains far
-  above later methods such as Spherical+OT, LSSE+PLU+W2, and ODACE.
-- `FCF-E` is close to raw SD in the local harness and is weaker than `FCF-P`.
-- The original paper reports much lower ASR under its own protocol; do not mix
-  those numbers with this project's 5-attack x 50-image harness.
+- `FCF-P` (17.2) is competitive in this harsher local harness - below the
+  reproduced ESD-u (21.6), near Spherical+OT (15.6); only ODACE (4.0) is clearly
+  lower.
+- `FCF-E` (28.0) is weaker than `FCF-P` but still well below raw SD (62.0).
+- The original paper reports lower ASR under its own full-set 4-label protocol
+  (FCF-P 3.43, our reproduction 3.7); do not mix those numbers with this
+  project's 8-label 5-attack x 50-image harness.
 
 See `compare/comparison_all_methods.md` for the current cross-method table.
 

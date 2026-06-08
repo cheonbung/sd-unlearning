@@ -33,6 +33,11 @@ class Model:
     label: str
     eval_dir: str
     note: str
+    images_subdir: str = "images/fcf_nudity"
+    # Explicit per-attack ASR (fraction 0-1). When set, used instead of reading
+    # eval_results.json -- needed for the official FCF checkpoints whose ASR comes
+    # from the FCF-protocol re-score (compare/fcf_rescore.json), not a per-eval JSON.
+    asr: "dict[str, float] | None" = None
 
 
 ATTACKS = [
@@ -69,14 +74,20 @@ MODELS = [
     Model(
         "fcf_p",
         "FCF-P",
-        "lsse/outputs/eval/xharness_fcf_p",
-        "FCF projection baseline",
+        "xmodel/outputs/fcf_p_official",
+        "FCF-P (official authors' code reproduction)",
+        images_subdir="attacks",
+        asr={"I2P": 0.10, "Ring-A-Bell": 0.24, "Ring-A-Bell(Re)": 0.20,
+             "P4D": 0.10, "UnlearnDiffAtk": 0.22},
     ),
     Model(
         "fcf_e",
         "FCF-E",
-        "lsse/outputs/eval/xharness_fcf_e",
-        "FCF empirical baseline",
+        "xmodel/outputs/fcf_e_official",
+        "FCF-E (official authors' code reproduction)",
+        images_subdir="attacks",
+        asr={"I2P": 0.16, "Ring-A-Bell": 0.28, "Ring-A-Bell(Re)": 0.36,
+             "P4D": 0.14, "UnlearnDiffAtk": 0.46},
     ),
     Model(
         "vanilla_lsse",
@@ -146,6 +157,11 @@ def read_prompts(rel_path: str) -> list[str]:
 
 
 def load_asr(model: Model) -> tuple[dict[str, float | None], float | None]:
+    if model.asr is not None:
+        vals = {a.key: model.asr.get(a.key) for a in ATTACKS}
+        present = [v for v in vals.values() if isinstance(v, (int, float))]
+        mean = sum(present) / len(present) if present else None
+        return vals, mean
     path = REPO_ROOT / model.eval_dir / "eval_results.json"
     if not path.exists():
         return {}, None
@@ -169,7 +185,7 @@ def load_asr(model: Model) -> tuple[dict[str, float | None], float | None]:
 
 
 def image_base_dir(model: Model, attack: Attack) -> Path | None:
-    root = REPO_ROOT / model.eval_dir / "images" / "fcf_nudity"
+    root = REPO_ROOT / model.eval_dir / model.images_subdir
     for folder in attack.folder_variants:
         cand = root / folder
         if cand.exists():
@@ -522,16 +538,6 @@ def build_html() -> str:
         f"<style>{css()}</style></head><body class=\"blur-on\">"
         "<header>"
         "<h1>SD Unlearning Qualitative Gallery</h1>"
-        '<div style="margin:0 0 10px;padding:9px 12px;border:1px solid var(--warn);'
-        'border-radius:6px;background:#2a2415;color:var(--text);font-size:13px;line-height:1.5">'
-        '<strong style="color:var(--warn)">⚠️ FCF-P/E 정정 안내</strong> — '
-        '아래 <b>FCF-P(52.8%)·FCF-E(61.2%)</b> 열·이미지는 '
-        '<b>우리 <code>fcf/</code> 재구현</b>(불충실: 단어리스트 vs '
-        '문장삼중쌍, <code>/(1−η)</code> 정규화 누락)의 결과다. '
-        '<b>저자 공식 코드+데이터로 재학습</b>하면 FCF-P는 '
-        '논문정렬 full-set 4-label ASR <b>3.7 ≈ 논문 3.43</b>(8-label 16.9)로 '
-        '재현되며 ESD-u(21.6)보다 낮다. 자세한 정정표는 '
-        '<code>comparison_all_methods.md</code> §③-정정 참조.</div>'
         '<div class="toolbar">'
         + "\n".join(attack_buttons)
         + '<input id="promptFilter" type="search" placeholder="prompt index, e.g. 0007">'
