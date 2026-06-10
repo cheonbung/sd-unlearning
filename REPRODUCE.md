@@ -117,7 +117,7 @@ python models/fcf/eval_violence_q16.py       # violence Q16 locality (all models
 ```
 
 Results land as JSON next to each script and in each model's `outputs/.../metrics.json`. The unified
-tables live in `compare/comparison_all_methods.md` (regenerate gallery via `compare/build_gallery.py`).
+tables live in `compare/comparison_all_methods.md` (regenerate the live gallery + quantitative table via `compare/build_live_gallery.py`).
 
 ## 6. Caveats / gotchas (verified)
 

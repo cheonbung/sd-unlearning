@@ -64,7 +64,7 @@
 
 ### Phase 5 — 통합 평가
 - 신규 baseline 전부 `xeval`(ASR) + `eval_coco`(COCO) 동일 프로토콜 측정.
-- `compare/comparison_all_methods.md` 표 A에 행 추가, `eval/build_xgallery.py` MODELS에 열 추가 후 갤러리 재생성.
+- `compare/comparison_all_methods.md` 표 A에 행 추가, `compare/build_live_gallery.py` MODELS에 행 추가 후 갤러리 재생성.
 
 ### Phase 6 — 다방면 분석
 - **표 A**(우리 harness, ASR+COCO) / **표 B**(원논문 보고값, 프로토콜 명시) 분리.

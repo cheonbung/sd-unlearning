@@ -10,18 +10,22 @@ robustly than text-encoder proxies.
 
 The repository groups several experiment tracks plus a cross-model harness:
 
-- `fcf/`: baseline Fortified Concept Forgetting (FCF) reproduction (text encoder).
+- `models/fcf/`: Fortified Concept Forgetting (FCF) — the authors'-code
+  reproduction (`official_fcf_{p,e}/`, canonical) plus the archived in-repo
+  re-implementation (`legacy_reimpl/`).
 - `models/novel/`: independent FCF extensions (manifold projection,
-  optimal-transport noise prompts, causal activation analysis).
-- `lsse/`: Layer-Selective Semantic Erasure (LSSE), a single-loop text-encoder
+  optimal-transport noise prompts incl. SLERP-OT, causal activation analysis).
+- `models/lsse/`: Layer-Selective Semantic Erasure (LSSE), a single-loop text-encoder
   alternative with null-space forgetting, contrastive retention, layer masking.
-- `dace/`: Dynamic Adversarial Concept Erasure — a text-encoder concept-axis
+- `models/dace/`: Dynamic Adversarial Concept Erasure — a text-encoder concept-axis
   experiment (a deliberate negative-result probe).
-- `odace/`: Output-Distribution Adversarial Concept Erasure — the first method
+- `models/odace/`: Output-Distribution Adversarial Concept Erasure — the first method
   here that edits the **UNet cross-attention** instead of the text encoder.
-- `models/`: same-protocol reproductions of ESD, SLD, and Safe-CLIP.
+- `models/{esd,sld,safeclip}/`: same-protocol reproductions of ESD, SLD, and Safe-CLIP.
 - `eval/`: cross-model ASR + COCO FID/CLIP evaluation harness.
-- `compare/`: the unified comparison report and the official-code FCF reproduction.
+- `compare/`: the unified comparison report, the live gallery
+  (`build_live_gallery.py` → image grid + quantitative table with condition
+  toggles), and the official-code FCF reproduction.
 
 Generated checkpoints, images, logs, external model weights, and other large
 artifacts are intentionally Git-ignored. Re-run training/evaluation to recreate
@@ -31,33 +35,29 @@ them under each subproject's `outputs/` directory.
 
 ```text
 .
-|-- fcf/                  # FCF-P / FCF-E baseline (CLIP text encoder)
-|   |-- configs/ core/ data/ evaluation/ analysis/ scripts/ tests/
-|-- models/novel/    # Isolated FCF extensions (N1 CAP, N5 spherical, N6 OT)
-|   |-- core/ methods/ configs/ scripts/ tests/
-|-- lsse/                 # Layer-Selective Semantic Erasure (N7-N9)
-|   |-- core/ methods/ configs/ evaluation/ tests/
-|-- dace/                 # Dynamic Adversarial Concept Erasure (text encoder)
-|   |-- methods/ configs/ core/ experiments/ tests/ train_dace.py
-|-- odace/                # Output-Distribution Adversarial Concept Erasure (UNet)
-|   |-- methods/ configs/ core/ experiments/ tests/ train_odace.py
-|   |-- evaluate_odace.py evaluate_utility.py
-|-- models/            # Same-protocol reproductions
-|   |-- esd/ sld/ safeclip/ run_eval.sh
-|-- eval/               # Cross-model eval harness
-|   |-- xeval.py          # ASR over 5 attack suites for any registered model
-|   |-- eval_coco.py      # COCO FID / CLIP / LPIPS / CLIP-IQA locality
-|   `-- build_xgallery.py
-|-- compare/              # Unified comparison + official FCF reproduction
+|-- models/                   # One directory per method
+|   |-- fcf/                  # FCF-P / FCF-E (CLIP text encoder)
+|   |   |-- official_fcf_{p,e}/   # authors'-code reproduction (canonical, ASR ~3.7)
+|   |   `-- legacy_reimpl/        # earlier in-repo reimpl (archived, unfaithful)
+|   |-- novel/                # FCF extensions (CAP, spherical, OT, SLERP-OT)
+|   |-- lsse/                 # Layer-Selective Semantic Erasure (text encoder)
+|   |-- dace/                 # Dynamic Adversarial Concept Erasure (text encoder)
+|   |-- odace/                # Output-Distribution Adversarial Concept Erasure (UNet)
+|   |-- esd/ sld/ safeclip/   # Same-protocol baselines
+|   `-- run_eval.sh
+|-- eval/                     # Cross-model eval harness
+|   |-- xeval.py              # ASR over 5 attack suites for any registered model
+|   `-- eval_coco.py          # COCO FID / CLIP / LPIPS / CLIP-IQA locality
+|-- compare/                  # Unified comparison + official FCF reproduction
 |   |-- comparison_all_methods.md   # <-- authoritative results table
-|   |-- build_gallery.py
-|   `-- fcf_repro/        # Authors'-code FCF reproduction + paper-aligned eval
-`-- scripts/              # quality_gate.py and shared helpers
+|   |-- build_live_gallery.py       # live image gallery + quantitative table (HTML)
+|   `-- fcf_repro/                  # Authors'-code FCF reproduction + paper-aligned eval
+`-- scripts/                  # quality_gate.py and shared helpers
 ```
 
 ## Methods
 
-### FCF Baseline (`fcf/`)
+### FCF Baseline (`models/fcf/`)
 
 Reproduces the two-stage text-encoder method from:
 
@@ -82,7 +82,7 @@ Independent from `fcf/`; keeps a local copy of the base trainer and adds:
   `"euclidean"` preserves baseline behavior).
 - N6 OT-FCF: learned noise prompts selected by Wasserstein distance in CLIP space.
 
-### LSSE (`lsse/`)
+### LSSE (`models/lsse/`)
 
 - N7 CNP: Concept Null-Space Projection.
 - N8 CSR: Contrastive Semantic Retention.
@@ -91,7 +91,7 @@ Independent from `fcf/`; keeps a local copy of the base trainer and adds:
 Also exposes experimental switches (DDF, MACD, PLU, multi-direction CNP,
 layer-dependent learning rates).
 
-### DACE (`dace/`)
+### DACE (`models/dace/`)
 
 Dynamic Adversarial Concept Erasure edits only the CLIP text encoder, recomputing
 the live concept subspace during training and anchoring the non-concept part. It
@@ -99,14 +99,14 @@ is primarily a **negative-result probe**: directly suppressing a text-embedding
 concept axis does *not* reliably lower image-level ASR (it can even worsen it),
 which motivated moving the intervention into the UNet.
 
-### ODACE (`odace/`)
+### ODACE (`models/odace/`)
 
 Output-Distribution Adversarial Concept Erasure — the first method here to edit
 the **SD UNet cross-attention** (`to_q/k/v/out`) with the text encoder frozen.
 Instead of a text-embedding proxy, it optimizes the UNet noise prediction that
 actually drives the image. ODACE is the project's strongest eraser (see Results).
 
-### Reproduced Baselines (`models/`)
+### Reproduced Baselines (`models/{esd,sld,safeclip}/`)
 
 Same-protocol reproductions for fair comparison:
 
