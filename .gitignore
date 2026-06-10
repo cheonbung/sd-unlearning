@@ -77,3 +77,6 @@ models/fcf/PIPELINE_STATUS
 models/fcf/PHASE6_STATUS
 models/fcf/PIPELINE_DONE
 models/fcf/PHASE6_DONE
+
+# Live gallery HTML (regenerable via compare/build_live_gallery.py; references local images)
+compare/comparison_gallery_live.html
