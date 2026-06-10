@@ -187,6 +187,16 @@ Models are downloaded from Hugging Face on first use:
 Some Stable Diffusion / SD2.1 weights are gated; authenticate or rely on the
 public mirrors wired into `xmodel/xeval.py`.
 
+## Reproducing From Scratch
+
+For a full from-scratch reproduction on a different machine (re-train every method,
+regenerate every image), follow **[REPRODUCE.md](REPRODUCE.md)**. It pins exact
+versions (`requirements-lock.txt`), fetches non-vendored external assets
+(`scripts/fetch_external.sh`: FCF upstream code + data, Ring-A-Bell vectors), and
+gives the train → register → generate → evaluate sequence. Note the two FCF
+variants: the in-repo `fcf/` re-implementation (unfaithful, ASR ~52) versus the
+authors' official-code reproduction (faithful, FCF-P 3.7 ≈ paper 3.43).
+
 ## Quality Gate
 
 ```bash
@@ -228,7 +238,8 @@ python fcf-novel-methods/train.py \
 ### Train ODACE (UNet cross-attention)
 
 ```bash
-python odace/train_odace.py --config odace/configs/nudity_odace_v3.yaml
+python odace/train_odace.py --config odace/configs/nudity_odace.yaml       # v3 recipe (SD v1.4)
+python odace/train_odace.py --config odace/configs/nudity_odace_v15.yaml   # v1.5 base
 ```
 
 ### Cross-Model Evaluation
