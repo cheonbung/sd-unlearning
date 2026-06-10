@@ -226,7 +226,7 @@ ASR 직접비교 불가(raw 46.4 vs 75.79). (2) 장수: 우리 ×50 vs FCF 1 img
 **검증:** 저자 원본 코드(`concept_forgetting_train.py`+`features_forgetting_P/E.py`, 순수 CLIPTextModel)를
 저자 데이터로 우리 env에서 학습 → `te_swap`으로 평가. **두 프로토콜**으로 측정: (1) 우리 50-prompt harness,
 (2) **논문정렬 full-set**(`fcf/data/eval` 전체 — I2P 931·P4D 361·RaB 95·RaB(Re) 95·UDA 142, 1 img/prompt;
-`compare/fcf_repro/eval_fullset.py`).
+`models/core/fcf/eval_fullset.py`).
 
 | 방법 (mean nudity ASR%) | 우리 `fcf/`(8/4-lab) | 공식 50-prompt(8/4-lab) | **공식 full-set(8/4-lab)** | 논문(4-lab) |
 |---|---|---|---|---|
@@ -246,8 +246,8 @@ ASR 3.7 ≈ 논문 3.43**. 앞선 §③(Phase 7)의 음성 결론은 *우리 재
 ODACE 4.0 우위·LSSE locality 붕괴 등 다른 결론은 유지. 잔여 격차(FCF-E partial, RaB(Re) 절대값)는 RaB(Re)
 적응생성·NudeNet 버전 차이.
 
-> 산출물: 공식 학습 `compare/fcf_repro/`(official_fcf_{p,e}·train.log) · full-set 평가
-> `compare/fcf_repro/eval_fullset.py`+`fullset_eval.json` · 모델 `fcf_p_official`/`fcf_e_official`(xeval REGISTRY).
+> 산출물: 공식 학습 `models/core/fcf/`(official_fcf_{p,e}·train.log) · full-set 평가
+> `models/core/fcf/eval_fullset.py`+`fullset_eval.json` · 모델 `fcf_p_official`/`fcf_e_official`(xeval REGISTRY).
 
 ### ③-정정-P1 (Phase 1): 프로토콜 동결 + 논문-정확 4-label(presence) 헤드라인 승격
 
@@ -273,7 +273,7 @@ NudeNet **4-label**(EXPOSED_ANUS/BREAST_F/GENITALIA_F/GENITALIA_M). 검출 규�
 P4D 5.0(5.26)·UDA 3.5(6.90)로 근접. 잔여 상향(RaB 4.2/논문 1.05, RaB(Re) 6.3/논문 0.96)은 RaB(Re) 적응생성 +
 **NudeNet 버전 차이**(논문 라벨명 `EXPOSED_*`= v2 검출기, 우리는 v3.4.2)로 국소화 → **Phase 2**에서 정렬.
 
-> 산출물: `compare/fcf_repro/rescore_fullset_paperrule.py` + `fullset_paperrule.json` + `fullset_paperrule.log`.
+> 산출물: `models/core/fcf/rescore_fullset_paperrule.py` + `fullset_paperrule.json` + `fullset_paperrule.log`.
 
 ### ③-정정-P2 (Phase 2): NudeNet 버전 정렬 — v3 유지 결정 + 잔차 경계화
 
@@ -296,7 +296,7 @@ P4D 5.0(5.26)·UDA 3.5(6.90)로 근접. 잔여 상향(RaB 4.2/논문 1.05, RaB(R
 
 **목표.** 우리 FCF 재현의 품질(FID/CLIP)을 논문 Table 3 스케일(FID~15)에 올린다. 기존 `eval_coco.py`는 N_gen=300/
 N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과 비교 불가였다. N=**5000**(val2017 전체, 5000 real)로
-재측정(`compare/fcf_repro/eval_coco_fid5k.py`→`coco5k.json`):
+재측정(`models/core/fcf/eval_coco_fid5k.py`→`coco5k.json`):
 
 | 모델 | COCO-FID(5K)↓ | COCO-CLIP↑ | LPIPS↓ | vs raw (FID/CLIP) | 논문 Table3(FID/CLIP) |
 |---|---|---|---|---|---|
@@ -312,7 +312,7 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
   **+0.56 / −0.32**. 방향은 일치("충실도 대체로 보존")하나 **우리 재현의 품질 대가가 논문 보고보다 다소 큼** — 즉 공식
   코드로 논문급 ASR(효능)에 도달하되 fidelity 패널티는 더 크다. 이는 아래 P5의 폭력-전이(과편집 → 광역 억제·품질저하)와 정합.
 
-> 산출물: `compare/fcf_repro/eval_coco_fid5k.py` + `coco5k.json`. (이 표는 위 표 A의 COCO-300 컬럼과 **다른 N**이라 직접 병합 금지.)
+> 산출물: `models/core/fcf/eval_coco_fid5k.py` + `coco5k.json`. (이 표는 위 표 A의 COCO-300 컬럼과 **다른 N**이라 직접 병합 금지.)
 
 ### ③-정정-P5 (Phase 5): 폭력 + Q16 — locality 가설 반증(전이 발생)
 
@@ -330,7 +330,7 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
 | **FCF-E** (nudity 소거) | 32.6 | 55.0 | **43.8** | −34% |
 
 *(Q16 inappropriate-rate %; n=I2P 757·RaB 269. Q16는 lsse Q16Classifier가 transformers 5.9에서 깨져 있어
-`compare/fcf_repro/eval_violence_q16.py`에 버전-견고 자체 스코어러로 재구현해 채점.)*
+`models/core/fcf/eval_violence_q16.py`에 버전-견고 자체 스코어러로 재구현해 채점.)*
 
 **판정: locality 가설과 반대 — nudity 소거가 폭력으로 강하게 전이된다.**
 - nudity만 학습했는데도 **FCF-P 폭력 66.9→24.4(−63%)**, 적대적 RaB-violence조차 91.1→26.4로 붕괴. FCF-E도 −34%.
@@ -340,7 +340,7 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
 - ⚠️ **caveat:** Q16는 폭력 전용이 아니라 광역 "inappropriate" 분류기(SMID 학습) → 낮은 값이 *진짜 폭력 억제*인지
   *출력 품질 저하(밋밋)*인지 부분 교란. P4의 FCF-P 품질저하가 후자에 일부 기여 가능.
 
-> 산출물: `compare/fcf_repro/eval_violence_q16.py` + `violence_q16.json`.
+> 산출물: `models/core/fcf/eval_violence_q16.py` + `violence_q16.json`.
 
 ### ④ 개입 지점별 강건성 (mean ASR↓, 우리 harness)
 
@@ -396,6 +396,6 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
    뒤진다는 점이, **개입 규모가 아니라 출력-접지 목적함수가 깊은 소거의 핵심**임을 재확인한다.
 
 ## 출처
-- ASR: `lsse/outputs/comparison_unified.md` (텍스트인코더 계열) · `xmodel/outputs/<label>/metrics.json` (교차모델)
-- COCO-FID/CLIP: `xmodel/outputs/<label>/coco_metrics.json`
+- ASR: `lsse/outputs/comparison_unified.md` (텍스트인코더 계열) · `eval/outputs/<label>/metrics.json` (교차모델)
+- COCO-FID/CLIP: `eval/outputs/<label>/coco_metrics.json`
 - 과거 품질값: `lsse/outputs/comparison_unified.md` (fcf harness 저장값) · `odace/evaluate_utility.py` (self-cal)

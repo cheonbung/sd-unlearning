@@ -23,15 +23,15 @@
 | [2024] Gong / [2024] Huang | 무관 | **제외** |
 
 ## 측정 프로토콜 (전 모델 동일 — 기존 계승)
-- **ASR↓:** NudeNet v3(score>0.3), 5공격(I2P, Ring-A-Bell, RaB(Re), P4D, UnlearnDiffAtk)×50장, guidance 7.5·50 steps. `xmodel/xeval.py`.
-- **COCO-FID/CLIP:** `xmodel/eval_coco.py`(COCO 300캡션 vs 실제 600장).
+- **ASR↓:** NudeNet v3(score>0.3), 5공격(I2P, Ring-A-Bell, RaB(Re), P4D, UnlearnDiffAtk)×50장, guidance 7.5·50 steps. `eval/xeval.py`.
+- **COCO-FID/CLIP:** `eval/eval_coco.py`(COCO 300캡션 vs 실제 600장).
 - **as-reported(표 B):** 각 논문 원프로토콜 그대로, 표 A와 **병합 금지**.
 
 ## 미러할 패턴
-- 등록/파이프: `xmodel/xeval.py` `REGISTRY`(L81) + `build_pipe`(L117, `kind=="odace"` UNET swap 분기).
+- 등록/파이프: `eval/xeval.py` `REGISTRY`(L81) + `build_pipe`(L117, `kind=="odace"` UNET swap 분기).
 - 학습기: `odace/core/trainer.py`(ESD-스타일 음성가이던스, **FCFTrainer 비상속**), config `odace/configs/nudity_odace.yaml`.
 - 평가: `xeval.run` + `eval_coco.run` → `metrics.json` + `coco_metrics.json`.
-- 테스트: `xmodel/tests/test_xeval.py`.
+- 테스트: `eval/tests/test_xeval.py`.
 
 ## Phase별 작업
 
@@ -39,16 +39,16 @@
 - 각 PDF(ESD/SLD/Safe-CLIP/FCF)에서 **원논문 보고 지표** 추출: nudity/I2P 비율, NudeNet exposed 개수, FID(레퍼런스셋), CLIP **+ 프로토콜**(공격셋·NudeNet 버전·FID refset). → 표 B 초안.
 - 재현 사양 확정: ESD-u vs ESD-x / SLD config(Weak·Medium·Strong·Max) / Safe-CLIP HF 체크포인트 가용성·차원 일치.
 
-### Phase 1 — Harness 확장 (`xmodel/xeval.py`)
+### Phase 1 — Harness 확장 (`eval/xeval.py`)
 - `REGISTRY`에 `esd`(unet_dir, kind="esd"=odace와 동일 swap), `sld`(kind="sld", config 파라미터), `safeclip`(kind="safeclip", text_encoder id) 추가.
 - `build_pipe` 분기 추가:
   - `esd`: odace와 동일하게 `pipe.unet = UNet2DConditionModel.from_pretrained(unet_dir)`.
   - `sld`: 커스텀 SLD 가이던스(아래) 사용 플래그.
   - `safeclip`: `pipe.text_encoder = CLIPTextModel.from_pretrained(safeclip_id)` 교체(차원 768/77 검증).
-- `xmodel/tests/test_xeval.py`에 신규 kind 등록 검증 테스트.
+- `eval/tests/test_xeval.py`에 신규 kind 등록 검증 테스트.
 
 ### Phase 2 — ESD 재현 (최우선, 학습)
-- 신규 모듈 `baselines/esd/`(또는 `odace/` 내 `train_esd.py`). **공식 recipe**(Gandikota): 음성가이던스 타깃 `ε_θ(x,∅) − η(ε_θ(x,c)−ε_θ(x,∅))`, frozen 원본이 가이던스 제공, UNET만 학습.
+- 신규 모듈 `models/comparison/esd/`(또는 `odace/` 내 `train_esd.py`). **공식 recipe**(Gandikota): 음성가이던스 타깃 `ε_θ(x,∅) − η(ε_θ(x,c)−ε_θ(x,∅))`, frozen 원본이 가이던스 제공, UNET만 학습.
   - **ESD-u**(cross-attn 제외 = unconditional, NSFW에 표준): η=1, lr 1e-5, ~1000 step.
   - **ESD-x**(cross-attn만): 개념 국소 소거.
   - ⚠️ ODACE(강화판)와 **구분** — 캐논 ESD recipe 그대로(ODACE의 lr 1e-4/eta 3.0 아님).
@@ -64,7 +64,7 @@
 
 ### Phase 5 — 통합 평가
 - 신규 baseline 전부 `xeval`(ASR) + `eval_coco`(COCO) 동일 프로토콜 측정.
-- `compare/comparison_all_methods.md` 표 A에 행 추가, `xmodel/build_xgallery.py` MODELS에 열 추가 후 갤러리 재생성.
+- `compare/comparison_all_methods.md` 표 A에 행 추가, `eval/build_xgallery.py` MODELS에 열 추가 후 갤러리 재생성.
 
 ### Phase 6 — 다방면 분석
 - **표 A**(우리 harness, ASR+COCO) / **표 B**(원논문 보고값, 프로토콜 명시) 분리.
@@ -81,14 +81,14 @@
 
 ## CLAUDE.md 제약 (필수)
 - 부모 `fcf/`·`train_fcf.py`·`evaluate.py` 수정 금지(가중치/체크포인트 읽기는 OK).
-- `fcf-novel-methods/` 코드 import 금지.
+- `models/comparison/novel/` 코드 import 금지.
 - 결과는 프로젝트 자체 `outputs/`에만.
 - 신규 트레이너 **FCFTrainer 비상속**.
 - NudeNet v3 score>0.3 · FID num_workers=0 · tmux 실행은 `tee`로 라이브 출력.
 
 ## 실행 환경
 - WSL conda env python: `/home/user/miniconda3/envs/lsse/bin/python`
-- 예: `wsl bash -lc 'cd /mnt/d/unlearning/SD_unlearning && /home/user/miniconda3/envs/lsse/bin/python xmodel/xeval.py --models esd_u'`
+- 예: `wsl bash -lc 'cd /mnt/d/unlearning/SD_unlearning && /home/user/miniconda3/envs/lsse/bin/python eval/xeval.py --models esd_u'`
 - 장기 실행: tmux + `tee`, 감시는 리터럴 경로 `until grep -qE "MARKER|Traceback" /path; do sleep 30; done`.
 
 ## 복잡도: HIGH (GPU 학습 포함)

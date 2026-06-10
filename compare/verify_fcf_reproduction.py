@@ -12,7 +12,7 @@ results are to our reproduction, on three protocol-robust axes:
 Inputs:
   compare/fcf_reference_values.json  (paper, Phase 0)
   compare/fcf_rescore.json           (our FCF-protocol re-scored ASR, Phase 2)
-  xmodel/outputs/<m>/coco_metrics.json (our COCO FID/CLIP for the quality rank)
+  eval/outputs/<m>/coco_metrics.json (our COCO FID/CLIP for the quality rank)
 
 Output: compare/fcf_verification.json + a printed report.
 Run (WSL conda env lsse):  python compare/verify_fcf_reproduction.py
@@ -77,7 +77,7 @@ def main():
     paper_attacks = ref["table1_asr"]["nudity"]
     rescore = res["methods"]
     # Our FCF-aligned re-score keyed by FCF method name. For FCF-P/E we use the OFFICIAL
-    # authors'-code reproduction (compare/fcf_repro/), not our earlier unfaithful fcf/ checkpoint.
+    # authors'-code reproduction (models/core/fcf/), not our earlier unfaithful fcf/ checkpoint.
     OURS_SRC = {"SD": "raw_v14", "ESD": "esd_u", "SLD": "sld_medium", "Safe-CLIP": "safeclip",
                 "FCF-E": "fcf_e_official", "FCF-P": "fcf_p_official"}
     ours = {fcf: rescore[label] for fcf, label in OURS_SRC.items()}

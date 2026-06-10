@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = ["fcf", "fcf-novel-methods", "lsse"]
-TEST_DIRS = ["fcf/tests", "fcf-novel-methods/tests", "lsse/tests"]
+TEST_DIRS = ["models/core/fcf/legacy_reimpl/tests", "models/comparison/novel/tests", "models/core/lsse/tests"]
 PORTABLE_SUFFIXES = {".py", ".yaml", ".yml"}
 FORBIDDEN_LOCAL_PATHS = ("C:/Users/", "c:/Users/", "c:\\Users\\", "/mnt/c/Users/")
 SKIP_RE = re.compile(

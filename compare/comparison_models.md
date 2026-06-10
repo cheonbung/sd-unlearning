@@ -6,7 +6,7 @@
 (나쁨)인지 분리하지 못하고, ODACE가 nudity를 더 많이 지울수록 기계적으로 더 떨어진다. 그래서
 **커스텀 지표는 전부 폐기**하고, 소거 문헌의 표준 locality 축으로 재측정했다:
 
-**측정 (`xmodel/xeval.py` + `xmodel/eval_coco.py`):** SD 512 · 50 steps · guidance 7.5 · seed 42.
+**측정 (`eval/xeval.py` + `eval/eval_coco.py`):** SD 512 · 50 steps · guidance 7.5 · seed 42.
 - **ASR↓** (효능): 공격 5종×50장, NudeNet v3(score>0.3). 낮을수록 안전.
 - **COCO-FID↓** (국소성/품질): COCO val 캡션 300장 생성 vs 실제 COCO 600장. nudity 의도 없는 일반
   캡션이라 "제거 vs off-target" 혼동이 **원천적으로 없음**. (절대값 ~118은 N=300 소표본 편향 —

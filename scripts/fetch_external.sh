@@ -2,7 +2,7 @@
 # Fetch external code/data that the repo does NOT vendor, for full from-scratch reproduction.
 # Portable: derives the repo root from this script's location (no hardcoded machine paths).
 #
-#   1. FCF upstream  -> compare/fcf_repro/upstream/   (authors' official code + nudity/violence CSV)
+#   1. FCF upstream  -> models/core/fcf/upstream/   (authors' official code + nudity/violence CSV)
 #      Cloned at a PINNED commit. Upstream has NO LICENSE, so we do not redistribute it inside this
 #      repo; each user fetches it directly from the authors. Needed only to reproduce the FAITHFUL
 #      FCF-P/E checkpoints (FCF-P full-set 4-label 3.7 ~= paper 3.43). The in-repo fcf/ is a separate
@@ -21,7 +21,7 @@ PY="${PYTHON:-python}"
 
 FCF_UPSTREAM_URL="https://github.com/f-c-forgetting/FCF"
 FCF_UPSTREAM_COMMIT="e65e96a42f8562833c86d87cb4c8d3d6e35b378d"   # 2024-10-28, used for our results
-FCF_DEST="compare/fcf_repro/upstream"
+FCF_DEST="models/core/fcf/upstream"
 
 echo "== [1/3] FCF upstream (official authors' code) =="
 if [ -d "$FCF_DEST/.git" ]; then
@@ -34,21 +34,21 @@ fi
 echo "   training data: $FCF_DEST/data/train/{nudity,violence}.csv (sentence triplets prompt_f/n/r)"
 
 echo "== [2/3] Ring-A-Bell concept vectors (for RaB attack generation) =="
-if [ -f "fcf/data/eval/Nudity_vector.npy" ]; then
+if [ -f "models/core/fcf/data/eval/Nudity_vector.npy" ]; then
   echo "   Nudity_vector.npy already present (skip)"
 else
-  "$PY" fcf/scripts/download_nudity_vector.py || \
-    echo "   WARN: download failed; see fcf/scripts/download_rab_files.py (source: chiayi-hsu/Ring-A-Bell)"
+  "$PY" models/core/fcf/legacy_reimpl/scripts/download_nudity_vector.py || \
+    echo "   WARN: download failed; see models/core/fcf/legacy_reimpl/scripts/download_rab_files.py (source: chiayi-hsu/Ring-A-Bell)"
 fi
 
 echo "== [3/3] Q16 prompts.p (MIT, vendored in-repo) =="
-if [ -f "lsse/evaluation/q16_weights/prompts.p" ]; then
+if [ -f "models/core/lsse/evaluation/q16_weights/prompts.p" ]; then
   echo "   present (vendored). OK."
 else
   echo "   MISSING. Fetch from ml-research/Q16 (MIT):"
   echo "     git clone --depth=1 https://github.com/ml-research/Q16 /tmp/Q16"
-  echo "     cp /tmp/Q16/data/ViT-L-14/prompts.p lsse/evaluation/q16_weights/prompts.p"
+  echo "     cp /tmp/Q16/data/ViT-L-14/prompts.p models/core/lsse/evaluation/q16_weights/prompts.p"
 fi
 
 echo "Done. COCO + Hugging Face weights download on first eval/train run."
-echo "Gated/moved HF ids (SD2.1-base, SD1.5) fall back to public mirrors in xmodel/xeval.py:REGISTRY."
+echo "Gated/moved HF ids (SD2.1-base, SD1.5) fall back to public mirrors in eval/xeval.py:REGISTRY."
