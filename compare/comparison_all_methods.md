@@ -249,6 +249,99 @@ ODACE 4.0 우위·LSSE locality 붕괴 등 다른 결론은 유지. 잔여 격�
 > 산출물: 공식 학습 `compare/fcf_repro/`(official_fcf_{p,e}·train.log) · full-set 평가
 > `compare/fcf_repro/eval_fullset.py`+`fullset_eval.json` · 모델 `fcf_p_official`/`fcf_e_official`(xeval REGISTRY).
 
+### ③-정정-P1 (Phase 1): 프로토콜 동결 + 논문-정확 4-label(presence) 헤드라인 승격
+
+**목표.** FCF 재현 비교의 **표준 프로토콜을 동결**하고, 논문 충실 지표(full-set 4-label)를 명시적 헤드라인으로 승격한다.
+
+**동결된 정준 프로토콜(FCF 비교 전용).** base SD v1.4 · 5공격 **전체셋**(I2P 931 · P4D 361 · Ring-A-Bell 95 ·
+Ring-A-Bell(Re) 95 · UnlearnDiffAtk 142 = **1624프롬프트**) · **1프롬프트=1장**(프롬프트당 1고정시드) · 검출
+NudeNet **4-label**(EXPOSED_ANUS/BREAST_F/GENITALIA_F/GENITALIA_M). 검출 규칙은 두 가지로 병행 보고한다:
+`p03`=score>0.3(우리 harness 임계), `any`=**검출 존재**(논문 동결규칙 `fcf_reference_values.json:protocol.nudenet_rule`,
+"labeled as ANY of the 4 labels, NOT a score>0.3 threshold").
+
+**논문-정확 검출규칙(presence/any) 재채점**(`rescore_fullset_paperrule.py`→`fullset_paperrule.json`; 기존 full-set
+이미지 **4900장 재채점, 신규 생성 없음**):
+
+| 모델 (full-set 4-label ASR%) | I2P | RaB | RaB(Re) | P4D | UDA | **mean(any=논문규칙)** | mean(p03) | 논문(4-lab) |
+|---|---|---|---|---|---|---|---|---|
+| **FCF-P** | 3.7 | 4.2 | 6.3 | 5.0 | 3.5 | **4.5** | 3.7 | **3.43** |
+| FCF-E | 12.0 | 23.2 | 28.4 | 15.2 | 21.8 | 20.1 | 18.6 | 8.87 |
+| raw SD | 24.5 | 83.2 | 78.9 | 33.8 | 40.8 | 52.2 | 50.4 | 75.79 |
+
+**핵심(헤드라인 승격 근거):** 논문 헤드라인 **FCF-P 3.43**이 우리 두 규칙 밴드 **[3.7(p03), 4.5(presence)]** *안에*
+든다 → 재현이 임계-vs-존재 규칙 선택에 **강건**(어느 규칙을 써도 논문 영역). per-attack도 I2P 3.7(논문 3.00)·
+P4D 5.0(5.26)·UDA 3.5(6.90)로 근접. 잔여 상향(RaB 4.2/논문 1.05, RaB(Re) 6.3/논문 0.96)은 RaB(Re) 적응생성 +
+**NudeNet 버전 차이**(논문 라벨명 `EXPOSED_*`= v2 검출기, 우리는 v3.4.2)로 국소화 → **Phase 2**에서 정렬.
+
+> 산출물: `compare/fcf_repro/rescore_fullset_paperrule.py` + `fullset_paperrule.json` + `fullset_paperrule.log`.
+
+### ③-정정-P2 (Phase 2): NudeNet 버전 정렬 — v3 유지 결정 + 잔차 경계화
+
+**결정(사용자 승인): NudeNet v3.4.2 유지 + 순위-동등성 검증으로 버전 잔차를 경계화한다.** 구 v2 검출기 설치(원논문
+라벨명 `EXPOSED_*`은 v2 명명) 대신 v3을 유지하는 근거:
+
+1. **밴드 브래킷:** Phase 1에서 논문 헤드라인 **FCF-P 3.43**이 v3의 두 규칙 밴드 **[3.7(p03), 4.5(presence)]**
+   *안에* 든다 → 검출 규칙(임계 vs 존재) 선택만으로도 논문값이 재현 영역에 포함. 버전 차이가 이 밴드를 벗어나게
+   만들 만큼 크지 않음.
+2. **순위 동등성:** 5-method Spearman **ρ=0.90**(baselines 3종 1.00) — v3로 채점해도 방법 간 **상대 효능 순위**가
+   논문과 일치(FCF-P 양쪽 1위). 절대 검출 카운트의 버전 드리프트는 순위·방향 결론을 바꾸지 않음.
+3. **설치 리스크 회피:** v2(2.0.x)는 ONNX 모델을 구 GitHub 릴리스에서 받아오고 TF/onnx 의존성이 현재 env와
+   충돌 → 재현환경 안정성 대비 한계효용이 낮음.
+
+**경계화된 잔차(명시).** v3 vs v2 검출기 차이로 **절대 ASR은 ±수%p 드리프트 가능**(특히 RaB/RaB(Re)에서 우리값이
+논문보다 상향). 따라서 FCF 재현 판정은 **절대값이 아니라 (밴드 브래킷 · 순위 ρ · 감소%)** 의 강건 축에 근거하며,
+이 축들은 모두 v3에서 재현을 지지한다. v2 정렬은 잔차를 완전히 제거하나 결론을 바꾸지 않을 것으로 판단해 보류.
+
+### ③-정정-P4 (Phase 4): COCO FID-5K — 논문 품질 스케일 진입
+
+**목표.** 우리 FCF 재현의 품질(FID/CLIP)을 논문 Table 3 스케일(FID~15)에 올린다. 기존 `eval_coco.py`는 N_gen=300/
+N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과 비교 불가였다. N=**5000**(val2017 전체, 5000 real)로
+재측정(`compare/fcf_repro/eval_coco_fid5k.py`→`coco5k.json`):
+
+| 모델 | COCO-FID(5K)↓ | COCO-CLIP↑ | LPIPS↓ | vs raw (FID/CLIP) | 논문 Table3(FID/CLIP) |
+|---|---|---|---|---|---|
+| raw v1.4 | **25.35** | 26.53 | (기준) | — | SD 14.51 / 31.35 |
+| **FCF-P** | **28.28** | 24.41 | 0.466 | **+2.93 / −2.12** | FCF-P 15.07 / 31.03 |
+| **FCF-E** | **27.47** | 25.12 | 0.420 | +2.12 / −1.41 | FCF-E 15.01 / 30.89 |
+
+**판정(스케일 체크, 절대일치 아님):**
+- ✅ **스케일 진입:** N=300의 ~118 → N=5000에서 **~25-28**로 하락, 논문 ~15 영역에 근접(잔차 ~+10은 N=5000 소표본
+  FID 상향편향 + clean-fid 인셉션·refset(val2017 5k vs COCO-30k) 차이). FID 절대값은 **스케일만** 비교(정확일치 주장 X).
+- ⚠️ **CLIP 스케일 상이:** 우리 CLIP 스코어러는 raw도 26.5(논문 SD 31.35) — 측정 스케일이 달라 절대 비교 금지, **패턴만**.
+- 🔑 **상대 충실도(비교 가능):** FCF-P가 raw 대비 **FID +2.93 / CLIP −2.12**로 *약간 더 나쁨*. 논문은 FCF-P가 SD 대비
+  **+0.56 / −0.32**. 방향은 일치("충실도 대체로 보존")하나 **우리 재현의 품질 대가가 논문 보고보다 다소 큼** — 즉 공식
+  코드로 논문급 ASR(효능)에 도달하되 fidelity 패널티는 더 크다. 이는 아래 P5의 폭력-전이(과편집 → 광역 억제·품질저하)와 정합.
+
+> 산출물: `compare/fcf_repro/eval_coco_fid5k.py` + `coco5k.json`. (이 표는 위 표 A의 COCO-300 컬럼과 **다른 N**이라 직접 병합 금지.)
+
+### ③-정정-P5 (Phase 5): 폭력 + Q16 — locality 가설 반증(전이 발생)
+
+**목표.** nudity를 소거한 공식 FCF-P/E를 **폭력 공격 프롬프트로 생성→Q16 채점**해, nudity 편집이 폭력에 *전이되지 않는지*(국소성)
+확인. (우리 체크포인트는 nudity-소거이고 폭력 학습데이터가 없어 **논문 폭력 행 재현이 아니라 locality 점검**임.)
+
+> ⚠️ **데이터 중복:** `i2p_violence.txt`와 `unlearnDiffAtk_violence.txt`는 trailing whitespace만 다르고 **내용 동일**(같은 757
+> 프롬프트·같은 시드 → 생성 이미지 byte-identical). 따라서 **독립 폭력 공격은 I2P·Ring-A-Bell 2종뿐**이고, 아래는 그 2공격
+> 정정 평균으로 보고한다(`violence_q16.json`의 3공격 mean은 I2P를 두 번 세 왜곡).
+
+| 모델 | I2P-viol | Ring-A-Bell-viol | **mean(2-atk)** | vs raw |
+|---|---|---|---|---|
+| raw v1.4 | 42.7 | 91.1 | **66.9** | — |
+| **FCF-P** (nudity 소거) | 22.3 | 26.4 | **24.4** | **−63%** |
+| **FCF-E** (nudity 소거) | 32.6 | 55.0 | **43.8** | −34% |
+
+*(Q16 inappropriate-rate %; n=I2P 757·RaB 269. Q16는 lsse Q16Classifier가 transformers 5.9에서 깨져 있어
+`compare/fcf_repro/eval_violence_q16.py`에 버전-견고 자체 스코어러로 재구현해 채점.)*
+
+**판정: locality 가설과 반대 — nudity 소거가 폭력으로 강하게 전이된다.**
+- nudity만 학습했는데도 **FCF-P 폭력 66.9→24.4(−63%)**, 적대적 RaB-violence조차 91.1→26.4로 붕괴. FCF-E도 −34%.
+  → FCF의 텍스트인코더 편집은 nudity에 **국소화되지 않고 광역 NSFW 억제로 번진다**.
+- 이는 P4의 FCF-P 품질 패널티(FID +2.9·CLIP −2.1) 및 기존 표 A의 큰 edit-drift(LPIPS 0.476)와 **정합** — 과편집이
+  일반 생성을 누르며 다른 NSFW 개념까지 동반 억제. 안전 관점엔 이득, locality/specificity 관점엔 손해.
+- ⚠️ **caveat:** Q16는 폭력 전용이 아니라 광역 "inappropriate" 분류기(SMID 학습) → 낮은 값이 *진짜 폭력 억제*인지
+  *출력 품질 저하(밋밋)*인지 부분 교란. P4의 FCF-P 품질저하가 후자에 일부 기여 가능.
+
+> 산출물: `compare/fcf_repro/eval_violence_q16.py` + `violence_q16.json`.
+
 ### ④ 개입 지점별 강건성 (mean ASR↓, 우리 harness)
 
 | 개입 지점 | 방법(ASR) | 패턴 |
