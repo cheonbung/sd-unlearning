@@ -69,13 +69,13 @@ Reproduces the two-stage text-encoder method from:
    noise-prompt embeddings.
 2. Stage 2 — implicit forgetting: `fcf_p` (projection) or `fcf_e` (empirical).
 
-> Note: the in-repo `fcf/` re-implementation diverged from the paper on subtle
+> Note: the in-repo `models/fcf/legacy_reimpl/` re-implementation diverged from the paper on subtle
 > data/normalization details. The faithful reproduction lives in
 > `models/fcf/` (authors' official code + data); see Results below.
 
 ### Novel FCF Extensions (`models/novel/`)
 
-Independent from `fcf/`; keeps a local copy of the base trainer and adds:
+Independent from `models/fcf/`; keeps a local copy of the base trainer and adds:
 
 - N1 CAP: causal activation patching to score concept-sensitive CLIP layers.
 - N5 RG-FCF: spherical/Riemannian geodesic projection (`manifold="spherical"`;
@@ -137,7 +137,7 @@ Key takeaways:
   *magnitude* is not the driver (ESD edits 95% of the UNet yet trails ODACE 5×).
 - **FCF does reproduce** with the authors' official code + data: FCF-P reaches the
   paper's low-ASR regime (full-set 4-label 3.7 vs paper 3.43; rank Spearman ~0.9).
-  The earlier in-repo `fcf/` re-implementation was unfaithful, not the method.
+  The earlier in-repo `models/fcf/legacy_reimpl/` re-implementation was unfaithful, not the method.
 - **Text-encoder concept-axis erasure (DACE) underdetermines ASR** — a deliberate
   negative result that motivated ODACE.
 
@@ -194,7 +194,7 @@ regenerate every image), follow **[REPRODUCE.md](REPRODUCE.md)**. It pins exact
 versions (`requirements-lock.txt`), fetches non-vendored external assets
 (`scripts/fetch_external.sh`: FCF upstream code + data, Ring-A-Bell vectors), and
 gives the train → register → generate → evaluate sequence. Note the two FCF
-variants: the in-repo `fcf/` re-implementation (unfaithful, ASR ~52) versus the
+variants: the in-repo `models/fcf/legacy_reimpl/` re-implementation (unfaithful, ASR ~52) versus the
 authors' official-code reproduction (faithful, FCF-P 3.7 ≈ paper 3.43).
 
 ## Quality Gate
@@ -205,7 +205,7 @@ python scripts/quality_gate.py
 
 Compiles the owned source directories, runs the unit tests, and scans for local
 absolute paths (e.g. `C:/Users/...`) that would break reproduction elsewhere.
-Generated outputs and the local `fcf/Q16/` checkout are skipped.
+Generated outputs and the local `models/fcf/Q16/` checkout are skipped.
 
 ## Quick Start
 
@@ -310,15 +310,15 @@ The per-subproject evaluation READMEs describe attack prompt names and sources.
 The root `.gitignore` excludes `outputs/` directories; model/checkpoint formats
 (`.pt`, `.pth`, `.ckpt`, `.safetensors`, `.bin`, `.onnx`); Python caches, node
 dependencies, local tool state, logs, archives, PDFs, and pickle files; and
-`fcf/Q16/` (an embedded external repo for Q16 experiments). Store large training
+`models/fcf/Q16/` (an embedded external repo for Q16 experiments). Store large training
 artifacts separately if they need to be shared.
 
 ## Results Files
 
 Per-track logs:
 
-- `fcf/docs/results.md`, `models/novel/docs/results.md`, `lsse/docs/results.md`
-- `odace/README.md`, `dace/README.md` (method-level write-ups)
+- `models/fcf/docs/results.md`, `models/novel/docs/results.md`, `models/lsse/docs/results.md`
+- `models/odace/README.md`, `models/dace/README.md` (method-level write-ups)
 - **`compare/comparison_all_methods.md`** (unified, authoritative)
 
 Some older Korean notes have mojibake/encoding artifacts; prefer code, configs,
@@ -326,11 +326,11 @@ and the numeric tables in `compare/` as the source of truth.
 
 ## Notes
 
-- Intervention points differ by track: `fcf/`, `models/novel/`, `lsse/`, and
-  `dace/` fine-tune the **CLIP text encoder**; `odace/` edits the **SD UNet**
-  cross-attention; `models/` covers UNet (ESD), text-encoder (Safe-CLIP), and
+- Intervention points differ by track: `models/fcf/`, `models/novel/`, `models/lsse/`, and
+  `models/dace/` fine-tune the **CLIP text encoder**; `models/odace/` edits the **SD UNet**
+  cross-attention; `models/{esd,sld,safeclip}/` covers UNet (ESD), text-encoder (Safe-CLIP), and
   inference-time (SLD) interventions.
 - FCF default hyperparameters mirror the paper: learning rate `2.5e-5`,
   `eta=0.25`, `mu_p=0.7`, `mu_e=1.0`, `num_epochs=60`.
-- `models/novel/`, `lsse/`, `dace/`, and `odace/` are independent experiments
-  and must not import from `fcf/` during normal use.
+- `models/novel/`, `models/lsse/`, `models/dace/`, and `models/odace/` are independent experiments
+  and must not import from `models/fcf/` during normal use.

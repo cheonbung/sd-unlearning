@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-05
 
-`lsse/` implements **LSSE**, short for **Layer-Selective Semantic Erasure**.
+`models/lsse/` implements **LSSE**, short for **Layer-Selective Semantic Erasure**.
 It is an independent text-encoder unlearning framework. It does not inherit from
 FCF and does not use FCF's random noise prompt target.
 
@@ -142,7 +142,7 @@ lsse/experiments/configs/validate.yaml
 
 ## Evaluate
 
-From `lsse/`:
+From `models/lsse/`:
 
 ```bash
 python evaluate.py \

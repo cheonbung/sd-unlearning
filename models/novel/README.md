@@ -1,8 +1,8 @@
 # fcf-novel-methods
 
-본 논문(FCF, Fortified Concept Forgetting)의 메인 코드(`fcf/`)와 **완전히 독립적인** 실험용 서브 프로젝트입니다. 새로운 연구 아이디어(N1, N5, N6)를 본 코드 무결성을 깨뜨리지 않고 검증하기 위해 만들어졌습니다.
+본 논문(FCF, Fortified Concept Forgetting)의 메인 코드(`models/fcf/`)와 **완전히 독립적인** 실험용 서브 프로젝트입니다. 새로운 연구 아이디어(N1, N5, N6)를 본 코드 무결성을 깨뜨리지 않고 검증하기 위해 만들어졌습니다.
 
-> **독립성 원칙**: 이 폴더 내부의 어떤 코드도 부모 프로젝트의 `fcf/` 패키지를 import하지 않습니다. 베이스 학습 코드(FCFTrainer, FCFDataset 등)는 모두 `core/`에 로컬 복사되어 있습니다.
+> **독립성 원칙**: 이 폴더 내부의 어떤 코드도 부모 프로젝트의 `models/fcf/` 패키지를 import하지 않습니다. 베이스 학습 코드(FCFTrainer, FCFDataset 등)는 모두 `core/`에 로컬 복사되어 있습니다.
 
 ---
 
@@ -138,18 +138,18 @@ ROME(Meng et al., NeurIPS 2022) / Causal Mediation(Vig et al., NeurIPS 2020) 방
 
 ---
 
-## 4. 본 프로젝트(`fcf/`)와의 관계
+## 4. 본 프로젝트(`models/fcf/`)와의 관계
 
-| 항목 | 본 프로젝트 (`fcf/`, `train_fcf.py`) | 본 서브 프로젝트 (`models/novel/`) |
+| 항목 | 본 프로젝트 (`models/fcf/`, `train_fcf.py`) | 본 서브 프로젝트 (`models/novel/`) |
 |---|---|---|
 | 알고리즘 | 논문 그대로 (FCF-P, FCF-E) | N1 분석 + N5 (구면) + N6 (OT 노이즈) |
 | 학습 코드 | 정본 — 수정 금지 | 로컬 독립 복사본 (core/) |
 | 하이퍼파라미터 | `CLAUDE.md`에 잠금 (lr=2.5e-5, η=0.25, μ_p=0.7, μ_e=1.0) | 동일 기본값 유지, config로 override 가능 |
 | 출력 | `outputs/` | `models/novel/outputs/` |
-| import 의존성 | — | **`fcf/`를 import하지 않음** |
+| import 의존성 | — | **`models/fcf/`를 import하지 않음** |
 
 본 코드의 무결성을 위해 다음을 **절대 하지 않습니다**:
-- `fcf/`, `train_fcf.py`, `evaluate.py`, `configs/*.yaml`, `tests/`, `evaluation/`, `scripts/`를 수정
+- `models/fcf/`, `train_fcf.py`, `evaluate.py`, `configs/*.yaml`, `tests/`, `evaluation/`, `scripts/`를 수정
 - 본 프로젝트 `outputs/`에 결과 저장
 - CLIP 외 모듈(UNet, VAE) 학습
 
@@ -163,7 +163,7 @@ ROME(Meng et al., NeurIPS 2022) / Causal Mediation(Vig et al., NeurIPS 2020) 방
 - [x] `manifold='euclidean'` 옵션은 본 프로젝트 FCF-P와 수치적으로 동일 (`test_euclidean_matches_fcf_p_formula`)
 - [x] `OTNoiseResult` JSON save/load round-trip (`test_ot_result_round_trip`)
 - [x] CAP analyzer가 mock CLIP에서 모든 layer를 식별 (`test_get_encoder_layers_finds_layers`)
-- [x] `fcf/` 패키지 import가 코드 내 단 한 곳도 없음 (`grep -r "from fcf" models/novel/` 결과 비어 있음)
+- [x] `models/fcf/` 패키지 import가 코드 내 단 한 곳도 없음 (`grep -r "from fcf" models/novel/` 결과 비어 있음)
 
 ---
 

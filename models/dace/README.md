@@ -2,9 +2,9 @@
 
 Last updated: 2026-06-05
 
-`dace/` implements **DACE**, short for **Dynamic Adversarial Concept Erasure**.
+`models/dace/` implements **DACE**, short for **Dynamic Adversarial Concept Erasure**.
 It is an independent text-encoder unlearning experiment. It does not import
-`fcf/`, `models/novel/`, or `lsse/`.
+`models/fcf/`, `models/novel/`, or `models/lsse/`.
 
 DACE edits only the **CLIP text encoder**. Its purpose in the project is as
 important as its raw score: it tests whether dynamically suppressing a
@@ -109,8 +109,8 @@ Outputs:
 
 | Variant | Output directory |
 |---|---|
-| DACE | `dace/outputs/dace_nudity/final` |
-| DACE+PLU | `dace/outputs/dace_plu_nudity/final` if using the command above |
+| DACE | `models/dace/outputs/dace_nudity/final` |
+| DACE+PLU | `models/dace/outputs/dace_plu_nudity/final` if using the command above |
 
 ## Evaluate With The Unified Harness
 

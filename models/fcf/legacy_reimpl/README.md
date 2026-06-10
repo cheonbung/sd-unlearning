@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-05
 
-`fcf/` is the reproduction baseline for **FCF**, short for **Fortified Concept
+`models/fcf/legacy_reimpl/` is the reproduction baseline for **FCF**, short for **Fortified Concept
 Forgetting**. It follows Fan et al., "Fortified Concept Forgetting for
 text-to-image generative models by machine unlearning on CLIP".
 
@@ -123,8 +123,8 @@ Outputs:
 
 | Variant | Output directory |
 |---|---|
-| FCF-P | `fcf/outputs/fcf_p_nudity/final` |
-| FCF-E | `fcf/outputs/fcf_e_nudity/final` |
+| FCF-P | `models/fcf/legacy_reimpl/outputs/fcf_p_nudity/final` |
+| FCF-E | `models/fcf/legacy_reimpl/outputs/fcf_e_nudity/final` |
 
 ## Evaluate With The Unified Harness
 

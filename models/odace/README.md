@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-05
 
-`odace/` implements **ODACE**, short for **Output-Distribution Adversarial
+`models/odace/` implements **ODACE**, short for **Output-Distribution Adversarial
 Concept Erasure**. In code comments this is also described as an
 **output-grounded** concept erasure method.
 
@@ -118,8 +118,8 @@ Outputs:
 
 | Variant | Output directory |
 |---|---|
-| ODACE v3 | `odace/outputs/odace_nudity/final` |
-| ODACE v1.5 | `odace/outputs/odace_v15/final` |
+| ODACE v3 | `models/odace/outputs/odace_nudity/final` |
+| ODACE v1.5 | `models/odace/outputs/odace_v15/final` |
 
 ## Evaluate
 

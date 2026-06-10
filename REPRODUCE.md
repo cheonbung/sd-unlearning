@@ -12,7 +12,7 @@ committed — they are Git-ignored by design).
   driver / PyTorch builds change floating-point results, so images and ASR/FID shift by a small
   margin. Expect *statistically equivalent*, not identical, numbers.
 - **Two FCF reproductions exist** (do not confuse them):
-  - `fcf/` — our from-scratch re-implementation. Re-trainable from this repo. Gives the
+  - `models/fcf/legacy_reimpl/` — our from-scratch re-implementation. Re-trainable from this repo. Gives the
     **unfaithful** result (FCF-P mean ASR ~52) because it uses `target - η·proj` *without* the
     `/(1-η)` normalization and word-list (not sentence-triplet) data. Documented in
     `comparison_all_methods.md` §③.
@@ -96,7 +96,7 @@ ensure the trained model sits at the registered path, e.g.:
 |---|---|
 | `odace_v3` / `odace_v15` | `models/odace/outputs/odace_v3/final` · `models/odace/outputs/odace_v15/final` (UNet) |
 | `esd_u` | `models/esd/outputs/esd_u/final` (UNet) |
-| `fcf_p` / `fcf_e` (reimpl) | `fcf/outputs/fcf_{p,e}_nudity/final` (CLIPTextModel) |
+| `fcf_p` / `fcf_e` (reimpl) | `models/fcf/legacy_reimpl/outputs/fcf_{p,e}_nudity/final` (CLIPTextModel) |
 | `fcf_p_official` / `fcf_e_official` | `models/fcf/official_fcf_{p,e}/final` (CLIPTextModel) |
 | `lsse_plu`, `dace_v2`, `sph_ot`, … | see `te_dir` in REGISTRY |
 | `sld_*`, `safeclip`, `safe_neg`, `raw_*`, `sd21base` | no training (config/HF id only) |
