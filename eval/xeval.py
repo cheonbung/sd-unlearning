@@ -43,8 +43,8 @@ except Exception:  # noqa: BLE001
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
-LSSE = REPO / "models" / "core" / "lsse"
-sys.path.insert(0, str(LSSE)); sys.path.insert(0, str(REPO / "models" / "comparison"))
+LSSE = REPO / "models" / "lsse"
+sys.path.insert(0, str(LSSE)); sys.path.insert(0, str(REPO / "models"))
 sys.path.insert(0, str(REPO))
 from evaluation import ASREvaluator  # noqa: E402
 from sld.sld_pipeline import sld_generate, SLD_CONFIGS  # noqa: E402
@@ -75,10 +75,10 @@ NEG_NUDITY = ("nudity, nude, naked, bare skin, breasts, nipples, genitals, "
 # neg_prompt: optional fixed negative prompt (inference-time safety baseline).
 REGISTRY = {
     "raw_v14": {"kind": "sd1", "model_id": "CompVis/stable-diffusion-v1-4",
-                "attack_dir": "models/core/lsse/outputs/eval/xharness_rawsd/images/fcf_nudity"},
+                "attack_dir": "models/lsse/outputs/eval/xharness_rawsd/images/fcf_nudity"},
     "odace_v3": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
-                 "unet_dir": "models/comparison/odace/outputs/odace_v3/final",
-                 "attack_dir": "models/comparison/odace/outputs/eval/odace_v3/images/fcf_nudity"},
+                 "unet_dir": "models/odace/outputs/odace_v3/final",
+                 "attack_dir": "models/odace/outputs/eval/odace_v3/images/fcf_nudity"},
     "raw_v15": {"kind": "sd1", "model_id": [
         "stable-diffusion-v1-5/stable-diffusion-v1-5",
         "sd-legacy/stable-diffusion-v1-5", "runwayml/stable-diffusion-v1-5"]},
@@ -91,14 +91,14 @@ REGISTRY = {
         "Manojb/stable-diffusion-2-1-base",
         "sd2-community/stable-diffusion-2-1-base",
     ]},
-    "odace_v15": {"kind": "odace", "unet_dir": "models/comparison/odace/outputs/odace_v15/final", "base": [
+    "odace_v15": {"kind": "odace", "unet_dir": "models/odace/outputs/odace_v15/final", "base": [
         "stable-diffusion-v1-5/stable-diffusion-v1-5",
         "sd-legacy/stable-diffusion-v1-5", "runwayml/stable-diffusion-v1-5"]},
     # --- Reproduced reference baselines (Phase 1-4), all on SD v1.4 to match each paper. ---
     # ESD: trained UNET swapped in like odace. SLD: training-free 3-way safety guidance (config
     # selects the paper preset). Safe-CLIP: training-free CLIP text-encoder swap.
     "esd_u": {"kind": "esd", "base": "CompVis/stable-diffusion-v1-4",
-              "unet_dir": "models/comparison/esd/outputs/esd_u/final"},
+              "unet_dir": "models/esd/outputs/esd_u/final"},
     "sld_medium": {"kind": "sld", "config": "medium", "model_id": "CompVis/stable-diffusion-v1-4"},
     "sld_strong": {"kind": "sld", "config": "strong", "model_id": "CompVis/stable-diffusion-v1-4"},
     "sld_max":    {"kind": "sld", "config": "max",    "model_id": "CompVis/stable-diffusion-v1-4"},
@@ -106,31 +106,31 @@ REGISTRY = {
                  "safeclip_id": "aimagelab/safeclip_vit-l_14"},
     # --- Text-encoder-family checkpoints (CLIPTextModel swap on SD v1.4) to fill empty COCO
     # cells. te_dir = local saved CLIPTextModel ("final" dir). Weights-only read of fcf/
-    # models/comparison/novel/dace/lsse checkpoints (allowed by CLAUDE.md; no parent-code import). ---
+    # models/novel/dace/lsse checkpoints (allowed by CLAUDE.md; no parent-code import). ---
     "sph_ot":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/comparison/novel/outputs/fcf_p_v2_nudity_spherical_ot/final"},
+                     "te_dir": "models/novel/outputs/fcf_p_v2_nudity_spherical_ot/final"},
     "fcf_p":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/fcf/official_fcf_p/final"},
+                     "te_dir": "models/fcf/official_fcf_p/final"},
     "fcf_e":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/fcf/official_fcf_e/final"},
+                     "te_dir": "models/fcf/official_fcf_e/final"},
     "lsse_plu":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/lsse/outputs/sweep/plu_seed42/final"},
+                     "te_dir": "models/lsse/outputs/sweep/plu_seed42/final"},
     "lsse_plu_w2":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/lsse/outputs/sweep/stack_plu_w2_seed42/final"},
+                     "te_dir": "models/lsse/outputs/sweep/stack_plu_w2_seed42/final"},
     "vanilla_lsse": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/lsse/outputs/sweep/baseline_seed42/final"},
+                     "te_dir": "models/lsse/outputs/sweep/baseline_seed42/final"},
     "dace_v2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/dace/outputs/dace_nudity/final"},
+                     "te_dir": "models/dace/outputs/dace_nudity/final"},
     "dace_plu":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                     "te_dir": "models/core/dace/outputs/dace_nudity_plu/final"},
+                     "te_dir": "models/dace/outputs/dace_nudity_plu/final"},
     "odace_v2":     {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
-                     "unet_dir": "models/comparison/odace/outputs/odace_nudity/final"},
+                     "unet_dir": "models/odace/outputs/odace_nudity/final"},
     # --- Official FCF reproduction: trained with the AUTHORS' own code+data
     # (github.com/f-c-forgetting/FCF, data/train/nudity.csv) in our env, loaded via te_swap. ---
     "fcf_p_official": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                       "te_dir": "models/core/fcf/official_fcf_p/final"},
+                       "te_dir": "models/fcf/official_fcf_p/final"},
     "fcf_e_official": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
-                       "te_dir": "models/core/fcf/official_fcf_e/final"},
+                       "te_dir": "models/fcf/official_fcf_e/final"},
 }
 
 

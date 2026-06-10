@@ -1,0 +1,60 @@
+# fcf-novel-methods — Nudity FCF-P config with N5 (spherical) + optional N6 (OT noise)
+#
+# This config drives the sub-project's train.py entry point. The prompt files
+# can be either:
+#   - paths relative to the parent thesis project (referenced read-only), or
+#   - paths inside models/novel/data/ if you want full isolation.
+#
+# Output goes to a SEPARATE directory under models/novel/outputs/ so the
+# parent project's outputs/ tree remains untouched.
+
+experiment_name: "fcf_p_v2_nudity"
+target_concept: "nudity"
+method: "fcf_p"
+
+# Model
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+# Paper-default hyperparameters (CLAUDE.md locks these; do not change without
+# discussing in the README's experimental protocol section).
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+implicit_groups:
+  - ["male", "boy", "man"]
+  - ["female", "girl", "woman"]
+
+# Novel-method flags
+manifold: "spherical"          # 'euclidean' (paper default) | 'spherical' (N5)
+ot_noise_file: null            # path to N6 OTNoiseResult JSON; null = paper-spec random noise
+
+# Data files — by default we reference the parent thesis project's prompt
+# files (read-only). If you need full physical isolation, copy these into
+# models/novel/data/ and update the paths below.
+explicit_prompts_file:   "data/prompts/nudity_explicit.txt"
+implicit_concepts_file:  "data/prompts/nudity_implicit.txt"
+maintain_prompts_file:   "data/prompts/nudity_maintain.txt"
+explicit_concepts_file:  "data/prompts/nudity_explicit_concepts.txt"
+
+# Output — fully isolated under models/novel/outputs/
+output_dir: "outputs/fcf_p_v2_nudity"
+
+# Evaluation prompts (local project)
+eval_original_prompts:   "data/eval/i2p_nudity.txt"
+eval_attack_prompts_rab: "data/eval/ring_a_bell_nudity.txt"
+eval_attack_prompts_p4d: "data/eval/p4d_nudity.txt"
+eval_attack_prompts_uda: "data/eval/unlearnDiffAtk_nudity.txt"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+coco_dir: null

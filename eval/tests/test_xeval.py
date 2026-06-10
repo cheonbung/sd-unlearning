@@ -35,7 +35,7 @@ def test_find_sub_variants(tmp_path):
 def test_reproduced_baselines_registered():
     # Phase 1-4 reference reproductions, all on SD v1.4.
     assert xeval.REGISTRY["esd_u"]["kind"] == "esd"
-    assert xeval.REGISTRY["esd_u"]["unet_dir"].startswith("models/comparison/esd/")
+    assert xeval.REGISTRY["esd_u"]["unet_dir"].startswith("models/esd/")
     for key in ("sld_medium", "sld_strong", "sld_max"):
         assert xeval.REGISTRY[key]["kind"] == "sld"
         assert xeval.REGISTRY[key]["config"] in xeval.SLD_CONFIGS

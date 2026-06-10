@@ -97,7 +97,7 @@ parts.append("<span class='legend'>열=모델(왼쪽 raw→오른쪽 ODACE) · �
 
 for key, pfile, variants in SECTIONS:
     anchor = key.replace('(', '').replace(')', '')
-    prompts = xeval.read_prompts(REPO / "models/core/lsse/data/eval" / pfile)
+    prompts = xeval.read_prompts(REPO / "models/lsse/data/eval" / pfile)
     dirs = {m: attack_dir(m, variants) for m in MODELS}
     parts.append(f"<section id='{anchor}'><h2>{html.escape(key)} "
                  f"<span style='font-weight:400;color:#889;font-size:12px'>"

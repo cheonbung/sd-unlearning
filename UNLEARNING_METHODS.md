@@ -291,7 +291,7 @@ L = MSE(eps_trainable, target)
 
 표 A의 `ESD-u`는 `noxattn` 설정, 즉 cross-attention을 제외한 UNet parameter를 크게 학습하는 canonical
 nudity erasure 설정이다. 이름의 `u`는 nudity erasure에서 표준적으로 쓰인 ESD-u 설정을 가리키며,
-본 프로젝트 구현에서는 `models/comparison/esd/esd_params.py`의 trainable mask가 실제 학습 범위를 결정한다.
+본 프로젝트 구현에서는 `models/esd/esd_params.py`의 trainable mask가 실제 학습 범위를 결정한다.
 
 차별점:
 
@@ -409,7 +409,7 @@ target = T_0(implicit_group) - mu_e * v_emp
 
 ## 10. Sph+OT: FCF-P의 geometry와 noise target을 개선
 
-`Sph+OT`는 `models/comparison/novel/`의 가장 강한 FCF 확장이다. 두 아이디어를 결합한다.
+`Sph+OT`는 `models/novel/`의 가장 강한 FCF 확장이다. 두 아이디어를 결합한다.
 
 ```text
 Sph+OT = N5 spherical/Riemannian projection + N6 OT noise prompts
@@ -1126,11 +1126,11 @@ ODACE v3/v1.5가 가장 강한 결론을 만든다.
 | 전체 수치 비교 | `compare/comparison_all_methods.md` |
 | cross-model 평가 registry | `eval/xeval.py` |
 | FCF 프로젝트 구현 | `fcf/core/trainer.py` |
-| 공식 FCF 재현 산출물 | `models/core/fcf/official_fcf_p/`, `models/core/fcf/official_fcf_e/` |
-| Sph+OT 구현 | `models/comparison/novel/methods/trainer.py`, `spherical.py`, `ot_noise.py` |
-| LSSE 구현 | `models/core/lsse/methods/lsse_trainer.py`, `cnp.py`, `csr.py`, `clm.py` |
-| DACE 구현 | `models/core/dace/core/trainer.py`, `models/core/dace/methods/erasure.py`, `adversary.py` |
+| 공식 FCF 재현 산출물 | `models/fcf/official_fcf_p/`, `models/fcf/official_fcf_e/` |
+| Sph+OT 구현 | `models/novel/methods/trainer.py`, `spherical.py`, `ot_noise.py` |
+| LSSE 구현 | `models/lsse/methods/lsse_trainer.py`, `cnp.py`, `csr.py`, `clm.py` |
+| DACE 구현 | `models/dace/core/trainer.py`, `models/dace/methods/erasure.py`, `adversary.py` |
 | ODACE 구현 | `odace/core/trainer.py`, `odace/methods/unet_edit.py` |
-| ESD 구현 | `models/comparison/esd/esd_trainer.py` |
-| SLD 구현 | `models/comparison/sld/sld_pipeline.py` |
-| Safe-CLIP loader | `models/comparison/safeclip/safeclip_loader.py` |
+| ESD 구현 | `models/esd/esd_trainer.py` |
+| SLD 구현 | `models/sld/sld_pipeline.py` |
+| Safe-CLIP loader | `models/safeclip/safeclip_loader.py` |

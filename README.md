@@ -11,7 +11,7 @@ robustly than text-encoder proxies.
 The repository groups several experiment tracks plus a cross-model harness:
 
 - `fcf/`: baseline Fortified Concept Forgetting (FCF) reproduction (text encoder).
-- `models/comparison/novel/`: independent FCF extensions (manifold projection,
+- `models/novel/`: independent FCF extensions (manifold projection,
   optimal-transport noise prompts, causal activation analysis).
 - `lsse/`: Layer-Selective Semantic Erasure (LSSE), a single-loop text-encoder
   alternative with null-space forgetting, contrastive retention, layer masking.
@@ -19,7 +19,7 @@ The repository groups several experiment tracks plus a cross-model harness:
   experiment (a deliberate negative-result probe).
 - `odace/`: Output-Distribution Adversarial Concept Erasure — the first method
   here that edits the **UNet cross-attention** instead of the text encoder.
-- `models/comparison/`: same-protocol reproductions of ESD, SLD, and Safe-CLIP.
+- `models/`: same-protocol reproductions of ESD, SLD, and Safe-CLIP.
 - `eval/`: cross-model ASR + COCO FID/CLIP evaluation harness.
 - `compare/`: the unified comparison report and the official-code FCF reproduction.
 
@@ -33,7 +33,7 @@ them under each subproject's `outputs/` directory.
 .
 |-- fcf/                  # FCF-P / FCF-E baseline (CLIP text encoder)
 |   |-- configs/ core/ data/ evaluation/ analysis/ scripts/ tests/
-|-- models/comparison/novel/    # Isolated FCF extensions (N1 CAP, N5 spherical, N6 OT)
+|-- models/novel/    # Isolated FCF extensions (N1 CAP, N5 spherical, N6 OT)
 |   |-- core/ methods/ configs/ scripts/ tests/
 |-- lsse/                 # Layer-Selective Semantic Erasure (N7-N9)
 |   |-- core/ methods/ configs/ evaluation/ tests/
@@ -42,7 +42,7 @@ them under each subproject's `outputs/` directory.
 |-- odace/                # Output-Distribution Adversarial Concept Erasure (UNet)
 |   |-- methods/ configs/ core/ experiments/ tests/ train_odace.py
 |   |-- evaluate_odace.py evaluate_utility.py
-|-- models/comparison/            # Same-protocol reproductions
+|-- models/            # Same-protocol reproductions
 |   |-- esd/ sld/ safeclip/ run_eval.sh
 |-- eval/               # Cross-model eval harness
 |   |-- xeval.py          # ASR over 5 attack suites for any registered model
@@ -71,9 +71,9 @@ Reproduces the two-stage text-encoder method from:
 
 > Note: the in-repo `fcf/` re-implementation diverged from the paper on subtle
 > data/normalization details. The faithful reproduction lives in
-> `models/core/fcf/` (authors' official code + data); see Results below.
+> `models/fcf/` (authors' official code + data); see Results below.
 
-### Novel FCF Extensions (`models/comparison/novel/`)
+### Novel FCF Extensions (`models/novel/`)
 
 Independent from `fcf/`; keeps a local copy of the base trainer and adds:
 
@@ -106,7 +106,7 @@ the **SD UNet cross-attention** (`to_q/k/v/out`) with the text encoder frozen.
 Instead of a text-embedding proxy, it optimizes the UNet noise prediction that
 actually drives the image. ODACE is the project's strongest eraser (see Results).
 
-### Reproduced Baselines (`models/comparison/`)
+### Reproduced Baselines (`models/`)
 
 Same-protocol reproductions for fair comparison:
 
@@ -154,8 +154,8 @@ generation. CPU works for small tests but is impractical for full SD runs.
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r models/core/fcf/legacy_reimpl/requirements.txt
-python -m pip install -r models/comparison/novel/requirements.txt
+python -m pip install -r models/fcf/legacy_reimpl/requirements.txt
+python -m pip install -r models/novel/requirements.txt
 ```
 
 On Windows PowerShell:
@@ -165,7 +165,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r fcf\requirements.txt
-python -m pip install -r models/comparison/novel/requirements.txt
+python -m pip install -r models/novel/requirements.txt
 ```
 
 Alternatively, create the conda environment:
@@ -214,32 +214,32 @@ Run commands from the repository root unless noted otherwise.
 ### Train (text-encoder methods)
 
 ```bash
-python models/core/fcf/legacy_reimpl/train.py --config models/core/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml          # FCF-P
-python models/core/fcf/legacy_reimpl/train.py --config models/core/fcf/legacy_reimpl/configs/nudity_fcf_e.yaml          # FCF-E
-python models/core/lsse/train_lsse.py --config models/core/lsse/configs/nudity_lsse.yaml    # LSSE
-python models/core/dace/train_dace.py --config models/core/dace/configs/nudity_dace.yaml    # DACE
+python models/fcf/legacy_reimpl/train.py --config models/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml          # FCF-P
+python models/fcf/legacy_reimpl/train.py --config models/fcf/legacy_reimpl/configs/nudity_fcf_e.yaml          # FCF-E
+python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse.yaml    # LSSE
+python models/dace/train_dace.py --config models/dace/configs/nudity_dace.yaml    # DACE
 ```
 
 Common FCF overrides:
 
 ```bash
-python models/core/fcf/legacy_reimpl/train.py --config models/core/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml \
+python models/fcf/legacy_reimpl/train.py --config models/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml \
   --eta 0.3 --mu_p 0.8 --num_epochs 10 --device cuda
 ```
 
 Novel FCF (spherical projection / OT noise / CAP) — see the per-flag examples in
-`models/comparison/novel/` configs and `scripts/`:
+`models/novel/` configs and `scripts/`:
 
 ```bash
-python models/comparison/novel/train.py \
-  --config models/comparison/novel/configs/nudity_v2.yaml --manifold spherical
+python models/novel/train.py \
+  --config models/novel/configs/nudity_v2.yaml --manifold spherical
 ```
 
 ### Train ODACE (UNet cross-attention)
 
 ```bash
-python models/comparison/odace/train_odace.py --config models/comparison/odace/configs/nudity_odace.yaml       # v3 recipe (SD v1.4)
-python models/comparison/odace/train_odace.py --config models/comparison/odace/configs/nudity_odace_v15.yaml   # v1.5 base
+python models/odace/train_odace.py --config models/odace/configs/nudity_odace.yaml       # v3 recipe (SD v1.4)
+python models/odace/train_odace.py --config models/odace/configs/nudity_odace_v15.yaml   # v1.5 base
 ```
 
 ### Cross-Model Evaluation
@@ -253,19 +253,19 @@ python eval/eval_coco.py --models raw_v14,odace_v3,fcf_p_official
 ```
 
 Registered model keys (UNet, text-encoder, inference, and baseline methods) live
-in `eval/xeval.py:REGISTRY`. Reproduced baselines also have `models/comparison/run_eval.sh`.
+in `eval/xeval.py:REGISTRY`. Reproduced baselines also have `models/run_eval.sh`.
 
 The official-code FCF reproduction and its paper-aligned full-set / FID-5K /
-violence evaluations are under `models/core/fcf/` (see that directory and the
+violence evaluations are under `models/fcf/` (see that directory and the
 report's §③-정정 sections).
 
 ## Image Generation
 
 ```bash
-python models/core/fcf/legacy_reimpl/generate_images.py \
-  --encoder_dir models/core/fcf/legacy_reimpl/outputs/fcf_p_nudity/final \
-  --prompts_file models/core/fcf/data/eval/i2p_nudity.txt \
-  --output_dir models/core/fcf/legacy_reimpl/outputs/images/fcf_p_nudity_i2p
+python models/fcf/legacy_reimpl/generate_images.py \
+  --encoder_dir models/fcf/legacy_reimpl/outputs/fcf_p_nudity/final \
+  --prompts_file models/fcf/data/eval/i2p_nudity.txt \
+  --output_dir models/fcf/legacy_reimpl/outputs/images/fcf_p_nudity_i2p
 ```
 
 Omit `--encoder_dir` for a raw Stable Diffusion baseline. The generator also
@@ -275,8 +275,8 @@ supports the CSV-style interface (`--prompts_path`, `--model_path`, `--save_path
 ## Evaluation (FCF subproject)
 
 ```bash
-python fcf/evaluate.py --config models/core/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml \
-  --encoder_dir models/core/fcf/legacy_reimpl/outputs/fcf_p_nudity/final --concept nudity --eval_type asr
+python fcf/evaluate.py --config models/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml \
+  --encoder_dir models/fcf/legacy_reimpl/outputs/fcf_p_nudity/final --concept nudity --eval_type asr
 ```
 
 `--eval_type` also accepts `quality` and `style` (Van Gogh). Results are written
@@ -285,11 +285,11 @@ to `eval_results.json` under the selected `--output_dir`.
 ## Tests
 
 ```bash
-python -m pytest models/core/fcf/legacy_reimpl/tests -q
-python -m pytest models/comparison/novel/tests -q
-python -m pytest models/core/lsse/tests -q
-python -m pytest models/core/dace/tests -q
-python -m pytest models/comparison/odace/tests -q
+python -m pytest models/fcf/legacy_reimpl/tests -q
+python -m pytest models/novel/tests -q
+python -m pytest models/lsse/tests -q
+python -m pytest models/dace/tests -q
+python -m pytest models/odace/tests -q
 ```
 
 Tests use small mocked components where possible; full training/generation/eval
@@ -317,7 +317,7 @@ artifacts separately if they need to be shared.
 
 Per-track logs:
 
-- `fcf/docs/results.md`, `models/comparison/novel/docs/results.md`, `lsse/docs/results.md`
+- `fcf/docs/results.md`, `models/novel/docs/results.md`, `lsse/docs/results.md`
 - `odace/README.md`, `dace/README.md` (method-level write-ups)
 - **`compare/comparison_all_methods.md`** (unified, authoritative)
 
@@ -326,11 +326,11 @@ and the numeric tables in `compare/` as the source of truth.
 
 ## Notes
 
-- Intervention points differ by track: `fcf/`, `models/comparison/novel/`, `lsse/`, and
+- Intervention points differ by track: `fcf/`, `models/novel/`, `lsse/`, and
   `dace/` fine-tune the **CLIP text encoder**; `odace/` edits the **SD UNet**
-  cross-attention; `models/comparison/` covers UNet (ESD), text-encoder (Safe-CLIP), and
+  cross-attention; `models/` covers UNet (ESD), text-encoder (Safe-CLIP), and
   inference-time (SLD) interventions.
 - FCF default hyperparameters mirror the paper: learning rate `2.5e-5`,
   `eta=0.25`, `mu_p=0.7`, `mu_e=1.0`, `num_epochs=60`.
-- `models/comparison/novel/`, `lsse/`, `dace/`, and `odace/` are independent experiments
+- `models/novel/`, `lsse/`, `dace/`, and `odace/` are independent experiments
   and must not import from `fcf/` during normal use.

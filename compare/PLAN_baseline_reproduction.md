@@ -48,7 +48,7 @@
 - `eval/tests/test_xeval.py`에 신규 kind 등록 검증 테스트.
 
 ### Phase 2 — ESD 재현 (최우선, 학습)
-- 신규 모듈 `models/comparison/esd/`(또는 `odace/` 내 `train_esd.py`). **공식 recipe**(Gandikota): 음성가이던스 타깃 `ε_θ(x,∅) − η(ε_θ(x,c)−ε_θ(x,∅))`, frozen 원본이 가이던스 제공, UNET만 학습.
+- 신규 모듈 `models/esd/`(또는 `odace/` 내 `train_esd.py`). **공식 recipe**(Gandikota): 음성가이던스 타깃 `ε_θ(x,∅) − η(ε_θ(x,c)−ε_θ(x,∅))`, frozen 원본이 가이던스 제공, UNET만 학습.
   - **ESD-u**(cross-attn 제외 = unconditional, NSFW에 표준): η=1, lr 1e-5, ~1000 step.
   - **ESD-x**(cross-attn만): 개념 국소 소거.
   - ⚠️ ODACE(강화판)와 **구분** — 캐논 ESD recipe 그대로(ODACE의 lr 1e-4/eta 3.0 아님).
@@ -81,7 +81,7 @@
 
 ## CLAUDE.md 제약 (필수)
 - 부모 `fcf/`·`train_fcf.py`·`evaluate.py` 수정 금지(가중치/체크포인트 읽기는 OK).
-- `models/comparison/novel/` 코드 import 금지.
+- `models/novel/` 코드 import 금지.
 - 결과는 프로젝트 자체 `outputs/`에만.
 - 신규 트레이너 **FCFTrainer 비상속**.
 - NudeNet v3 score>0.3 · FID num_workers=0 · tmux 실행은 `tee`로 라이브 출력.

@@ -41,24 +41,24 @@ class Model:
 
 
 ATTACKS = [
-    Attack("I2P", "I2P", "models/core/lsse/data/eval/i2p_nudity.txt", ("i2p",)),
+    Attack("I2P", "I2P", "models/lsse/data/eval/i2p_nudity.txt", ("i2p",)),
     Attack(
         "Ring-A-Bell",
         "Ring-A-Bell",
-        "models/core/lsse/data/eval/ring_a_bell_nudity.txt",
+        "models/lsse/data/eval/ring_a_bell_nudity.txt",
         ("ring_a_bell",),
     ),
     Attack(
         "Ring-A-Bell(Re)",
         "Ring-A-Bell(Re)",
-        "models/core/lsse/data/eval/ring_a_bell_re_nudity.txt",
+        "models/lsse/data/eval/ring_a_bell_re_nudity.txt",
         ("ring_a_bell_re", "ring_a_bellre"),
     ),
-    Attack("P4D", "P4D", "models/core/lsse/data/eval/p4d_nudity.txt", ("p4d",)),
+    Attack("P4D", "P4D", "models/lsse/data/eval/p4d_nudity.txt", ("p4d",)),
     Attack(
         "UnlearnDiffAtk",
         "UnlearnDiffAtk",
-        "models/core/lsse/data/eval/unlearnDiffAtk_nudity.txt",
+        "models/lsse/data/eval/unlearnDiffAtk_nudity.txt",
         ("unlearnDiffAtk", "unlearndiffatk"),
     ),
 ]
@@ -68,7 +68,7 @@ MODELS = [
     Model(
         "raw_sd",
         "Raw SD",
-        "models/core/lsse/outputs/eval/xharness_rawsd",
+        "models/lsse/outputs/eval/xharness_rawsd",
         "Unlearned SD v1-4",
     ),
     Model(
@@ -92,49 +92,49 @@ MODELS = [
     Model(
         "vanilla_lsse",
         "Vanilla LSSE",
-        "models/core/lsse/outputs/eval/baseline_seed42",
+        "models/lsse/outputs/eval/baseline_seed42",
         "CNP + CSR + CLM",
     ),
     Model(
         "lsse_plu",
         "LSSE+PLU",
-        "models/core/lsse/outputs/eval/plu_seed42",
+        "models/lsse/outputs/eval/plu_seed42",
         "Progressive layer unlocking",
     ),
     Model(
         "lsse_plu_w2",
         "LSSE+PLU+W2",
-        "models/core/lsse/outputs/eval/stack_plu_w2_seed42",
+        "models/lsse/outputs/eval/stack_plu_w2_seed42",
         "PLU + margin CNP",
     ),
     Model(
         "sph_ot",
         "Spherical+OT",
-        "models/core/lsse/outputs/eval/xharness_sph_ot",
+        "models/lsse/outputs/eval/xharness_sph_ot",
         "N5 spherical + N6 OT noise",
     ),
     Model(
         "dace",
         "DACE",
-        "models/core/lsse/outputs/eval/xharness_dace",
+        "models/lsse/outputs/eval/xharness_dace",
         "Dynamic concept-axis erasure",
     ),
     Model(
         "dace_plu",
         "DACE+PLU",
-        "models/core/lsse/outputs/eval/xharness_dace_plu",
+        "models/lsse/outputs/eval/xharness_dace_plu",
         "DACE with PLU",
     ),
     Model(
         "odace_v2",
         "ODACE earlier",
-        "models/comparison/odace/outputs/eval/odace",
+        "models/odace/outputs/eval/odace",
         "Earlier UNet output-grounded run",
     ),
     Model(
         "odace_v3",
         "ODACE v3",
-        "models/comparison/odace/outputs/eval/odace_v3",
+        "models/odace/outputs/eval/odace_v3",
         "Full cross-attention UNet edit",
     ),
 ]
