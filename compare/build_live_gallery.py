@@ -1,12 +1,12 @@
 """Live full-set gallery + quantitative table over eval/outputs/<model>_fs/.
 
 Two things in one page:
-  1. A quantitative summary TABLE (models as rows): nudity ASR per attack,
-     ASR mean, People-ASR, COCO-FID/CLIP, Violence(Q16). Values are read from
-     eval/outputs/<key>/metrics.json + coco_metrics.json at BUILD time and
-     embedded (no runtime fetch, so it works over file://). Models whose
-     full-set eval has not finished yet show "—"; re-run this builder after the
-     P3-ext jobs complete to fill them in.
+  1. Quantitative summary TABLES (models as rows). The FULL-SET table shows
+     nudity ASR per attack plus two means - 8-lab (our rule) and 4-lab (FCF
+     exposed-only), both score>0.3 - read from fullset_all.json / fullset_eval.json,
+     with COCO-FID/CLIP + Violence(Q16). A second LEGACY table shows the earlier
+     50-prompt re-score from eval/outputs/<key>/metrics.json. All values are read
+     at BUILD time and embedded (works over file://). Missing -> "—".
   2. A live image GALLERY (models as columns) over the FULL-SET images that
      eval_fullset_all.py writes to eval/outputs/<key>_fs/. Every cell points at
      the FINAL path even if the file does not exist yet; a JS timer retries
@@ -32,6 +32,8 @@ OUT = REPO / "compare" / "comparison_gallery_live.html"
 FS_ROOT = REPO / "eval" / "outputs"
 PROMPT_DIR = REPO / "models" / "fcf" / "data" / "eval"
 VIOLENCE_JSON = REPO / "models" / "fcf" / "violence_q16.json"
+FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"     # 17 Table-A methods (frozen full-set)
+FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"   # raw_v14 / fcf_p / fcf_e
 
 # (display label, key, group, base, modification site)
 #   key       -> images at eval/outputs/<key>_fs/, metrics at eval/outputs/<key>/
@@ -112,18 +114,51 @@ def load_violence():
     return out
 
 
+def load_fullset():
+    """key -> {a8:{label:val}, m8, m4}. Frozen full-set nudity ASR (score>0.3).
+
+    Per-attack + mean use the 8-label rule (a8 / m8); m4 is the 4-label (FCF
+    exposed-only) mean at the same 0.3 threshold. raw/fcf come from
+    fullset_eval.json (asr_ours8 / asr_fcf4); every other Table-A method from
+    fullset_all.json (ours8_p03 / fcf4_p03).
+    """
+    out = {}
+    je = _load_json(FULLSET_EVAL) if FULLSET_EVAL.exists() else None
+    for k, d in ((je or {}).get("models") or {}).items():
+        a8 = {a: v.get("asr_ours8") for a, v in (d.get("attacks") or {}).items()}
+        out[k] = {"a8": a8, "m8": d.get("asr_ours8_mean"), "m4": d.get("asr_fcf4_mean")}
+    ja = _load_json(FULLSET_ALL) if FULLSET_ALL.exists() else None
+    for k, d in ((ja or {}).get("models") or {}).items():
+        if "error" in d:
+            continue
+        a8 = {a: v.get("ours8_p03") for a, v in (d.get("attacks") or {}).items()}
+        out[k] = {"a8": a8, "m8": d.get("ours8_p03_mean"), "m4": d.get("fcf4_p03_mean")}
+    return out
+
+
 def load_metrics():
-    """key -> {asr{attack:val}, asr_mean, people_asr, fid, coco_clip, violence}."""
+    """key -> {fs_asr, fs_mean8, fs_mean4, leg_asr, leg_mean, fid, coco_clip, violence}.
+
+    fs_* = frozen FULL-SET nudity ASR; leg_* = legacy 50-prompt re-score
+    (eval/outputs/<key>/metrics.json). COCO-FID/CLIP from coco_metrics.json,
+    violence from violence_q16.json. People-ASR intentionally dropped.
+    """
     viol = load_violence()
+    fs = load_fullset()
     data = {}
     for _, key, *_ in MODELS:
-        d = {"asr": {}, "asr_mean": None, "people_asr": None,
+        d = {"fs_asr": {}, "fs_mean8": None, "fs_mean4": None,
+             "leg_asr": {}, "leg_mean": None,
              "fid": None, "coco_clip": None, "violence": viol.get(key)}
         m = _load_json(FS_ROOT / key / "metrics.json")
         if m:
-            d["asr"] = m.get("asr", {}) or {}
-            d["asr_mean"] = m.get("asr_mean")
-            d["people_asr"] = m.get("people_asr")
+            d["leg_asr"] = m.get("asr", {}) or {}
+            d["leg_mean"] = m.get("asr_mean")
+        f = fs.get(key)
+        if f:
+            d["fs_asr"] = {a: v for a, v in f["a8"].items() if v is not None}
+            d["fs_mean8"] = f["m8"]
+            d["fs_mean4"] = f["m4"]
         c = _load_json(FS_ROOT / key / "coco_metrics.json")
         if c:
             d["fid"] = c.get("coco_fid")
@@ -151,28 +186,56 @@ def num_cell(v):
     return '<td class="num muted">{0:.1f}</td>'.format(float(v))
 
 
-def quant_table(M):
+def _mh(label, key, group, base, mod):
+    return '<th class="mh" title="SD{0} / {1}">{2}<span class="tag t-{3}">{3}</span></th>'.format(
+        base, mod, html.escape(label), group)
+
+
+def _tr(key, group, base, mod, tds):
+    pin = ' data-pin="1"' if group == "ref" else ""
+    return '<tr data-key="{0}" data-group="{1}" data-base="{2}" data-mod="{3}"{4}>{5}</tr>'.format(
+        key, group, base, mod, pin, "".join(tds))
+
+
+def _table(head, body):
+    return ('<table class="qt"><thead><tr>' + "".join(head) +
+            '</tr></thead><tbody>' + "".join(body) + '</tbody></table>')
+
+
+def fullset_table(M):
     head = ['<th class="mh">Model</th>']
-    head += ['<th>{0}</th>'.format(html.escape(a)) for a, _, _ in ATTACKS]
-    head += ['<th>ASR&nbsp;mean</th>', '<th class="muted">People-ASR</th>',
-             '<th class="muted">COCO-FID</th>', '<th class="muted">COCO-CLIP</th>',
-             '<th>Violence&nbsp;Q16</th>']
+    head += ['<th>{0}&nbsp;<span class="ar">&darr;</span></th>'.format(html.escape(a)) for a, _, _ in ATTACKS]
+    head += ['<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br><span class="sub">8-lab</span></th>',
+             '<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br><span class="sub">4-lab</span></th>',
+             '<th class="muted">COCO-FID&nbsp;<span class="ar">&darr;</span></th>',
+             '<th class="muted">COCO-CLIP&nbsp;<span class="ar">&uarr;</span></th>',
+             '<th>Violence&nbsp;Q16&nbsp;<span class="ar">&darr;</span></th>']
     body = []
     for label, key, group, base, mod in MODELS:
         d = M[key]
-        tds = ['<th class="mh" title="SD{0} / {1}">{2}<span class="tag t-{3}">{3}</span></th>'.format(
-            base, mod, html.escape(label), group)]
-        tds += [asr_cell(d["asr"].get(a)) for a, _, _ in ATTACKS]
-        tds.append(asr_cell(d["asr_mean"], bold=True))
-        tds.append(num_cell(d["people_asr"]))
+        tds = [_mh(label, key, group, base, mod)]
+        tds += [asr_cell(d["fs_asr"].get(a)) for a, _, _ in ATTACKS]
+        tds.append(asr_cell(d["fs_mean8"], bold=True))
+        tds.append(asr_cell(d["fs_mean4"], bold=True))
         tds.append(num_cell(d["fid"]))
         tds.append(num_cell(d["coco_clip"]))
         tds.append(asr_cell(d["violence"]))
-        pin = ' data-pin="1"' if group == "ref" else ""
-        body.append('<tr data-key="{0}" data-group="{1}" data-base="{2}" data-mod="{3}"{4}>{5}</tr>'.format(
-            key, group, base, mod, pin, "".join(tds)))
-    return ('<table class="qt"><thead><tr>' + "".join(head) +
-            '</tr></thead><tbody>' + "".join(body) + '</tbody></table>')
+        body.append(_tr(key, group, base, mod, tds))
+    return _table(head, body)
+
+
+def legacy_table(M):
+    head = ['<th class="mh">Model</th>']
+    head += ['<th>{0}&nbsp;<span class="ar">&darr;</span></th>'.format(html.escape(a)) for a, _, _ in ATTACKS]
+    head += ['<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span></th>']
+    body = []
+    for label, key, group, base, mod in MODELS:
+        d = M[key]
+        tds = [_mh(label, key, group, base, mod)]
+        tds += [asr_cell(d["leg_asr"].get(a)) for a, _, _ in ATTACKS]
+        tds.append(asr_cell(d["leg_mean"], bold=True))
+        body.append(_tr(key, group, base, mod, tds))
+    return _table(head, body)
 
 
 def chip_bar():
@@ -212,6 +275,8 @@ label.t{display:inline-flex;gap:6px;align-items:center}
 .qt thead th.mh{z-index:8}
 .qt td.num{font-variant-numeric:tabular-nums}
 .qt td.num.b{font-weight:800}
+.qt th .sub{font-weight:400;color:var(--muted);font-size:10px}
+.qt th .ar{color:var(--accent);font-size:11px;font-weight:700}
 .qt td.muted{color:var(--muted)}
 .qt td.pend{color:#5a626b}
 .qt tbody tr:hover td,.qt tbody tr:hover th.mh{outline:1px solid var(--accent);outline-offset:-1px}
@@ -311,17 +376,31 @@ def build(rows_cap):
         '<span class="vc">visible <b id="viscount">{0}</b>/{0} models</span>'.format(n_models) +
         '</div></header><main>')
 
-    # 1) quantitative summary table
+    # 1) frozen full-set table (8-lab + 4-lab means)
     parts.append(
         '<section class="sec"><h2>Quantitative results '
-        '<span>(nudity ASR % per attack, lower is better &middot; heatmap green=low/red=high &middot; '
-        '&ndash; = full-set eval pending)</span></h2><div class="wrap">')
-    parts.append(quant_table(M))
+        '<span>(nudity ASR % &middot; frozen full-set &middot; both means score&gt;0.3, '
+        '8-lab=our rule / 4-lab=FCF exposed-only &middot; lower is better &middot; '
+        'heatmap green=low/red=high &middot; &ndash; = pending)</span></h2><div class="wrap">')
+    parts.append(fullset_table(M))
     parts.append('</div><div class="legend">'
-                 '<b>ASR</b>=attack success rate (NudeNet, % of images flagged) &middot; '
-                 '<b>People-ASR</b>=still draws people (utility) &middot; '
-                 '<b>COCO-FID</b>/<b>CLIP</b>=image quality/alignment &middot; '
-                 '<b>Violence Q16</b>=off-target violence ASR. Re-run the builder after jobs finish to refresh.'
+                 '<b>ASR mean 8-lab</b>=our strict rule (4 exposed + covered + buttocks) &middot; '
+                 '<b>ASR mean 4-lab</b>=FCF rule (4 exposed labels only) &middot; per-attack cells are 8-lab &middot; '
+                 '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D&nbsp;361 / UDA&nbsp;142 &middot; '
+                 '<b>COCO-FID</b>/<b>CLIP</b>=utility &middot; <b>Violence Q16</b>=off-target violence ASR. '
+                 'FCF looks worse on 8-lab than 4-lab because it only targets the 4 exposed labels.'
+                 '</div></section>')
+
+    # 1b) legacy 50-prompt table (reference)
+    parts.append(
+        '<section class="sec"><h2>Legacy results '
+        '<span>(50-prompt harness, 8-label score&gt;0.3 &middot; the earlier per-attack re-score, '
+        'kept for reference)</span></h2><div class="wrap">')
+    parts.append(legacy_table(M))
+    parts.append('</div><div class="legend">'
+                 'Same NudeNet 8-label score&gt;0.3 rule as the table above, but only '
+                 '<b>50 prompts/attack</b> (the pre-full-set re-score). '
+                 'Models without a 50-prompt metrics.json show &ndash;.'
                  '</div></section>')
 
     # 2) live image gallery, one section per attack
