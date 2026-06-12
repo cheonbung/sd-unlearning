@@ -1,0 +1,126 @@
+{
+  "_doc": "Van Gogh art-style LOCALITY check. style_img2raw: CLIP cos(model_img, raw_img) same prompt+seed, higher=style preserved (1.0=identical, raw is reference). style_clip_text: cos(img, 'van gogh style'). FCF/etc forgot NUDITY -> expect img2raw~1 and delta_text~0 (no spill = localized edit).",
+  "ref_model": "raw_v14",
+  "models": {
+    "raw_v14": {
+      "n": 50,
+      "style_img2raw": 1.0,
+      "style_clip_text": 0.2572,
+      "delta_text_vs_raw": 0.0
+    },
+    "fcf_p_official": {
+      "n": 50,
+      "style_img2raw": 0.8685,
+      "style_clip_text": 0.2419,
+      "delta_text_vs_raw": -0.0153
+    },
+    "fcf_e_official": {
+      "n": 50,
+      "style_img2raw": 0.9185,
+      "style_clip_text": 0.2487,
+      "delta_text_vs_raw": -0.0085
+    },
+    "odace_v3": {
+      "n": 50,
+      "style_img2raw": 0.9094,
+      "style_clip_text": 0.2586,
+      "delta_text_vs_raw": 0.0014
+    },
+    "odace_v15": {
+      "n": 50,
+      "style_img2raw": 0.7905,
+      "style_clip_text": 0.2318,
+      "delta_text_vs_raw": -0.0253
+    },
+    "safe_neg": {
+      "n": 50,
+      "style_img2raw": 0.9278,
+      "style_clip_text": 0.259,
+      "delta_text_vs_raw": 0.0018
+    },
+    "sph_ot": {
+      "n": 50,
+      "style_img2raw": 0.8703,
+      "style_clip_text": 0.2462,
+      "delta_text_vs_raw": -0.011
+    },
+    "lsse_plu_w2": {
+      "n": 50,
+      "style_img2raw": 0.5522,
+      "style_clip_text": 0.1701,
+      "delta_text_vs_raw": -0.0871
+    },
+    "esd_u": {
+      "n": 50,
+      "style_img2raw": 0.9304,
+      "style_clip_text": 0.2585,
+      "delta_text_vs_raw": 0.0014
+    },
+    "lsse_plu": {
+      "n": 50,
+      "style_img2raw": 0.5687,
+      "style_clip_text": 0.1758,
+      "delta_text_vs_raw": -0.0813
+    },
+    "safeclip": {
+      "n": 50,
+      "style_img2raw": 0.9399,
+      "style_clip_text": 0.2568,
+      "delta_text_vs_raw": -0.0003
+    },
+    "sld_max": {
+      "n": 50,
+      "style_img2raw": 0.9195,
+      "style_clip_text": 0.2569,
+      "delta_text_vs_raw": -0.0003
+    },
+    "vanilla_lsse": {
+      "n": 50,
+      "style_img2raw": 0.9184,
+      "style_clip_text": 0.2511,
+      "delta_text_vs_raw": -0.006
+    },
+    "dace_v2": {
+      "n": 50,
+      "style_img2raw": 0.9247,
+      "style_clip_text": 0.2546,
+      "delta_text_vs_raw": -0.0025
+    },
+    "sd21base": {
+      "n": 50,
+      "style_img2raw": 0.8919,
+      "style_clip_text": 0.2505,
+      "delta_text_vs_raw": -0.0066
+    },
+    "odace_v2": {
+      "n": 50,
+      "style_img2raw": 0.955,
+      "style_clip_text": 0.2575,
+      "delta_text_vs_raw": 0.0003
+    },
+    "sld_strong": {
+      "n": 50,
+      "style_img2raw": 0.9413,
+      "style_clip_text": 0.2566,
+      "delta_text_vs_raw": -0.0006
+    },
+    "raw_v15": {
+      "n": 50,
+      "style_img2raw": 0.9323,
+      "style_clip_text": 0.2555,
+      "delta_text_vs_raw": -0.0016
+    },
+    "sld_medium": {
+      "n": 50,
+      "style_img2raw": 0.9581,
+      "style_clip_text": 0.2567,
+      "delta_text_vs_raw": -0.0005
+    },
+    "dace_plu": {
+      "n": 50,
+      "style_img2raw": 0.9279,
+      "style_clip_text": 0.2552,
+      "delta_text_vs_raw": -0.002
+    }
+  }
+}

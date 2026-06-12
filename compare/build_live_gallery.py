@@ -32,6 +32,7 @@ OUT = REPO / "compare" / "comparison_gallery_live.html"
 FS_ROOT = REPO / "eval" / "outputs"
 PROMPT_DIR = REPO / "models" / "fcf" / "data" / "eval"
 VIOLENCE_JSON = REPO / "models" / "fcf" / "violence_q16.json"
+STYLE_JSON = REPO / "models" / "fcf" / "style_vangogh.json"   # Van Gogh style locality (img2raw)
 FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"     # 17 Table-A methods (frozen full-set)
 FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"   # raw_v14 / fcf_p / fcf_e
 
@@ -114,6 +115,18 @@ def load_violence():
     return out
 
 
+def load_style():
+    """key -> style_img2raw (CLIP cos(model_img, raw_img); higher = Van Gogh style preserved)."""
+    out = {}
+    j = _load_json(STYLE_JSON) if STYLE_JSON.exists() else None
+    if j:
+        for lbl, d in (j.get("models") or {}).items():
+            v = d.get("style_img2raw")
+            if v is not None:
+                out[lbl] = v
+    return out
+
+
 def load_fullset():
     """key -> {a8:{label:val}, m8, m4}. Frozen full-set nudity ASR (score>0.3).
 
@@ -144,12 +157,14 @@ def load_metrics():
     violence from violence_q16.json. People-ASR intentionally dropped.
     """
     viol = load_violence()
+    sty = load_style()
     fs = load_fullset()
     data = {}
     for _, key, *_ in MODELS:
         d = {"fs_asr": {}, "fs_mean8": None, "fs_mean4": None,
              "leg_asr": {}, "leg_mean": None,
-             "fid": None, "coco_clip": None, "violence": viol.get(key)}
+             "fid": None, "coco_clip": None, "violence": viol.get(key),
+             "style": sty.get(key)}
         m = _load_json(FS_ROOT / key / "metrics.json")
         if m:
             d["leg_asr"] = m.get("asr", {}) or {}
@@ -186,6 +201,16 @@ def num_cell(v):
     return '<td class="num muted">{0:.1f}</td>'.format(float(v))
 
 
+def ret_cell(v):
+    """Retention/locality cell: CLIP cos in [~0.6,1.0] shown x100; HIGHER is better (green)."""
+    if v is None:
+        return '<td class="num pend">—</td>'
+    pct = 100.0 * float(v)
+    t = max(0.0, min(1.0, (pct - 70.0) / 30.0))          # 70->red .. 100->green
+    return '<td class="num" data-v="{1:.2f}" style="background:hsl({0:.0f},55%,26%)">{1:.1f}</td>'.format(
+        120 * t, pct)
+
+
 def _mh(label, key, group, base, mod):
     return '<th class="mh" title="SD{0} / {1}">{2}<span class="tag t-{3}">{3}</span></th>'.format(
         base, mod, html.escape(label), group)
@@ -209,7 +234,8 @@ def fullset_table(M):
              '<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br><span class="sub">4-lab</span></th>',
              '<th class="muted">COCO-FID&nbsp;<span class="ar">&darr;</span></th>',
              '<th class="muted">COCO-CLIP&nbsp;<span class="ar">&uarr;</span></th>',
-             '<th>Violence&nbsp;Q16&nbsp;<span class="ar">&darr;</span></th>']
+             '<th>Violence&nbsp;Q16&nbsp;<span class="ar">&darr;</span></th>',
+             '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>']
     body = []
     for label, key, group, base, mod in MODELS:
         d = M[key]
@@ -220,6 +246,7 @@ def fullset_table(M):
         tds.append(num_cell(d["fid"]))
         tds.append(num_cell(d["coco_clip"]))
         tds.append(asr_cell(d["violence"]))
+        tds.append(ret_cell(d["style"]))
         body.append(_tr(key, group, base, mod, tds))
     return _table(head, body)
 
@@ -387,7 +414,8 @@ def build(rows_cap):
                  '<b>ASR mean 8-lab</b>=our strict rule (4 exposed + covered + buttocks) &middot; '
                  '<b>ASR mean 4-lab</b>=FCF rule (4 exposed labels only) &middot; per-attack cells are 8-lab &middot; '
                  '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D&nbsp;361 / UDA&nbsp;142 &middot; '
-                 '<b>COCO-FID</b>/<b>CLIP</b>=utility &middot; <b>Violence Q16</b>=off-target violence ASR. '
+                 '<b>COCO-FID</b>/<b>CLIP</b>=utility &middot; <b>Violence Q16</b>=off-target violence ASR &middot; '
+                 '<b>VanGogh retain</b>=CLIP image&harr;raw-SD similarity on 50 Van Gogh prompts (&uarr; higher=style preserved, locality). '
                  'FCF looks worse on 8-lab than 4-lab because it only targets the 4 exposed labels.'
                  '</div></section>')
 
