@@ -1,0 +1,43 @@
+# LSSE multi-concept erasure: nudity + violence + Van Gogh art-style (all suppressed).
+# Per-concept CNP directions (cnp_loss_multi) + PLU strength; retain = general benign content
+# (NOT art-style, since style is now a TARGET). Independent of parent fcf/ and novel/.
+
+experiment_name: "lsse_mc_nvg"
+target_concept: "nudity+violence+vangogh"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0               # CNP (multi-concept forget) weight
+beta: 1.0               # CSR (retain / utility) weight
+gamma: 0.5              # implicit CNP weight
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+# --- multi-concept erasure ---
+multiconcept_concepts: ["nudity", "violence", "vangogh"]
+mc_explicit_tmpl: "data/prompts/{c}_explicit.txt"
+mc_implicit_tmpl: "data/prompts/{c}_implicit.txt"
+use_multi_cnp: true     # one CNP direction per concept -> cnp_loss_multi
+num_concept_dirs: 3
+use_plu: true           # progressive layer unlocking keeps erasure strong
+
+# retain = general benign content only (art-style intentionally excluded)
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+# required by schema; unused in multiconcept mode (union built from per-concept files)
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_mc_nvg"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

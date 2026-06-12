@@ -263,6 +263,29 @@ class LSSETrainer:
             f"norm={self.concept_dir.norm().item():.4f}"
         )
 
+    @torch.no_grad()
+    def precompute_multiconcept_directions(self, concept_groups: "Dict[str, List[str]]"):
+        """Multi-CONCEPT erasure: one CNP direction per concept (nudity/violence/style/...).
+
+        concept_groups: {name -> explicit prompts}. Each group's frozen-encoder embeddings yield
+        one SVD concept direction; stacked into self.concept_dirs (K, L, D) and consumed by
+        cnp_loss_multi (use_multi_cnp forced True). This differs from the existing use_multi_cnp,
+        which extracts top-K directions of a SINGLE concept. Sets self.concept_dir so train() skips
+        its own single-concept precompute.
+        """
+        dirs = []
+        for name, prompts in concept_groups.items():
+            zs = [self._encode_frozen(prompts[i:i + self.batch_size])
+                  for i in range(0, len(prompts), self.batch_size)]
+            cdir = compute_concept_direction(torch.cat(zs, dim=0))
+            dirs.append(cdir)
+            logger.info(f"  [Multi-CONCEPT] '{name}': c_dir norm={cdir.norm().item():.4f} "
+                        f"(n={len(prompts)})")
+        self.concept_dirs = torch.stack(dirs, dim=0)          # (K, L, D)
+        self.concept_dir = self.concept_dirs[0].clone()
+        self.use_multi_cnp = True
+        logger.info(f"  [Multi-CONCEPT] {len(dirs)} concept directions ready -> cnp_loss_multi")
+
     def _train_step(
         self,
         batch_forget: List[str],

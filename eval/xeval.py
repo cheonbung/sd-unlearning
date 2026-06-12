@@ -131,6 +131,9 @@ REGISTRY = {
                        "te_dir": "models/fcf/official_fcf_p/final"},
     "fcf_e_official": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                        "te_dir": "models/fcf/official_fcf_e/final"},
+    # --- LSSE multi-concept erasure (nudity+violence+Van Gogh), text-encoder swap. ---
+    "lsse_mc_nvg": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                    "te_dir": "models/lsse/outputs/lsse_mc_nvg/final"},
 }
 
 

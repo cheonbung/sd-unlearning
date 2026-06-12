@@ -40,6 +40,9 @@ if str(_PROJECT_ROOT) not in sys.path:
 from core import LSSEDataset      # noqa: E402
 from methods import LSSETrainer   # noqa: E402
 
+sys.path.insert(0, str(_PROJECT_ROOT.parents[1] / "eval"))  # repo/eval for env-aware cost
+from cost_utils import CostMeter  # noqa: E402
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -87,6 +90,34 @@ def build_dataset(cfg: dict, base_dir: str) -> LSSEDataset:
         target_concept=cfg["target_concept"],
         seed=cfg.get("seed", 42),
     )
+
+
+def build_multiconcept_dataset(cfg: dict, base_dir: str):
+    """Multi-CONCEPT erasure dataset: union explicit/implicit over all target concepts; retain =
+    a general benign set (NOT art-style, since style is now a target). Returns (dataset, groups)
+    where groups = {concept -> explicit prompts} for per-concept CNP directions.
+    """
+    concepts = cfg["multiconcept_concepts"]
+    tmpl_exp = cfg.get("mc_explicit_tmpl", "data/prompts/{c}_explicit.txt")
+    tmpl_imp = cfg.get("mc_implicit_tmpl", "data/prompts/{c}_implicit.txt")
+
+    def _load(rel: str):
+        p = Path(base_dir) / rel
+        return [ln.strip() for ln in p.read_text(encoding="utf-8").splitlines()
+                if ln.strip() and not ln.startswith("#")]
+
+    explicit, implicit, groups = [], [], {}
+    for c in concepts:
+        ex = _load(tmpl_exp.format(c=c))
+        groups[c] = ex
+        explicit += ex
+        imp_path = Path(base_dir) / tmpl_imp.format(c=c)
+        if imp_path.exists():
+            implicit += _load(tmpl_imp.format(c=c))
+    retain = _load(cfg["retain_prompts_file"])
+    ds = LSSEDataset(explicit, retain, implicit,
+                     target_concept="+".join(concepts), seed=cfg.get("seed", 42))
+    return ds, groups
 
 
 def save_history(history: list, path: str):
@@ -211,7 +242,13 @@ def main():
     text_encoder = CLIPTextModel.from_pretrained(clip_id)
 
     logger.info("데이터셋 로드 중...")
-    dataset = build_dataset(cfg, base_dir)
+    mc_concepts = cfg.get("multiconcept_concepts")
+    if mc_concepts:
+        dataset, mc_groups = build_multiconcept_dataset(cfg, base_dir)
+        logger.info(f"  [Multi-CONCEPT] concepts={mc_concepts}")
+    else:
+        dataset = build_dataset(cfg, base_dir)
+        mc_groups = None
     logger.info(f"  {dataset}")
 
     cap_file = cfg.get("cap_file")
@@ -272,13 +309,18 @@ def main():
     with open(os.path.join(output_dir, "run_config.yaml"), "w") as f:
         yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True)
 
+    if mc_groups:
+        trainer.precompute_multiconcept_directions(mc_groups)
+
     logger.info(f"\n[LSSE] 학습 시작 — {num_epochs} epochs")
-    history = trainer.train(
-        dataset=dataset,
-        num_epochs=num_epochs,
-        log_every=cfg.get("log_every", 10),
-        ckpt_dir=output_dir,
-    )
+    with CostMeter(cfg["experiment_name"], output_dir, steps=num_epochs) as meter:
+        history = trainer.train(
+            dataset=dataset,
+            num_epochs=num_epochs,
+            log_every=cfg.get("log_every", 10),
+            ckpt_dir=output_dir,
+        )
+        meter.set_trainable_params(trainer.text_encoder)
 
     final_dir = os.path.join(output_dir, "final")
     trainer.save(final_dir)
