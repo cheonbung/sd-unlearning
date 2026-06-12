@@ -48,6 +48,20 @@
       "gpu_hours": 0.0,
       "trainable_params_M": 0.0,
       "note": "external aimagelab Safe-CLIP encoder (not trained by us)"
+    },
+    "lsse_mc_nvg": {
+      "model": "lsse_mc_nvg",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 80.53,
+      "steps": 60,
+      "wall_seconds": 181.6,
+      "gpu_hours": 0.05,
+      "peak_vram_gb": 6.03,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-12",
+      "status": "ok"
     }
   }
 }

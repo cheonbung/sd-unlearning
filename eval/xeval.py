@@ -134,6 +134,9 @@ REGISTRY = {
     # --- LSSE multi-concept erasure (nudity+violence+Van Gogh), text-encoder swap. ---
     "lsse_mc_nvg": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                     "te_dir": "models/lsse/outputs/lsse_mc_nvg/final"},
+    # --- ODACE multi-concept erasure (nudity+violence+Van Gogh), UNet cross-attn edit. ---
+    "odace_mc": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                 "unet_dir": "models/odace/outputs/odace_mc_nvg/final"},
 }
 
 

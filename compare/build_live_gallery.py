@@ -65,6 +65,7 @@ MODELS = [
     ("ODACE (SD v1.5)",        "odace_v15",      "novel",    "1.5", "unet"),
     ("ODACE (SD v1.4, early)", "odace_v2",       "novel",    "1.4", "unet"),
     ("LSSE-MC (n+v+vg)",       "lsse_mc_nvg",     "novel",    "1.4", "text"),
+    ("ODACE-MC (n+v+vg)",      "odace_mc",        "novel",    "1.4", "unet"),
 ]
 # (label, _fs subdir, prompt file)
 ATTACKS = [

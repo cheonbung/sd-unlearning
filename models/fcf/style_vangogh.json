@@ -121,6 +121,12 @@
       "style_img2raw": 0.9279,
       "style_clip_text": 0.2552,
       "delta_text_vs_raw": -0.002
+    },
+    "lsse_mc_nvg": {
+      "n": 50,
+      "style_img2raw": 0.4731,
+      "style_clip_text": 0.148,
+      "delta_text_vs_raw": -0.1091
     }
   }
 }

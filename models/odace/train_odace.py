@@ -6,8 +6,10 @@ from pathlib import Path
 import torch, yaml
 
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "eval"))  # repo/eval for env-aware cost
 from core.dataset import DACEDataset
 from core.trainer import ODACETrainer
+from cost_utils import CostMeter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("train_odace")
@@ -54,8 +56,11 @@ def main():
 
     out_dir = base / cfg.get("output_dir", "outputs/odace_nudity")
     out_dir.mkdir(parents=True, exist_ok=True)
-    history = trainer.train(dataset, num_steps=int(cfg.get("num_steps", 400)),
-                            log_every=int(cfg.get("log_every", 25)))
+    with CostMeter(cfg.get("experiment_name", "odace"), str(out_dir),
+                   steps=int(cfg.get("num_steps", 400))) as meter:
+        history = trainer.train(dataset, num_steps=int(cfg.get("num_steps", 400)),
+                                log_every=int(cfg.get("log_every", 25)))
+        meter.set_trainable_params(trainer.unet)
     trainer.save(str(out_dir / "final"))
     with open(out_dir / "history.json", "w") as f:
         json.dump(history, f, indent=2)
