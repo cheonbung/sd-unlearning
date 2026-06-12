@@ -1,0 +1,43 @@
+# LSSE multi-concept erasure v2 — fixes v1 dilution (nudity under-erased 55.6, style over-erased).
+# Changes vs v1: per-concept weights up-weight nudity (3x), more CLM layers (6), stronger forget
+# (alpha 1.5), more epochs (120). Goal: pull nudity down toward single-concept ~20 while keeping
+# violence + style suppressed and COCO utility intact.
+
+experiment_name: "lsse_mc_nvg_v2"
+target_concept: "nudity+violence+vangogh"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.5               # stronger forget pressure (v1 used 1.0)
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 120         # v1 used 60
+batch_size: 8
+seed: 42
+log_every: 20
+
+clm_top_k: 6            # v1 used 3 -> spread thin across 3 concepts
+cap_file: null
+
+# --- multi-concept erasure (weighted) ---
+multiconcept_concepts: ["nudity", "violence", "vangogh"]
+mc_weights: [3.0, 1.0, 1.0]    # up-weight nudity (hardest, under-erased in v1)
+mc_explicit_tmpl: "data/prompts/{c}_explicit.txt"
+mc_implicit_tmpl: "data/prompts/{c}_implicit.txt"
+use_multi_cnp: true
+num_concept_dirs: 3
+use_plu: true
+
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_mc_nvg_v2"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

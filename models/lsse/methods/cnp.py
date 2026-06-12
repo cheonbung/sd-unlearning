@@ -139,27 +139,34 @@ def compute_concept_directions(embeddings: torch.Tensor, top_k: int = 3) -> torc
     return Vt[:actual_k].reshape(actual_k, L, D)
 
 
-def cnp_loss_multi(embeddings: torch.Tensor, concept_dirs: torch.Tensor) -> torch.Tensor:
-    """N17: K개 개념 방향 모두에 대한 사영 크기 최소화.
+def cnp_loss_multi(embeddings: torch.Tensor, concept_dirs: torch.Tensor,
+                   weights=None) -> torch.Tensor:
+    """N17 / multi-CONCEPT: minimize squared projection onto each concept direction.
 
-    각 방향의 squared projection 평균을 구하고 K개 방향에 대해 평균.
-    단일 방향 CNP보다 개념의 다차원 표현을 더 완전히 제거.
+    weights: optional per-concept weights (len K). Up-weighting a hard concept (e.g. nudity)
+    counters the dilution that makes naive equal-weight multi-concept erasure under-erase it
+    (v1 finding: nudity barely moved while style over-erased). None -> equal weights (orig /K).
 
     Args:
-        embeddings:   (B, L, D) — 현재 인코더의 forget/implicit 프롬프트 임베딩.
-        concept_dirs: (K, L, D) — K개 unit-normalized 개념 방향. requires_grad=False.
+        embeddings:   (B, L, D) — current encoder forget/implicit embeddings.
+        concept_dirs: (K, L, D) — K unit-normalized concept directions. requires_grad=False.
+        weights:      optional list[float] length K (per-concept weight).
     Returns:
-        scalar loss: K개 방향 평균 squared projection.
+        scalar loss: weighted mean over K directions of squared projection.
     """
     B, L, D = embeddings.shape
     z_flat = embeddings.reshape(B, L * D)
     K = concept_dirs.shape[0]
+    if weights is None:
+        weights = [1.0] * K
     loss = torch.tensor(0.0, device=embeddings.device)
+    wsum = 0.0
     for k in range(K):
         c_flat = concept_dirs[k].detach().reshape(-1)
         proj = z_flat @ c_flat
-        loss = loss + (proj ** 2).mean()
-    return loss / K
+        loss = loss + float(weights[k]) * (proj ** 2).mean()
+        wsum += float(weights[k])
+    return loss / max(wsum, 1e-8)
 
 
 @torch.no_grad()

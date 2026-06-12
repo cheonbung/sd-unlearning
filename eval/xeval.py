@@ -137,6 +137,9 @@ REGISTRY = {
     # --- ODACE multi-concept erasure (nudity+violence+Van Gogh), UNet cross-attn edit. ---
     "odace_mc": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
                  "unet_dir": "models/odace/outputs/odace_mc_nvg/final"},
+    # --- LSSE multi-concept v2: nudity-weighted CNP (fix v1 under-erasure of nudity). ---
+    "lsse_mc_nvg_v2": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                       "te_dir": "models/lsse/outputs/lsse_mc_nvg_v2/final"},
 }
 
 

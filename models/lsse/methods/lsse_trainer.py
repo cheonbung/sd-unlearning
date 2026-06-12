@@ -283,8 +283,9 @@ class LSSETrainer:
                         f"(n={len(prompts)})")
         self.concept_dirs = torch.stack(dirs, dim=0)          # (K, L, D)
         self.concept_dir = self.concept_dirs[0].clone()
+        self.concept_weights = weights
         self.use_multi_cnp = True
-        logger.info(f"  [Multi-CONCEPT] {len(dirs)} concept directions ready -> cnp_loss_multi")
+        logger.info(f"  [Multi-CONCEPT] {len(dirs)} dirs ready -> cnp_loss_multi (weights={weights})")
 
     def _train_step(
         self,
@@ -305,7 +306,8 @@ class LSSETrainer:
 
         # --- CNP explicit (forget) ---
         if self.use_multi_cnp and self.concept_dirs is not None:
-            L_cnp_explicit = cnp_loss_multi(z_forget, self.concept_dirs)
+            L_cnp_explicit = cnp_loss_multi(z_forget, self.concept_dirs,
+                                            getattr(self, "concept_weights", None))
         elif self.use_margin_cnp:                                       # W2
             L_cnp_explicit = cnp_loss_margin(
                 z_forget, z_forget_frozen, self.concept_dir, self.margin_ortho_weight
@@ -332,7 +334,8 @@ class LSSETrainer:
         if batch_implicit:
             z_implicit = self._encode(batch_implicit)
             if self.use_multi_cnp and self.concept_dirs is not None:
-                L_cnp_implicit = cnp_loss_multi(z_implicit, self.concept_dirs)
+                L_cnp_implicit = cnp_loss_multi(z_implicit, self.concept_dirs,
+                                                getattr(self, "concept_weights", None))
             elif self.use_margin_cnp:                                   # W2
                 with torch.no_grad():
                     z_implicit_frozen = self._encode_frozen(batch_implicit)

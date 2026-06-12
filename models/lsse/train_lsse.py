@@ -310,7 +310,7 @@ def main():
         yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True)
 
     if mc_groups:
-        trainer.precompute_multiconcept_directions(mc_groups)
+        trainer.precompute_multiconcept_directions(mc_groups, cfg.get("mc_weights"))
 
     logger.info(f"\n[LSSE] 학습 시작 — {num_epochs} epochs")
     with CostMeter(cfg["experiment_name"], output_dir, steps=num_epochs) as meter:
