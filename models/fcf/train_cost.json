@@ -76,6 +76,20 @@
       "torch": "2.5.1+cu121",
       "timestamp": "2026-06-12",
       "status": "ok"
+    },
+    "lsse_mc_nvg_v2": {
+      "model": "lsse_mc_nvg_v2",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 80.53,
+      "steps": 120,
+      "wall_seconds": 375.9,
+      "gpu_hours": 0.104,
+      "peak_vram_gb": 6.03,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-12",
+      "status": "ok"
     }
   }
 }
