@@ -264,7 +264,7 @@ class LSSETrainer:
         )
 
     @torch.no_grad()
-    def precompute_multiconcept_directions(self, concept_groups: "Dict[str, List[str]]"):
+    def precompute_multiconcept_directions(self, concept_groups: "Dict[str, List[str]]", weights=None):
         """Multi-CONCEPT erasure: one CNP direction per concept (nudity/violence/style/...).
 
         concept_groups: {name -> explicit prompts}. Each group's frozen-encoder embeddings yield
