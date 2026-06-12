@@ -1,0 +1,53 @@
+{
+  "_doc": "Environment-aware training cost. gpu_hours = wall*gpu_count measured on the training machine (see 'gpu'); re-train on another env -> re-run aggregate_cost.py to refresh. training_free baselines have no local training. No USD (hardware-neutral).",
+  "models": {
+    "raw_v14": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "raw SD v1.4 (no unlearning)"
+    },
+    "raw_v15": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "raw SD v1.5 (no unlearning)"
+    },
+    "safe_neg": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "inference-time negative prompt (no training)"
+    },
+    "sd21base": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "SD2.1-base (NSFW-filtered pretraining, not trained by us)"
+    },
+    "sld_medium": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "SLD inference-time guidance (no training)"
+    },
+    "sld_strong": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "SLD inference-time guidance (no training)"
+    },
+    "sld_max": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "SLD inference-time guidance (no training)"
+    },
+    "safeclip": {
+      "training_free": true,
+      "gpu_hours": 0.0,
+      "trainable_params_M": 0.0,
+      "note": "external aimagelab Safe-CLIP encoder (not trained by us)"
+    }
+  }
+}

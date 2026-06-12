@@ -33,6 +33,8 @@ FS_ROOT = REPO / "eval" / "outputs"
 PROMPT_DIR = REPO / "models" / "fcf" / "data" / "eval"
 VIOLENCE_JSON = REPO / "models" / "fcf" / "violence_q16.json"
 STYLE_JSON = REPO / "models" / "fcf" / "style_vangogh.json"   # Van Gogh style locality (img2raw)
+VIOLENCE50_JSON = REPO / "models" / "fcf" / "violence_q16_smoke.json"  # 50-prompt violence subset
+TRAINCOST_JSON = REPO / "models" / "fcf" / "train_cost.json"   # env-aware training cost (GPU-h)
 FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"     # 17 Table-A methods (frozen full-set)
 FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"   # raw_v14 / fcf_p / fcf_e
 
@@ -115,6 +117,28 @@ def load_violence():
     return out
 
 
+def load_violence50():
+    """key -> asr_violence_mean from the 50-prompt violence subset (violence_q16_smoke.json)."""
+    out = {}
+    j = _load_json(VIOLENCE50_JSON) if VIOLENCE50_JSON.exists() else None
+    if j:
+        for lbl, d in (j.get("models") or {}).items():
+            v = d.get("asr_violence_mean")
+            if v is not None:
+                out[lbl] = v
+    return out
+
+
+def load_cost():
+    """key -> {gpu_hours, trainable_params_M, training_free, gpu} from env-aware train_cost.json."""
+    out = {}
+    j = _load_json(TRAINCOST_JSON) if TRAINCOST_JSON.exists() else None
+    if j:
+        for lbl, d in (j.get("models") or {}).items():
+            out[lbl] = d
+    return out
+
+
 def load_style():
     """key -> style_img2raw (CLIP cos(model_img, raw_img); higher = Van Gogh style preserved)."""
     out = {}
@@ -157,14 +181,17 @@ def load_metrics():
     violence from violence_q16.json. People-ASR intentionally dropped.
     """
     viol = load_violence()
+    viol50 = load_violence50()
     sty = load_style()
+    cost = load_cost()
     fs = load_fullset()
     data = {}
     for _, key, *_ in MODELS:
         d = {"fs_asr": {}, "fs_mean8": None, "fs_mean4": None,
              "leg_asr": {}, "leg_mean": None,
              "fid": None, "coco_clip": None, "violence": viol.get(key),
-             "style": sty.get(key)}
+             "violence50": viol50.get(key), "style": sty.get(key),
+             "cost": cost.get(key)}
         m = _load_json(FS_ROOT / key / "metrics.json")
         if m:
             d["leg_asr"] = m.get("asr", {}) or {}
@@ -211,6 +238,23 @@ def ret_cell(v):
         120 * t, pct)
 
 
+def cost_cell(c):
+    """Training cost cell: green = cheaper. 'free' = no local training (raw/SLD/safe-neg)."""
+    if not c:
+        return '<td class="num pend">—</td>'
+    if c.get("training_free"):
+        return '<td class="num" title="no local training" style="background:hsl(120,45%,24%)">free</td>'
+    gh = c.get("gpu_hours")
+    if gh is None:
+        return '<td class="num muted">—</td>'
+    pm = c.get("trainable_params_M")
+    lbl = "{0:.2f}h".format(float(gh)) + ("/{0:.0f}M".format(float(pm)) if pm else "")
+    t = max(0.0, min(1.0, float(gh) / 3.0))
+    bg = "background:hsl({0:.0f},55%,26%)".format(120 * (1 - t))
+    return '<td class="num" data-v="{0:.3f}" title="{1}" style="{2}">{3}</td>'.format(
+        float(gh), html.escape(str(c.get("gpu", ""))), bg, lbl)
+
+
 def _mh(label, key, group, base, mod):
     return '<th class="mh" title="SD{0} / {1}">{2}<span class="tag t-{3}">{3}</span></th>'.format(
         base, mod, html.escape(label), group)
@@ -235,7 +279,8 @@ def fullset_table(M):
              '<th class="muted">COCO-FID&nbsp;<span class="ar">&darr;</span></th>',
              '<th class="muted">COCO-CLIP&nbsp;<span class="ar">&uarr;</span></th>',
              '<th>Violence&nbsp;Q16&nbsp;<span class="ar">&darr;</span></th>',
-             '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>']
+             '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>',
+             '<th>Train&nbsp;<span class="ar">&darr;</span><br><span class="sub">GPU-h</span></th>']
     body = []
     for label, key, group, base, mod in MODELS:
         d = M[key]
@@ -247,6 +292,7 @@ def fullset_table(M):
         tds.append(num_cell(d["coco_clip"]))
         tds.append(asr_cell(d["violence"]))
         tds.append(ret_cell(d["style"]))
+        tds.append(cost_cell(d["cost"]))
         body.append(_tr(key, group, base, mod, tds))
     return _table(head, body)
 
@@ -254,13 +300,17 @@ def fullset_table(M):
 def legacy_table(M):
     head = ['<th class="mh">Model</th>']
     head += ['<th>{0}&nbsp;<span class="ar">&darr;</span></th>'.format(html.escape(a)) for a, _, _ in ATTACKS]
-    head += ['<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span></th>']
+    head += ['<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span></th>',
+             '<th>Violence-50&nbsp;<span class="ar">&darr;</span></th>',
+             '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>']
     body = []
     for label, key, group, base, mod in MODELS:
         d = M[key]
         tds = [_mh(label, key, group, base, mod)]
         tds += [asr_cell(d["leg_asr"].get(a)) for a, _, _ in ATTACKS]
         tds.append(asr_cell(d["leg_mean"], bold=True))
+        tds.append(asr_cell(d["violence50"]))
+        tds.append(ret_cell(d["style"]))
         body.append(_tr(key, group, base, mod, tds))
     return _table(head, body)
 
