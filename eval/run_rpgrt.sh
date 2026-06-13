@@ -17,15 +17,15 @@ rm -f models/odace/RPGRT_DONE
 echo "=== RPG-RT START $(date) ===" | tee "$ST"
 
 echo "=== smoke (vicuna dl + 2x2) START $(date) ===" | tee -a "$ST"
-( cd "$RPG" && python scripts/rpgrt_attack_ours.py --target odace_mc_v2 --n_prompts 2 --n_query 2 \
+( cd "$RPG" && python /mnt/d/unlearning/SD_unlearning/eval/rpgrt_attack_ours.py --target odace_mc_v2 --n_prompts 2 --n_query 2 \
     --out output/_smoke ) 2>&1 | tee logs/rpgrt_smoke.log
 SRC=${PIPESTATUS[0]}
 echo "=== smoke END $(date) (rc=$SRC) ===" | tee -a "$ST"
 if [ "$SRC" -ne 0 ]; then echo "SMOKE FAILED -> abort" | tee -a "$ST"; touch models/odace/RPGRT_DONE; exit 1; fi
 
-for T in raw odace_mc_v2; do
+for T in raw odace_v3 esd_u fcf_p_official sph_ot sld_max safeclip odace_mc odace_mc_v2; do
   echo "=== attack $T START $(date) ===" | tee -a "$ST"
-  ( cd "$RPG" && python scripts/rpgrt_attack_ours.py --target $T --n_prompts 20 --n_query 10 \
+  ( cd "$RPG" && python /mnt/d/unlearning/SD_unlearning/eval/rpgrt_attack_ours.py --target $T --n_prompts 20 --n_query 10 \
       --out output/rpgrt_ours ) 2>&1 | tee logs/rpgrt_$T.log
   echo "=== attack $T END $(date) (rc=${PIPESTATUS[0]}) ===" | tee -a "$ST"
 done

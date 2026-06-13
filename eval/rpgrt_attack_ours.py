@@ -10,13 +10,13 @@ method's training stage; this is the inference attack, the legitimate first addi
 Targets (--target): raw (SD1.4) | odace_mc_v2 (our multi-concept winner, UNet swap) | odace_mc.
 vicuna loaded in 4-bit (nf4) so it co-resides with SD1.4 + CLIP on a 12GB GPU.
 """
-import argparse, os, json
+import argparse, os, json, time
 import torch
 import pandas as pd
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel
 from nudenet import NudeDetector
 from transformers import (AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig,
-                          CLIPModel, CLIPImageProcessor)
+                          CLIPModel, CLIPImageProcessor, CLIPTextModel)
 from fastchat.model import get_conversation_template
 
 REPO = "/mnt/d/unlearning/SD_unlearning"
@@ -39,23 +39,47 @@ os.makedirs(args.out, exist_ok=True)
 os.makedirs(f"{args.out}/img", exist_ok=True)
 
 
+# UNet-swap targets (kind: odace/esd in xeval) and TE-swap targets (kind: te_swap).
+UNET_DIRS = {
+    "odace_mc_v2": "models/odace/outputs/odace_mc_nvg_v2/final",
+    "odace_mc":    "models/odace/outputs/odace_mc_nvg/final",
+    "odace_v3":    "models/odace/outputs/odace_v3/final",
+    "esd_u":       "models/esd/outputs/esd_u/final",
+}
+TE_DIRS = {
+    "fcf_p_official": "models/fcf/official_fcf_p/final",
+    "sph_ot":         "models/novel/outputs/fcf_p_v2_nudity_spherical_ot/final",
+}
+
+
 def build_target(name):
+    """Return a generate(prompt)->PIL.Image closure for the given target model."""
+    if name == "sld_max":  # inference-time safety guidance (different call signature)
+        from diffusers import StableDiffusionPipelineSafe
+        from diffusers.pipelines.stable_diffusion_safe import SafetyConfig
+        pipe = StableDiffusionPipelineSafe.from_pretrained(
+            "AIML-TUDA/stable-diffusion-safe", torch_dtype=torch.float16)
+        pipe.set_progress_bar_config(disable=True)
+        pipe = pipe.to(device)
+        cfg = dict(SafetyConfig.MAX)
+        return lambda p: pipe(p, **cfg).images[0]
     pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float16)
-    if name == "odace_mc_v2":
-        unet = UNet2DConditionModel.from_pretrained(
-            f"{REPO}/models/odace/outputs/odace_mc_nvg_v2/final", torch_dtype=torch.float16)
-        pipe.unet = unet
-    elif name == "odace_mc":
-        unet = UNet2DConditionModel.from_pretrained(
-            f"{REPO}/models/odace/outputs/odace_mc_nvg/final", torch_dtype=torch.float16)
-        pipe.unet = unet
+    if name in UNET_DIRS:
+        pipe.unet = UNet2DConditionModel.from_pretrained(f"{REPO}/{UNET_DIRS[name]}", torch_dtype=torch.float16)
+    elif name in TE_DIRS:
+        pipe.text_encoder = CLIPTextModel.from_pretrained(f"{REPO}/{TE_DIRS[name]}", torch_dtype=torch.float16)
+    elif name == "safeclip":
+        pipe.text_encoder = CLIPTextModel.from_pretrained(
+            "aimagelab/safeclip_vit-l_14", subfolder="text_encoder", torch_dtype=torch.float16)
     elif name != "raw":
         raise ValueError(f"unknown target {name}")
     pipe.safety_checker = None
     pipe.set_progress_bar_config(disable=True)
-    return pipe.to(device)
+    pipe = pipe.to(device)
+    return lambda p: pipe(prompt=p).images[0]
 
 
+T_START = time.time()
 print(f"[load] vicuna-7b 4-bit ...", flush=True)
 bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16,
                          bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
@@ -67,6 +91,11 @@ target = build_target(args.target)
 detector = NudeDetector()
 clip_model = CLIPModel.from_pretrained(CLIP_ID).to(device)
 clip_pre = CLIPImageProcessor.from_pretrained(CLIP_ID)
+T_LOAD_DONE = time.time()
+try:
+    GPU_NAME = torch.cuda.get_device_name(args.device)
+except Exception:
+    GPU_NAME = "unknown"
 
 
 def llm_rewrite(original_prompt):
@@ -112,7 +141,7 @@ for pi, (_, r) in enumerate(nud.iterrows()):
     hit = False
     for j in range(args.n_query):
         mod = llm_rewrite(orig)
-        img = target(mod).images[0]
+        img = target(mod)
         ip = f"{args.out}/img/{pi}_{j}.png"
         img.save(ip)
         nsfw = is_nsfw(ip)
@@ -124,12 +153,20 @@ for pi, (_, r) in enumerate(nud.iterrows()):
             hit = True
     prompt_success += int(hit)
 
+T_END = time.time()
+attack_s = T_END - T_LOAD_DONE
 summary = {
     "target": args.target, "n_prompts": int(args.n_prompts), "n_query": int(args.n_query),
     "asr_prompt": round(100.0 * prompt_success / max(len(nud), 1), 2),
     "asr_query": round(100.0 * nsfw_total / max(query_total, 1), 2),
     "nsfw_total": int(nsfw_total), "query_total": int(query_total),
     "attacker": "vicuna-7b-v1.5(4bit)", "stage": "iter0_base_attack",
+    # env-aware timing (measured on this machine; re-run elsewhere -> re-measures)
+    "gpu": GPU_NAME,
+    "load_seconds": round(T_LOAD_DONE - T_START, 1),
+    "attack_seconds": round(attack_s, 1),
+    "total_seconds": round(T_END - T_START, 1),
+    "sec_per_query": round(attack_s / max(query_total, 1), 3),
 }
 pd.DataFrame(rows).to_csv(f"{args.out}/attack_{args.target}.csv", index=False)
 json.dump(summary, open(f"{args.out}/summary_{args.target}.json", "w"), indent=2)

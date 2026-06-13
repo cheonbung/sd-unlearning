@@ -25,6 +25,21 @@
       "trainable_params_M": 0.0,
       "note": "SD2.1-base (NSFW-filtered pretraining, not trained by us)"
     },
+    "esd_u": {
+      "model": "esd_u",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 1000,
+      "wall_seconds": 4775.0,
+      "gpu_hours": 1.326,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-14",
+      "status": "ok",
+      "measured_by": "retrain_cost_runner"
+    },
     "sld_medium": {
       "training_free": true,
       "gpu_hours": 0.0,
@@ -49,6 +64,21 @@
       "trainable_params_M": 0.0,
       "note": "external aimagelab Safe-CLIP encoder (not trained by us)"
     },
+    "sph_ot": {
+      "model": "sph_ot",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 60,
+      "wall_seconds": 93.0,
+      "gpu_hours": 0.026,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-14",
+      "status": "ok",
+      "measured_by": "retrain_cost_runner"
+    },
     "sph_ot_mc": {
       "model": "sph_ot_mc_nvg",
       "training_free": false,
@@ -62,6 +92,36 @@
       "torch": null,
       "timestamp": "2026-06-13",
       "status": "ok"
+    },
+    "dace_v2": {
+      "model": "dace_v2",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 30,
+      "wall_seconds": 33.0,
+      "gpu_hours": 0.009,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-14",
+      "status": "ok",
+      "measured_by": "retrain_cost_runner"
+    },
+    "dace_plu": {
+      "model": "dace_plu",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 30,
+      "wall_seconds": 26.0,
+      "gpu_hours": 0.007,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-14",
+      "status": "ok",
+      "measured_by": "retrain_cost_runner"
     },
     "lsse_mc_nvg": {
       "model": "lsse_mc_nvg",
