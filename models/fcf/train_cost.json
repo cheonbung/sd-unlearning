@@ -49,6 +49,20 @@
       "trainable_params_M": 0.0,
       "note": "external aimagelab Safe-CLIP encoder (not trained by us)"
     },
+    "sph_ot_mc": {
+      "model": "sph_ot_mc_nvg",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 60,
+      "wall_seconds": 163,
+      "gpu_hours": 0.045,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-13",
+      "status": "ok"
+    },
     "lsse_mc_nvg": {
       "model": "lsse_mc_nvg",
       "training_free": false,

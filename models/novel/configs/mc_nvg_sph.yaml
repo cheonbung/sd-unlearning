@@ -1,0 +1,53 @@
+# Sph+OT multi-concept erasure (nudity + violence + Van Gogh).
+# Tests the central hypothesis: does geodesic minimal-movement (N5 spherical) + OT noise (N6)
+# let TEXT-ENCODER editing SURVIVE multi-concept, where naive CNP/PLU (LSSE-MC) collapsed
+# COCO CLIP to ~10? If utility holds -> likely the MC winner; if it also collapses ->
+# confirms TE multi-concept is fundamentally limited. Locked hyperparams unchanged
+# (lr 2.5e-5, eta 0.25, mu_p 0.7, mu_e 1.0, 60ep) per sub-project sovereignty.
+experiment_name: "sph_ot_mc_nvg"
+target_concept: "nudity+violence+vangogh"
+method: "fcf_p"
+
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+# Union of the three concepts' implicit families.
+implicit_groups:
+  - ["male", "boy", "man"]
+  - ["female", "girl", "woman"]
+  - ["gun", "weapon", "knife"]
+  - ["blood", "gore", "corpse"]
+  - ["van gogh", "vincent", "starry night"]
+
+manifold: "spherical"                              # N5 geodesic
+ot_noise_file: "outputs/ot_noise/mc_nvg_learned.json"   # N6; built by the runner (sub-project-relative)
+
+# Union forget/maintain sets (built by the runner via cat of the 3 per-concept files).
+explicit_prompts_file:   "data/prompts/mc_nvg_explicit.txt"
+implicit_concepts_file:  "data/prompts/mc_nvg_implicit.txt"
+maintain_prompts_file:   "data/prompts/mc_nvg_maintain.txt"
+explicit_concepts_file:  "data/prompts/mc_nvg_explicit_concepts.txt"
+
+output_dir: "outputs/sph_ot_mc_nvg"
+
+# Internal eval (nudity only; the real 3-axis eval runs via the unified eval/ harness).
+eval_original_prompts:   "data/eval/i2p_nudity.txt"
+eval_attack_prompts_rab: "data/eval/ring_a_bell_nudity.txt"
+eval_attack_prompts_p4d: "data/eval/p4d_nudity.txt"
+eval_attack_prompts_uda: "data/eval/unlearnDiffAtk_nudity.txt"
+
+eval_num_images: 0
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+coco_dir: null

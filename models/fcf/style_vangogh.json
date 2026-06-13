@@ -145,6 +145,12 @@
       "style_img2raw": 0.6016,
       "style_clip_text": 0.1737,
       "delta_text_vs_raw": -0.0835
+    },
+    "sph_ot_mc": {
+      "n": 50,
+      "style_img2raw": 0.7762,
+      "style_clip_text": 0.288,
+      "delta_text_vs_raw": 0.0309
     }
   }
 }

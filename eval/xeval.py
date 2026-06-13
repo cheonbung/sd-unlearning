@@ -109,6 +109,9 @@ REGISTRY = {
     # models/novel/dace/lsse checkpoints (allowed by CLAUDE.md; no parent-code import). ---
     "sph_ot":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/novel/outputs/fcf_p_v2_nudity_spherical_ot/final"},
+    # --- Sph+OT multi-concept (nudity+violence+vangogh): does geodesic min-movement survive MC? ---
+    "sph_ot_mc":    {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/novel/outputs/sph_ot_mc_nvg/final"},
     "fcf_p":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/fcf/official_fcf_p/final"},
     "fcf_e":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
