@@ -140,6 +140,9 @@ REGISTRY = {
     # --- LSSE multi-concept v2: nudity-weighted CNP (fix v1 under-erasure of nudity). ---
     "lsse_mc_nvg_v2": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                        "te_dir": "models/lsse/outputs/lsse_mc_nvg_v2/final"},
+    # --- ODACE multi-concept v2: violence forget prompts 21->46 (fix v1 violence 37.5). ---
+    "odace_mc_v2": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                    "unet_dir": "models/odace/outputs/odace_mc_nvg_v2/final"},
 }
 
 
