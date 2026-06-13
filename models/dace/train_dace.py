@@ -22,6 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent))  # make methods/ and core/ import
 from core.dataset import DACEDataset
 from core.trainer import DACETrainer
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "eval"))
+from cost_utils import CostMeter  # noqa: E402  (env-aware training-cost logging)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("train_dace")
 
@@ -88,13 +91,15 @@ def main():
 
     out_dir = base / cfg.get("output_dir", "outputs/dace_nudity")
     out_dir.mkdir(parents=True, exist_ok=True)
-    history = trainer.train(
-        dataset,
-        num_epochs=int(cfg.get("num_epochs", 30)),
-        log_every=int(cfg.get("log_every", 5)),
-        ckpt_dir=str(out_dir),
-        save_every=int(cfg.get("save_every", 0)),
-    )
+    with CostMeter(str(cfg.get("experiment_name", "dace")), str(out_dir),
+                   steps=int(cfg.get("num_epochs", 30))):
+        history = trainer.train(
+            dataset,
+            num_epochs=int(cfg.get("num_epochs", 30)),
+            log_every=int(cfg.get("log_every", 5)),
+            ckpt_dir=str(out_dir),
+            save_every=int(cfg.get("save_every", 0)),
+        )
     trainer.save(str(out_dir / "final"))
     with open(out_dir / "history.json", "w") as f:
         json.dump(history, f, indent=2)

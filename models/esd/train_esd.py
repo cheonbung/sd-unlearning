@@ -20,6 +20,9 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 from esd_trainer import ESDTrainer  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "eval"))
+from cost_utils import CostMeter  # noqa: E402  (env-aware training-cost logging)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("train_esd")
 
@@ -64,8 +67,10 @@ def main():
         out_dir = base.parent.parent / out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    history = trainer.train(concepts, num_steps=int(cfg.get("num_steps", 1000)),
-                            log_every=int(cfg.get("log_every", 25)))
+    with CostMeter(str(cfg.get("experiment_name", "esd")), str(out_dir),
+                   steps=int(cfg.get("num_steps", 1000))):
+        history = trainer.train(concepts, num_steps=int(cfg.get("num_steps", 1000)),
+                                log_every=int(cfg.get("log_every", 25)))
     trainer.save(str(out_dir / "final"))
     with open(out_dir / "history.json", "w") as f:
         json.dump(history, f, indent=2)
