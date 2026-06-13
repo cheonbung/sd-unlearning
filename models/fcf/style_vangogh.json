@@ -139,6 +139,12 @@
       "style_img2raw": 0.508,
       "style_clip_text": 0.1382,
       "delta_text_vs_raw": -0.119
+    },
+    "odace_mc_v2": {
+      "n": 50,
+      "style_img2raw": 0.6016,
+      "style_clip_text": 0.1737,
+      "delta_text_vs_raw": -0.0835
     }
   }
 }

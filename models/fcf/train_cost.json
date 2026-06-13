@@ -90,6 +90,20 @@
       "torch": "2.5.1+cu121",
       "timestamp": "2026-06-12",
       "status": "ok"
+    },
+    "odace_mc_v2": {
+      "model": "odace_mc_nvg_v2",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 43.96,
+      "steps": 2800,
+      "wall_seconds": 4442.9,
+      "gpu_hours": 1.234,
+      "peak_vram_gb": 6.35,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-13",
+      "status": "ok"
     }
   }
 }
