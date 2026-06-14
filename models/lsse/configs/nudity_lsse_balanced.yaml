@@ -1,0 +1,41 @@
+# LSSE improvement-plan variant A: BALANCED (footprint reduction for locality recovery).
+# The corner-solution LSSE+PLU+W2 reaches ASR ~20 but destroys locality (COCO-CLIP 19, FID 145).
+# This variant trades a little efficacy back for fidelity by SHRINKING the edit footprint:
+#   - beta 1.0 -> 2.0      : up-weight CSR retain (preserve general semantics)
+#   - clm_top_k 3 -> 2     : edit fewer layers (smaller footprint)
+#   - use_margin_cnp       : W2 orthogonal anchor (suppress re-routing) with a stronger ortho weight
+# learning_rate is kept at the FCF-shared 2.5e-5. Goal: a usable mid-point (target CLIP ~24).
+
+experiment_name: "lsse_nudity_balanced"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0                # CNP (forget)
+beta: 2.0                 # CSR (retain) — up-weighted for locality
+gamma: 0.5               # implicit CNP
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 2             # fewer edited layers (smaller footprint) than the 3-layer default
+cap_file: null
+
+use_margin_cnp: true     # W2 orthogonal anchor (suppress concept re-routing into other dirs)
+margin_ortho_weight: 0.15
+use_extended_csr: false
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_nudity_balanced"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

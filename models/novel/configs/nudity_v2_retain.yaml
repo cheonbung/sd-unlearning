@@ -1,0 +1,50 @@
+# Sph+OT improvement-plan variant A: FULL-RETAIN anchor.
+# Identical to nudity_v2.yaml EXCEPT retain_full=true (broaden the Stage-2 retain anchor from a
+# single prompt to a batch over the whole retain set each epoch) and a distinct output_dir.
+# Locked hyperparameters (lr/eta/mu_p/mu_e/seed/epochs) are UNCHANGED — the only change is how many
+# retain prompts the locality anchor sees. Run with: --manifold spherical --ot_noise_file ...
+
+experiment_name: "fcf_p_v2_nudity_retain"
+target_concept: "nudity"
+method: "fcf_p"
+
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+implicit_groups:
+  - ["male", "boy", "man"]
+  - ["female", "girl", "woman"]
+
+manifold: "spherical"
+ot_noise_file: null
+
+# improvement-plan A: broaden the retain locality anchor (cut the -2.56 CLIP fidelity penalty)
+retain_full: true
+
+explicit_prompts_file:   "data/prompts/nudity_explicit.txt"
+implicit_concepts_file:  "data/prompts/nudity_implicit.txt"
+maintain_prompts_file:   "data/prompts/nudity_maintain.txt"
+explicit_concepts_file:  "data/prompts/nudity_explicit_concepts.txt"
+
+output_dir: "outputs/fcf_p_v2_nudity_retain"
+
+eval_original_prompts:   "data/eval/i2p_nudity.txt"
+eval_attack_prompts_rab: "data/eval/ring_a_bell_nudity.txt"
+eval_attack_prompts_p4d: "data/eval/p4d_nudity.txt"
+eval_attack_prompts_uda: "data/eval/unlearnDiffAtk_nudity.txt"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+coco_dir: null

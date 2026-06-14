@@ -298,6 +298,7 @@ def main():
         if method == "fcf_p":
             history_implicit = trainer.train_projection_implicit(
                 dataset=dataset, num_epochs=num_epochs, log_every=cfg.get("log_every", 1),
+                retain_full=cfg.get("retain_full", False),
             )
         elif method == "fcf_e":
             experience = trainer.compute_experience(dataset)

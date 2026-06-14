@@ -395,6 +395,87 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
    취약. ESD-u가 UNET의 95%를 학습편집하고도 ODACE의 출력-접지 cross-attn 편집(소수 파라미터)에 5배
    뒤진다는 점이, **개입 규모가 아니라 출력-접지 목적함수가 깊은 소거의 핵심**임을 재확인한다.
 
+## ⑥ RPG-RT 적응형 레드티밍 (NeurIPS25, arXiv 2505.21074) — 정적 ASR 너머의 강건성
+
+표 A의 ASR은 **고정 공격셋**(I2P/RaB/P4D/UDA) 정적 측정이다. RPG-RT는 vicuna-7b LLM이 각 프롬프트를
+**적응적으로 재작성**해 방어를 우회하는 worst-case 공격이다. `asr_prompt↓`=프롬프트당 N회 재작성 중
+1회 이상 NSFW 우회 비율, `asr_query↓`=전체 쿼리의 NSFW 비율. **낮을수록 강건.** 아래는 **iter-0
+base 공격**(공격자 LLM DPO 학습 *전*) — 20프롬프트×10쿼리, vicuna-7b 4-bit.
+
+| 모델 | 계열/개입 | asr_prompt↓ | asr_query↓ | sec/query |
+|---|---|---|---|---|
+| 🥇 **ODACE v3** | ODACE/UNet (단일) | **10.0** | **1.5** | 6.57 |
+| 2 **Sph+OT** | TE (단일) | 25.0 | **2.5** | 6.25 |
+| 3 FCF-P (공식) | TE (단일) | 45.0 | 9.0 | 6.24 |
+| 4 ODACE-MC v1 | ODACE/UNet (다개념) | 35.0 | 10.5 | 6.18 |
+| 4 ★ ESD-u | ESD/UNet (단일) | 65.0 | 10.5 | 6.31 |
+| 4 ODACE-MC v2 | ODACE/UNet (다개념) | 50.0 | 10.5 | 6.22 |
+| — raw v1.4 | (무방어) | 100.0 | 64.5 | 6.81 |
+
+- **ODACE v3가 적응공격에도 최강**(asr_query 1.5): 정적 ASR 4.0 + 적응 1.5 = 효능·강건성 동시 1위.
+- **Sph+OT가 2위(2.5)** — 텍스트인코더 개입인데도 적응공격에 강한 **유일한 예외**. FCF-P(9.0)·ESD(10.5)를 앞섬.
+- **ESD는 적응공격에 취약:** 정적 21.6은 양호하나 LLM 재작성에 asr_prompt **65%** 뚫림. 동일 UNet 비용(~1.3 GPU-h)에서 ODACE(10) ≫ ESD(65).
+- **다개념 ODACE는 강건성↔범위 트레이드오프:** asr_query 10.5(단일 1.5↑) — 용량을 3개념에 분산하니 nudity 강건성 약화. 그래도 raw 대비 6배 방어.
+
+> ⏳ **진행 중:** `sld_max`·`safeclip`(로더 수정 후 재공격) + **RPG-RT 풀 DPO 공격자**(`eval/rpgrt_dpo_attack.py`,
+> vicuna+LoRA를 자기 롤아웃으로 4-iter DPO 미세조정해 강건성 한계까지 압박)가 백그라운드 실행 중. 완료 시
+> 본 표에 sld_max/safeclip 행 + **DPO iter0→best** 컬럼이 추가된다.
+> 산출물: `models/fcf/rpgrt_redteam.json` · (예정) `models/fcf/rpgrt_dpo.json`.
+
+## ⑦ 다개념 소거 (nudity + 폭력 + Van Gogh 화풍, **3개념 동시**)
+
+한 모델에서 3개념을 동시에 소거한다. `nudity ASR`(8-lab) · `폭력`(Q16 2-atk mean) · `VanGogh Δtext`(=
+style_clip_text − raw, 음수=화풍 제거) · **`COCO-CLIP`(일반 효용, 핵심)**. ⚠️ **ASR만 보면 오도된다**:
+효용이 붕괴한 모델은 출력 자체가 망가져 탐지기가 안 걸려 ASR이 *인위적으로* 낮게 나온다 → **반드시
+COCO-CLIP/FID와 함께** 읽어야 진짜 소거와 모델 붕괴를 구분할 수 있다.
+
+| 모델 | 계열 | nudity↓ | 폭력↓ | VanGogh Δ↓ | **COCO-CLIP↑** | COCO-FID↓ | LPIPS↓ | GPU-h | 판정 |
+|---|---|---|---|---|---|---|---|---|---|
+| raw v1.4 | — | 62.0 | 66.9 | 0 | 26.48 | 118.6 | 0 | 0 | (기준) |
+| 🥇 **ODACE-MC v2** | UNet x-attn | 16.0 | **24.6** | −0.084 | **24.78** | 119.4 | 0.479 | 1.234 | ✅ **유일 효용보존 3개념 소거** |
+| **ODACE-MC v1** | UNet x-attn | 11.2 | 37.5 | −0.090 | **25.47** | 120.2 | 0.439 | 1.152 | ✅ 효용보존 |
+| LSSE-MC v1 | TE | 55.6 | 43.0 | −0.109 | 10.82 | 191.3 | 0.668 | 0.05 | ❌ 붕괴 + nudity 미소거 |
+| LSSE-MC v2 | TE | 7.2 | 8.9 | −0.119 | **9.85** | 183.4 | 0.666 | 0.104 | ❌ 붕괴(낮은 ASR=아티팩트) |
+| Sph+OT-MC | TE | 0.0 | 1.9 | **+0.031** | **12.49** | 302.2 | 0.726 | 0.045 | ❌ 최악 붕괴 + 화풍 미소거 |
+
+**판정 — 개입 지점이 다개념 가능성을 결정한다:**
+- **ODACE-MC만 3개념 소거 + 효용 보존:** COCO-CLIP 24.78 (raw 26.48, Δ−1.7) · FID 119 ≈ raw. nudity 16.0·
+  폭력 24.6·화풍 −0.084 모두 실질 소거. **유일한 실용해.**
+- **LSSE-MC v2 / Sph+OT-MC의 "완벽한" ASR(nudity 7.2/0.0, 폭력 8.9/1.9)은 모델 붕괴 아티팩트:** COCO-CLIP
+  **9.85 / 12.49**(raw 26.5) · FID **183 / 302** → 일반 생성이 파괴됨. 낮은 ASR은 "소거"가 아니라 "출력 destroy"
+  (망가진 이미지엔 탐지 라벨이 안 붙음). Sph+OT-MC는 VanGogh Δ **+0.031**로 화풍조차 더 강해짐(미소거).
+- **단일개념 Sph+OT(COCO-CLIP 23.92, 멀쩡)가 3개념을 한 TE에 넣자 12.49로 붕괴** → **텍스트인코더 병목은
+  다개념 용량이 근본적으로 부족**. N5 측지선 최소이동조차 못 살림. ([[lsse-mc-negative-result]] 확정.)
+- 요약: **TE 계열은 1개념까진 우수(Sph+OT)하지만 3개념에서 붕괴**, UNet cross-attn(ODACE)만 다개념 확장 가능.
+
+> 산출물: nudity `eval/outputs/<label>/metrics.json` · 폭력 `models/fcf/violence_q16.json` · 화풍
+> `models/fcf/style_vangogh.json` · COCO `eval/outputs/<label>/coco_metrics.json`.
+
+## ⑧ 학습비용 (env-aware 실측 GPU-h) — §⑤ 개략치를 대체
+
+§⑤의 개략 추정을 **동일 환경(RTX 4070) 실측 wall-time**으로 대체한다. `gpu_hours = wall × gpu_count`,
+USD 없음(하드웨어 중립). 다른 환경에서 재학습 시 `eval/aggregate_cost.py`로 갱신.
+
+| 방식 | 모델 | steps | GPU-h | 비고 |
+|---|---|---|---|---|
+| **무학습** | raw · safe_neg · SLD(Med/Str/Max) · Safe-CLIP · SD2.1 | — | **0** | 추론 가이던스/공개가중치/사전학습 |
+| **TE (저렴)** | DACE+PLU | 30 | **0.007** | 텍스트인코더 |
+| | DACE v2 | 30 | 0.009 | |
+| | Sph+OT (단일) | 60 | **0.026** | **최저 ASR TE를 50배 싸게** |
+| | Sph+OT-MC | 60 | 0.045 | (단 효용 붕괴) |
+| | LSSE-MC v1 | 60 | 0.05 | |
+| | LSSE-MC v2 | 120 | 0.104 | |
+| **UNet (비쌈)** | ODACE-MC v1 | 2500 | 1.152 | 다개념 |
+| | ODACE-MC v2 | 2800 | 1.234 | 다개념 winner |
+| | ★ ESD-u | 1000 | **1.326** | UNet 95% 편집 |
+| | ODACE 단일 | 1500 | *(측정 중)* | A2 진행 중 |
+
+- **TE는 UNet보다 ~50–150배 저렴**(Sph+OT 0.026 vs ESD 1.326 vs ODACE-MC 1.234). 단 (a) 다개념 붕괴, (b) Sph+OT
+  외엔 강건성 약함. **UNet(ODACE)은 비싸도 강건성+다개념 둘 다 되는 유일 방식** — 비용↔능력 트레이드오프가 명확.
+- **Sph+OT의 가성비:** 단일개념 최저 ASR(15.6)·2위 강건성(2.5)을 **0.026 GPU-h**(ESD의 1/50)로 달성. fidelity만 양보.
+
+> 산출물: `models/fcf/train_cost.json` (env-aware) · `eval/aggregate_cost.py`. (odace 단일 비용은 백그라운드 A2에서 측정 중.)
+
 ## 출처
 - ASR: `lsse/outputs/comparison_unified.md` (텍스트인코더 계열) · `eval/outputs/<label>/metrics.json` (교차모델)
 - COCO-FID/CLIP: `eval/outputs/<label>/coco_metrics.json`

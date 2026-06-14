@@ -141,6 +141,26 @@ Key takeaways:
 - **Text-encoder concept-axis erasure (DACE) underdetermines ASR** — a deliberate
   negative result that motivated ODACE.
 
+### Adaptive robustness (RPG-RT), multi-concept, and training cost
+
+Three further axes beyond static-attack ASR (full tables in
+`compare/comparison_all_methods.md` §⑥–⑧):
+
+- **Adaptive red-team (RPG-RT, vicuna-7b prompt-rewrite attacker), asr_query↓ =
+  worst-case bypass rate:** ODACE v3 **1.5** < Sph+OT **2.5** < FCF-P 9.0 < ESD-u
+  10.5 ≈ ODACE-MC 10.5 < raw 64.5. ODACE stays strongest under adaptive attack;
+  Sph+OT is the only text-encoder method that resists it, while ESD (static 21.6)
+  is rewritten through at asr_prompt 65. *(sld_max/safeclip + a DPO-fine-tuned
+  attacker are running; the table fills on completion.)*
+- **Multi-concept (nudity + violence + Van Gogh, one model):** only **ODACE-MC**
+  erases all three while keeping utility (COCO-CLIP **24.8** ≈ raw 26.5). Text-encoder
+  multi-concept (LSSE-MC, Sph+OT-MC) collapses the model (COCO-CLIP ~10–12, FID
+  183–302) — their low nudity/violence ASR is a **broken-output artifact**, not real
+  erasure (Sph+OT-MC does not even remove the Van Gogh style).
+- **Training cost (RTX 4070, GPU-h):** text-encoder methods are 50–150× cheaper
+  (Sph+OT 0.026, DACE 0.007–0.009) than UNet methods (ESD 1.33, ODACE-MC 1.23), but
+  only UNet scales to robust multi-concept erasure — a clear cost ↔ capability trade-off.
+
 > ASR is cross-model comparable (it is the nudity rate of attack images, independent
 > of base). FID/CLIP scales differ by protocol — see the report's warnings before
 > merging any quality numbers.

@@ -935,6 +935,45 @@ safe_neg는 nudity에 특화되어 간단하고 강력한 편이다. SLD는 더 
 - ODACE v3/v1.5는 text encoder floor를 깨고 가장 낮은 ASR을 보였다.
 - 다만 어떤 UNet parameter를 얼마나 여는지가 중요하다. ODACE v2의 K/V-only 약한 편집은 충분하지 않았다.
 
+## 15.7 추가 실험: 적응형 레드티밍 · 다개념 · 학습비용
+
+(전체 표·해석은 `compare/comparison_all_methods.md` §⑥–⑧. 여기선 헤드라인만.)
+
+### 적응형 레드티밍 (RPG-RT, NeurIPS25 arXiv 2505.21074)
+
+정적 5-공격을 넘어, vicuna-7b LLM이 각 프롬프트를 **적응 재작성**하는 worst-case 공격. `asr_query↓`(전 쿼리 NSFW율):
+
+| 모델 | asr_prompt↓ | asr_query↓ |
+|---|---|---|
+| ODACE v3 (UNet, 단일) | 10.0 | **1.5** |
+| Sph+OT (TE, 단일) | 25.0 | **2.5** |
+| FCF-P (TE, 단일) | 45.0 | 9.0 |
+| ESD-u (UNet, 단일) | 65.0 | 10.5 |
+| ODACE-MC (UNet, 다개념) | 35.0 | 10.5 |
+| raw v1.4 | 100.0 | 64.5 |
+
+- ODACE v3가 적응공격에도 1위(1.5). **Sph+OT는 TE 중 유일하게 강건**(2.5)으로 FCF-P(9.0)·ESD(10.5)를 앞섬.
+- ESD는 정적 21.6은 양호하나 LLM 재작성에 asr_prompt **65%** 뚫림(적응 취약). 다개념 ODACE는 강건성↔범위 트레이드오프(10.5).
+- *(sld_max·safeclip + DPO 미세조정 공격자는 백그라운드 진행 중 → 완료 시 표 갱신.)*
+
+### 다개념(nudity + 폭력 + Van Gogh, 3개념 동시) 소거
+
+⚠️ **COCO-CLIP(효용)이 판별 핵심** — 효용 붕괴 모델은 출력이 망가져 탐지기가 안 걸려 ASR이 인위적으로 낮아짐:
+
+| 모델 | nudity↓ | 폭력↓ | VanGogh Δ↓ | COCO-CLIP↑ | 판정 |
+|---|---|---|---|---|---|
+| ODACE-MC v2 (UNet) | 16.0 | 24.6 | −0.084 | **24.78** | ✅ 유일 효용보존 |
+| ODACE-MC v1 (UNet) | 11.2 | 37.5 | −0.090 | 25.47 | ✅ 효용보존 |
+| LSSE-MC v2 (TE) | 7.2 | 8.9 | −0.119 | 9.85 | ❌ 붕괴(ASR=아티팩트) |
+| Sph+OT-MC (TE) | 0.0 | 1.9 | +0.031 | 12.49 | ❌ 붕괴 + 화풍 미소거 |
+
+- **ODACE-MC만 3개념 소거 + 효용 보존**(CLIP 24.78 ≈ raw 26.48). LSSE-MC·Sph+OT-MC의 낮은 ASR은 모델 붕괴(CLIP 9.85/12.49, FID 183/302)의 산물.
+- 단일개념 멀쩡하던 Sph+OT(CLIP 23.92)가 3개념에서 12.49로 붕괴 → **TE 병목은 다개념 용량 부족**. UNet cross-attn(ODACE)만 다개념 확장.
+
+### 학습비용 (RTX 4070 실측 GPU-h)
+
+TE는 UNet보다 **50–150× 저렴**: Sph+OT 0.026 · DACE 0.007–0.009 vs ESD 1.33 · ODACE-MC 1.23. 단 강건성·다개념은 UNet만 가능 → 비용↔능력 트레이드오프 명확. (산출물 `models/fcf/train_cost.json`.)
+
 ## 16. 상위 모델의 차별점과 기여
 
 표 A에서 좋은 성능을 보인 `ODACE v3/v1.5`, `Sph+OT`, `LSSE+PLU+W2`는 모두 ASR을 낮췄지만,

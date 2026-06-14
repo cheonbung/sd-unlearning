@@ -10,7 +10,7 @@ method's training stage; this is the inference attack, the legitimate first addi
 Targets (--target): raw (SD1.4) | odace_mc_v2 (our multi-concept winner, UNet swap) | odace_mc.
 vicuna loaded in 4-bit (nf4) so it co-resides with SD1.4 + CLIP on a 12GB GPU.
 """
-import argparse, os, json, time
+import argparse, os, json, time, sys
 import torch
 import pandas as pd
 from diffusers import StableDiffusionPipeline, UNet2DConditionModel
@@ -25,6 +25,12 @@ LLM_ID = "lmsys/vicuna-7b-v1.5"
 CLIP_ID = "openai/clip-vit-large-patch14"
 SENSITIVE = ["BUTTOCKS_EXPOSED", "FEMALE_BREAST_EXPOSED", "FEMALE_GENITALIA_EXPOSED",
              "ANUS_EXPOSED", "MALE_GENITALIA_EXPOSED"]
+
+# Local SLD + Safe-CLIP loaders (mirror eval/xeval.py exactly so sld_max/safeclip match the
+# main efficacy harness instead of the gated AIML-TUDA repo / wrong subfolder path).
+sys.path.insert(0, f"{REPO}/models")
+from sld.sld_pipeline import sld_generate, SLD_CONFIGS  # noqa: E402
+from safeclip.safeclip_loader import load_safeclip_text_encoder  # noqa: E402
 
 p = argparse.ArgumentParser()
 p.add_argument("--target", required=True)
@@ -54,28 +60,31 @@ TE_DIRS = {
 
 def build_target(name):
     """Return a generate(prompt)->PIL.Image closure for the given target model."""
-    if name == "sld_max":  # inference-time safety guidance (different call signature)
-        from diffusers import StableDiffusionPipelineSafe
-        from diffusers.pipelines.stable_diffusion_safe import SafetyConfig
-        pipe = StableDiffusionPipelineSafe.from_pretrained(
-            "AIML-TUDA/stable-diffusion-safe", torch_dtype=torch.float16)
+    if name == "sld_max":  # SLD = training-free 3-way safety guidance (local reimpl, not gated repo)
+        from diffusers import LMSDiscreteScheduler
+        pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float16, safety_checker=None)
+        pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
+        pipe.safety_checker = None
         pipe.set_progress_bar_config(disable=True)
         pipe = pipe.to(device)
-        cfg = dict(SafetyConfig.MAX)
-        return lambda p: pipe(p, **cfg).images[0]
+        gen = torch.Generator(device=device)  # reused -> RNG advances => per-query diversity
+        return lambda p: sld_generate(pipe, p, SLD_CONFIGS["max"], generator=gen,
+                                      steps=50, guidance_scale=7.5, height=512, width=512)
     pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float16)
+    do_safeclip = False
     if name in UNET_DIRS:
         pipe.unet = UNet2DConditionModel.from_pretrained(f"{REPO}/{UNET_DIRS[name]}", torch_dtype=torch.float16)
     elif name in TE_DIRS:
         pipe.text_encoder = CLIPTextModel.from_pretrained(f"{REPO}/{TE_DIRS[name]}", torch_dtype=torch.float16)
     elif name == "safeclip":
-        pipe.text_encoder = CLIPTextModel.from_pretrained(
-            "aimagelab/safeclip_vit-l_14", subfolder="text_encoder", torch_dtype=torch.float16)
+        do_safeclip = True  # Safe-CLIP loader needs pipe on-device first (mirror xeval ordering)
     elif name != "raw":
         raise ValueError(f"unknown target {name}")
     pipe.safety_checker = None
     pipe.set_progress_bar_config(disable=True)
     pipe = pipe.to(device)
+    if do_safeclip:
+        load_safeclip_text_encoder(pipe, "aimagelab/safeclip_vit-l_14")
     return lambda p: pipe(prompt=p).images[0]
 
 

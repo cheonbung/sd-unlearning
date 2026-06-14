@@ -146,6 +146,18 @@ REGISTRY = {
     # --- ODACE multi-concept v2: violence forget prompts 21->46 (fix v1 violence 37.5). ---
     "odace_mc_v2": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
                     "unet_dir": "models/odace/outputs/odace_mc_nvg_v2/final"},
+    # --- Improvement-plan variants (LSSE/Sph+OT). A = footprint/retain tuning (TE-only);
+    # B = output-grounding hybrid (eval/og_finetune.py: TE fine-tuned vs frozen UNet output). ---
+    "sphot_retain": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",   # A: full-retain
+                     "te_dir": "models/novel/outputs/fcf_p_v2_nudity_retain/final"},
+    "lsse_bal":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",   # A: balanced
+                     "te_dir": "models/lsse/outputs/lsse_nudity_balanced/final"},
+    "og_raw":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",   # B: OG on raw TE
+                     "te_dir": "eval/outputs/og/og_raw/final"},
+    "og_sphot":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",   # B: OG on Sph+OT
+                     "te_dir": "eval/outputs/og/og_sphot/final"},
+    "og_lsse":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",   # B: OG on LSSE
+                     "te_dir": "eval/outputs/og/og_lsse/final"},
 }
 
 

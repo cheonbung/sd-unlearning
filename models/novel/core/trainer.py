@@ -230,8 +230,15 @@ class FCFTrainer:
         num_epochs: int = 60,
         log_every: int = 1,
         retain_text: Optional[str] = None,
+        retain_full: bool = False,
     ) -> List[Dict[str, float]]:
-        """Stage 2: Projection Feature Forgetting (Algorithm 2, FCF-P)."""
+        """Stage 2: Projection Feature Forgetting (Algorithm 2, FCF-P).
+
+        retain_full=False (default) reproduces the canonical FCF-P retain anchor: a SINGLE retain
+        prompt. retain_full=True (improvement-plan A) cycles a batch over the FULL retain set each
+        epoch, broadening the locality anchor to cut the retain-fidelity penalty (Sph+OT CLIP
+        -2.56). Locked hyperparameters (eta/mu_p) are unchanged either way.
+        """
         encoder_state = copy.deepcopy(self.text_encoder.state_dict())
         if retain_text is None:
             retain_text = (
@@ -258,18 +265,24 @@ class FCFTrainer:
             pbar = tqdm(range(1, num_epochs + 1),
                         desc=f"FCF-P group {group_idx}", leave=False)
 
+            retain_pool = dataset.retain_prompts or [retain_text]
             for epoch in pbar:
+                if retain_full:
+                    s = ((epoch - 1) * self.batch_size) % len(retain_pool)
+                    rb = (retain_pool * 2)[s:s + self.batch_size] or [retain_text]
+                else:
+                    rb = [retain_text]
                 self.optimizer.zero_grad()
                 with torch.no_grad():
                     z_ori_r = self.frozen_encoder(
-                        self._tokenize([retain_text]).input_ids
+                        self._tokenize(rb).input_ids
                     ).last_hidden_state
 
                 z_tar_f = self.text_encoder(
                     self._tokenize(group_concepts).input_ids
                 ).last_hidden_state
                 z_tar_r = self.text_encoder(
-                    self._tokenize([retain_text]).input_ids
+                    self._tokenize(rb).input_ids
                 ).last_hidden_state
 
                 L_forget = self.criterion(

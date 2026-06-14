@@ -7,6 +7,22 @@
       "trainable_params_M": 0.0,
       "note": "raw SD v1.4 (no unlearning)"
     },
+    "odace_v3": {
+      "model": "odace_single",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 1500,
+      "wall_seconds": 2348.0,
+      "gpu_hours": 0.652,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-14",
+      "status": "ok",
+      "note": "single-concept ODACE (nudity_odace recipe, 1500 steps); same trainer/arch as archived odace_v3",
+      "measured_by": "retrain_cost_runner"
+    },
     "raw_v15": {
       "training_free": true,
       "gpu_hours": 0.0,
@@ -121,6 +137,22 @@
       "torch": null,
       "timestamp": "2026-06-14",
       "status": "ok",
+      "measured_by": "retrain_cost_runner"
+    },
+    "odace_v2": {
+      "model": "odace_single",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 1500,
+      "wall_seconds": 2348.0,
+      "gpu_hours": 0.652,
+      "peak_vram_gb": null,
+      "torch": null,
+      "timestamp": "2026-06-14",
+      "status": "ok",
+      "note": "single-concept ODACE (nudity_odace recipe, 1500 steps); same trainer/arch as archived odace_v3",
       "measured_by": "retrain_cost_runner"
     },
     "lsse_mc_nvg": {

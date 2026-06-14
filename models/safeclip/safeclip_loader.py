@@ -33,6 +33,17 @@ def load_safeclip_text_encoder(pipe, safeclip_id: str = SAFECLIP_ID):
     # flattened (no `.text_model` attribute / prefix) and matches CLIPModel.text_model key-for-key
     # (both: embeddings.* ... final_layer_norm.*). Load the fine-tuned text transformer directly.
     src = safeclip.text_model.state_dict()
+    # transformers-version robustness: some builds expose CLIPTextModel.state_dict keys WITH a
+    # "text_model." prefix (e.g. 4.48) while safeclip.text_model gives UNprefixed keys (e.g. 4.44).
+    # Align src to the target's convention so the copy matches in either env (xeval lsse 4.44 AND
+    # the RPG-RT 4.48 env, where the mismatch otherwise yields 0/196 matched tensors).
+    tgt_keys = list(pipe.text_encoder.state_dict().keys())
+    tgt_prefixed = any(k.startswith("text_model.") for k in tgt_keys)
+    src_prefixed = any(k.startswith("text_model.") for k in src)
+    if tgt_prefixed and not src_prefixed:
+        src = {f"text_model.{k}": v for k, v in src.items()}
+    elif src_prefixed and not tgt_prefixed:
+        src = {k[len("text_model."):]: v for k, v in src.items() if k.startswith("text_model.")}
     missing, unexpected = pipe.text_encoder.load_state_dict(src, strict=False)
     if missing or unexpected:
         logger.warning(f"[safeclip] load_state_dict non-strict: "
