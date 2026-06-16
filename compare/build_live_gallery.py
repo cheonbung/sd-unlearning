@@ -22,6 +22,7 @@ Run:  python compare/build_live_gallery.py [--rows 80] [--out PATH]
 """
 from __future__ import annotations
 import argparse
+import csv
 import html
 import json
 import os
@@ -37,6 +38,9 @@ VIOLENCE50_JSON = REPO / "models" / "fcf" / "violence_q16_smoke.json"  # 50-prom
 TRAINCOST_JSON = REPO / "models" / "fcf" / "train_cost.json"   # env-aware training cost (GPU-h)
 FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"     # 17 Table-A methods (frozen full-set)
 FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"   # raw_v14 / fcf_p / fcf_e
+RPGRT_REDTEAM = REPO / "models" / "fcf" / "rpgrt_redteam.json"  # RPG-RT iter0 base attack (9 models)
+RPGRT_DPO = REPO / "models" / "fcf" / "rpgrt_dpo.json"          # RPG-RT DPO-fine-tuned attacker (6 targets)
+RPGRT_OURS = REPO.parent / "RPG-RT" / "output" / "rpgrt_ours"   # retained iter0 attack images + per-query CSVs
 
 # (display label, key, group, base, modification site)
 #   key       -> images at eval/outputs/<key>_fs/, metrics at eval/outputs/<key>/
@@ -318,6 +322,94 @@ def legacy_table(M):
     return _table(head, body)
 
 
+RPGRT_NAMES = {"raw": "Raw SD v1.4", "sph_ot": "SLERP-OT", "fcf_p_official": "FCF-P",
+               "odace_v3": "ODACE v3", "odace_mc": "ODACE-MC", "odace_mc_v2": "ODACE-MC v2",
+               "esd_u": "ESD-u", "safeclip": "Safe-CLIP", "sld_max": "SLD-Max"}
+
+
+def _rnm(k):
+    return RPGRT_NAMES.get(k, k)
+
+
+def rpgrt_tables():
+    """(iter0 9-model, DPO 6-target) HTML tables from rpgrt_redteam.json / rpgrt_dpo.json."""
+    rt = ((_load_json(RPGRT_REDTEAM) or {}).get("models")) or {}
+    dp = ((_load_json(RPGRT_DPO) or {}).get("models")) or {}
+    big = 1e9
+    # iter0 base attack (frozen attacker), sorted by asr_query
+    h1 = ['<th class="mh">Target</th>',
+          '<th>asr_prompt&nbsp;<span class="ar">&darr;</span></th>',
+          '<th>asr_query&nbsp;<span class="ar">&darr;</span></th>',
+          '<th class="muted">sec/query</th>']
+    b1 = []
+    for k, d in sorted(rt.items(), key=lambda kv: kv[1].get("asr_query") if kv[1].get("asr_query") is not None else big):
+        tds = ['<th class="mh">{0}</th>'.format(html.escape(_rnm(k))),
+               asr_cell(d.get("asr_prompt")), asr_cell(d.get("asr_query"), bold=True),
+               num_cell(d.get("sec_per_query"))]
+        b1.append('<tr>' + "".join(tds) + '</tr>')
+    # DPO-fine-tuned attacker, sorted by worst-case (asr_query best)
+    h2 = ['<th class="mh">Target</th>',
+          '<th class="muted">q&nbsp;iter0</th>',
+          '<th>q&nbsp;best&nbsp;<span class="ar">&darr;</span></th>',
+          '<th>gap&nbsp;<span class="ar">&darr;</span></th>',
+          '<th class="muted">best&nbsp;iter</th>',
+          '<th class="muted">asr_prompt&nbsp;i0&rarr;best</th>']
+    b2 = []
+    for k, d in sorted(dp.items(), key=lambda kv: kv[1].get("asr_query_best") if kv[1].get("asr_query_best") is not None else big):
+        i0 = d.get("asr_query_iter0"); bs = d.get("asr_query_best")
+        gap = (bs - i0) if (i0 is not None and bs is not None) else None
+        gap_td = ('<td class="num" style="{0}">{1:+.1f}</td>'.format(heat(min(abs(gap) * 4, 100)), gap)
+                  if gap is not None else '<td class="num pend">&mdash;</td>')
+        p0 = d.get("asr_prompt_iter0"); pb = d.get("asr_prompt_best")
+        p_td = ('<td class="num muted">{0:.0f}&rarr;{1:.0f}</td>'.format(p0, pb)
+                if p0 is not None and pb is not None else '<td class="num pend">&mdash;</td>')
+        tds = ['<th class="mh">{0}</th>'.format(html.escape(_rnm(k))),
+               num_cell(i0), asr_cell(bs, bold=True), gap_td, num_cell(d.get("best_iter")), p_td]
+        b2.append('<tr>' + "".join(tds) + '</tr>')
+    return _table(h1, b1), _table(h2, b2)
+
+
+def rpgrt_gallery():
+    """(target_label, grid_html) over the retained iter0 attack images, or (None, None).
+
+    DPO per-target images were not retained (disk); only the last iter0 attack run's image set
+    survives in RPG-RT/output/rpgrt_ours/img with a matching attack_<target>.csv (per-query NSFW).
+    """
+    img_dir = RPGRT_OURS / "img"
+    if not img_dir.exists():
+        return None, None
+    csvs = sorted(RPGRT_OURS.glob("attack_*.csv"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not csvs:
+        return None, None
+    csvp = csvs[0]
+    target = csvp.stem.replace("attack_", "")
+    lab = {}; n_pi = 0; n_q = 0
+    try:
+        with csvp.open(encoding="utf-8", errors="replace") as fh:
+            for row in csv.DictReader(fh):
+                pi = int(row["pi"]); q = int(row["query"])
+                lab[(pi, q)] = (str(row.get("nsfw", "")).strip().lower() == "true")
+                n_pi = max(n_pi, pi + 1); n_q = max(n_q, q + 1)
+    except Exception:
+        return None, None
+    if n_pi == 0 or n_q == 0:
+        return None, None
+    cells = ['<div class="c h pc">Prompt</div>']
+    cells += ['<div class="c h">q{0}</div>'.format(q) for q in range(n_q)]
+    for pi in range(n_pi):
+        cells.append('<div class="c pc"><b>#{0:02d}</b></div>'.format(pi))
+        for q in range(n_q):
+            src = rel(img_dir / "{0}_{1}.png".format(pi, q))
+            byp = lab.get((pi, q), False)
+            cells.append(
+                '<div class="c"><a href="{0}" target="_blank" rel="noopener">'
+                '<img loading="lazy" class="pending{1}" data-src="{0}" src="{0}" alt="{2}_{3}">'
+                '</a><div class="lbl">{4}</div></div>'.format(
+                    src, " byp" if byp else "", pi, q, "BYPASS" if byp else "safe"))
+    grid = '<div class="grid" style="--mc:{0}">'.format(n_q) + "".join(cells) + '</div>'
+    return target, grid
+
+
 def chip_bar():
     out = []
     for dim, lbl, vals in FILTERS:
@@ -374,6 +466,7 @@ label.t{display:inline-flex;gap:6px;align-items:center}
 img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:5px;background:#0b0c0d;display:block;transition:filter .12s}
 body.blur img{filter:blur(16px) saturate(.5)}
 img.pending{outline:1px dashed var(--line)}
+img.byp{outline:2px solid #d9534f}
 .lbl{color:var(--muted);font-size:10px;margin-top:3px;text-align:center}
 .hidden{display:none!important}
 """
@@ -443,6 +536,7 @@ def build(rows_cap):
 
     abtn = ['<button class="active" data-ab="all">All</button>']
     abtn += ['<button data-ab="{0}">{0}</button>'.format(html.escape(a)) for a, _, _ in ATTACKS]
+    abtn += ['<button data-ab="rpgrt">RPG-RT</button>']
     parts.append(
         '<header><h1>SD Unlearning - Live Gallery '
         '<span class="live">auto-fills as images are generated</span></h1>'
@@ -483,6 +577,32 @@ def build(rows_cap):
                  '<b>50 prompts/attack</b> (the pre-full-set re-score). '
                  'Models without a 50-prompt metrics.json show &ndash;.'
                  '</div></section>')
+
+    # 1c) RPG-RT adaptive red-team: summary tables (always visible) + retained attack-image gallery
+    rt_t, dp_t = rpgrt_tables()
+    parts.append(
+        '<section class="sec"><h2>RPG-RT adaptive red-team '
+        '<span>(vicuna-7b prompt-rewrite attacker &middot; asr_query=% NSFW queries &middot; lower=safer)</span></h2>'
+        '<div class="wrap">' + rt_t + '</div>'
+        '<div class="legend"><b>iter0 base attack</b> (frozen attacker, 20 I2P nudity prompts &times; 10 rewrites). '
+        '<b>asr_prompt</b>=% prompts with &ge;1 NSFW bypass; <b>asr_query</b>=% of all queries NSFW.</div>'
+        '<div class="wrap" style="margin-top:10px">' + dp_t + '</div>'
+        '<div class="legend"><b>DPO-fine-tuned attacker</b> (4 iters/target, vicuna+LoRA on its own rollouts): '
+        'asr_query iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). ODACE v3 stays lowest worst-case '
+        '(1.5); SLERP-OT unmovable (gap 0, DPO never beats iter0); raw explodes 52.5&rarr;75. '
+        'Eval split differs from the iter0 table &mdash; compare within each table only.</div></section>')
+    tgt, grid = rpgrt_gallery()
+    if grid:
+        parts.append(
+            '<section class="sec hidden" data-as="rpgrt"><h2>RPG-RT attack samples '
+            '<span>(retained iter0 image set &middot; target: {0} &middot; '
+            '<span style="color:#e0857d">red outline</span> = NudeNet bypass &middot; '
+            'per-model DPO images were not retained)</span></h2><div class="wrap">{1}</div></section>'.format(
+                html.escape(_rnm(tgt)), grid))
+    else:
+        parts.append(
+            '<section class="sec hidden" data-as="rpgrt"><h2>RPG-RT attack samples '
+            '<span>(no retained image set found at RPG-RT/output/rpgrt_ours/img)</span></h2></section>')
 
     # 2) live image gallery, one section per attack
     for albl, sub, pf in ATTACKS:
