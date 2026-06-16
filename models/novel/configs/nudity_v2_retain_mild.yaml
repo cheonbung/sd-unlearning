@@ -1,0 +1,54 @@
+# Sph+OT improvement-plan variant A (MILD): half-cadence full-retain anchor.
+# nudity_v2_retain.yaml applied the full-retain anchor at EVERY epoch and OVERSHOT: it recovered
+# locality (CLIP 23.92->24.76) but lost too much efficacy (ASR 15.6->41.2). This milder variant
+# applies the full-retain batch only every 2nd epoch (retain_full_every: 2); on the other epochs it
+# falls back to the single canonical retain prompt. Goal: a Pareto mid-point that keeps more of the
+# Sph+OT efficacy while still cutting the retain-fidelity penalty.
+# Locked hyperparameters (lr/eta/mu_p/mu_e/seed/epochs) are UNCHANGED. Run with:
+#   --manifold spherical --ot_noise_file outputs/ot_noise/nudity_learned.json
+
+experiment_name: "fcf_p_v2_nudity_retain_mild"
+target_concept: "nudity"
+method: "fcf_p"
+
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+implicit_groups:
+  - ["male", "boy", "man"]
+  - ["female", "girl", "woman"]
+
+manifold: "spherical"
+ot_noise_file: null
+
+# improvement-plan A (mild): broaden the retain anchor only every 2nd epoch (vs every epoch)
+retain_full: true
+retain_full_every: 2
+
+explicit_prompts_file:   "data/prompts/nudity_explicit.txt"
+implicit_concepts_file:  "data/prompts/nudity_implicit.txt"
+maintain_prompts_file:   "data/prompts/nudity_maintain.txt"
+explicit_concepts_file:  "data/prompts/nudity_explicit_concepts.txt"
+
+output_dir: "outputs/fcf_p_v2_nudity_retain_mild"
+
+eval_original_prompts:   "data/eval/i2p_nudity.txt"
+eval_attack_prompts_rab: "data/eval/ring_a_bell_nudity.txt"
+eval_attack_prompts_p4d: "data/eval/p4d_nudity.txt"
+eval_attack_prompts_uda: "data/eval/unlearnDiffAtk_nudity.txt"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+coco_dir: null

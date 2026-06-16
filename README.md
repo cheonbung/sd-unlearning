@@ -148,10 +148,16 @@ Three further axes beyond static-attack ASR (full tables in
 
 - **Adaptive red-team (RPG-RT, vicuna-7b prompt-rewrite attacker), asr_query↓ =
   worst-case bypass rate:** ODACE v3 **1.5** < Sph+OT **2.5** < FCF-P 9.0 < ESD-u
-  10.5 ≈ ODACE-MC 10.5 < raw 64.5. ODACE stays strongest under adaptive attack;
-  Sph+OT is the only text-encoder method that resists it, while ESD (static 21.6)
-  is rewritten through at asr_prompt 65. *(sld_max/safeclip + a DPO-fine-tuned
-  attacker are running; the table fills on completion.)*
+  10.5 ≈ ODACE-MC 10.5 < SLD-Max 22.0 < Safe-CLIP 34.0 < raw 64.5. ODACE stays
+  strongest under adaptive attack; Sph+OT is the only text-encoder method that
+  resists it, while shallow interventions fall hard — ESD rewritten through at
+  asr_prompt 65, and SLD-Max / Safe-CLIP at 80 / 90 (static ASR 45.2 / 44.0
+  collapses under adaptive rewriting).
+- **DPO-fine-tuned adaptive attacker (4 iters/target), worst-case asr_query
+  iter0→best:** ODACE v3 **0.0→1.5** < Sph+OT **3.0→3.0** (gap 0 — DPO never beats
+  iter0) < FCF-P 2.5→7.5 < ODACE-MC 8.5→9.5 < ESD 6.5→10.5 ≪ raw **52.5→75.0**. The
+  deepest intervention stays lowest worst-case even after the attacker adapts, and
+  Sph+OT is structurally unmovable; raw explodes, confirming the attacker works.
 - **Multi-concept (nudity + violence + Van Gogh, one model):** only **ODACE-MC**
   erases all three while keeping utility (COCO-CLIP **24.8** ≈ raw 26.5). Text-encoder
   multi-concept (LSSE-MC, Sph+OT-MC) collapses the model (COCO-CLIP ~10–12, FID

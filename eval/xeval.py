@@ -158,6 +158,13 @@ REGISTRY = {
                      "te_dir": "eval/outputs/og/og_sphot/final"},
     "og_lsse":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",   # B: OG on LSSE
                      "te_dir": "eval/outputs/og/og_lsse/final"},
+    # A (mild): half-way retuning after the every-epoch/balanced variants OVERSHOT (recovered
+    # locality but lost efficacy). sphot_retain_mild = full-retain every 2nd epoch; lsse_bal_mild =
+    # beta 1.5 / clm_top_k 3 / ortho 0.10 (between PLU and balanced).
+    "sphot_retain_mild": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                          "te_dir": "models/novel/outputs/fcf_p_v2_nudity_retain_mild/final"},
+    "lsse_bal_mild":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                          "te_dir": "models/lsse/outputs/lsse_nudity_balanced_mild/final"},
 }
 
 

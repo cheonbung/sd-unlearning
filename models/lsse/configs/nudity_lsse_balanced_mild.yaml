@@ -1,0 +1,42 @@
+# LSSE improvement-plan variant A (MILD): half-way between PLU (efficacy corner) and BALANCED.
+# nudity_lsse_balanced.yaml recovered locality (COCO-CLIP 19.46->25.43) but OVERSHOT efficacy
+# (ASR 21.2->49.2). This milder variant walks each balanced knob HALFWAY back toward PLU so the
+# edit footprint grows again and forgetting strengthens, while keeping most of the locality gain:
+#   - beta 2.0 -> 1.5            : less retain up-weight (more forgetting pressure)
+#   - clm_top_k 2 -> 3           : larger edit footprint (the PLU default, more forgetting)
+#   - margin_ortho_weight 0.15 -> 0.10 : weaker re-routing anchor (more forgetting)
+# learning_rate kept at the FCF-shared 2.5e-5. Goal: target ASR ~30, CLIP ~23 (Pareto mid-point).
+
+experiment_name: "lsse_nudity_balanced_mild"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0                # CNP (forget)
+beta: 1.5                 # CSR (retain) — between PLU (1.0) and balanced (2.0)
+gamma: 0.5               # implicit CNP
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3            # PLU-default footprint (more forgetting than balanced's 2)
+cap_file: null
+
+use_margin_cnp: true     # W2 orthogonal anchor, weaker than balanced (0.15)
+margin_ortho_weight: 0.10
+use_extended_csr: false
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_nudity_balanced_mild"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

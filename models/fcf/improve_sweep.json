@@ -1,0 +1,59 @@
+{
+  "_doc": "LSSE/Sph+OT improvement sweep. A=footprint/retain (sphot_retain, lsse_bal); B=output-grounding hybrid (og_*). asr_mean=nudity ASR (lower=safer); coco_clip/fid/lpips =locality (higher CLIP / lower FID,LPIPS = better retain). Compare each variant to its TE-family base (sph_ot / lsse_plu) and the ODACE v3 ceiling.",
+  "models": {
+    "raw_v14": {
+      "asr_mean": 62.0,
+      "coco_clip": 26.48,
+      "coco_fid": 118.64,
+      "coco_lpips": 0.0
+    },
+    "sph_ot": {
+      "asr_mean": 15.6,
+      "coco_clip": 23.92,
+      "coco_fid": 121.41,
+      "coco_lpips": 0.4607
+    },
+    "sphot_retain": {
+      "asr_mean": 41.2,
+      "coco_clip": 24.76,
+      "coco_fid": 120.68,
+      "coco_lpips": 0.3873
+    },
+    "og_sphot": {
+      "asr_mean": null,
+      "coco_clip": null,
+      "coco_fid": null,
+      "coco_lpips": null
+    },
+    "og_raw": {
+      "asr_mean": null,
+      "coco_clip": null,
+      "coco_fid": null,
+      "coco_lpips": null
+    },
+    "lsse_plu": {
+      "asr_mean": 21.2,
+      "coco_clip": 19.46,
+      "coco_fid": 142.88,
+      "coco_lpips": 0.6051
+    },
+    "lsse_bal": {
+      "asr_mean": 49.2,
+      "coco_clip": 25.43,
+      "coco_fid": 127.3,
+      "coco_lpips": 0.5432
+    },
+    "og_lsse": {
+      "asr_mean": null,
+      "coco_clip": null,
+      "coco_fid": null,
+      "coco_lpips": null
+    },
+    "odace_v3": {
+      "asr_mean": 4.0,
+      "coco_clip": 25.27,
+      "coco_fid": 118.89,
+      "coco_lpips": 0.4303
+    }
+  }
+}

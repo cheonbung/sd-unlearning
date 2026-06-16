@@ -210,6 +210,76 @@
       "torch": "2.5.1+cu121",
       "timestamp": "2026-06-13",
       "status": "ok"
+    },
+    "lsse_bal": {
+      "model": "lsse_nudity_balanced",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 52.18,
+      "steps": 60,
+      "wall_seconds": 50.4,
+      "gpu_hours": 0.014,
+      "peak_vram_gb": 3.41,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-14",
+      "status": "ok"
+    },
+    "og_raw": {
+      "model": "og_raw",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 400,
+      "wall_seconds": 233.2,
+      "gpu_hours": 0.065,
+      "peak_vram_gb": 5.77,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-14",
+      "status": "ok"
+    },
+    "og_sphot": {
+      "model": "og_sphot",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 400,
+      "wall_seconds": 217.1,
+      "gpu_hours": 0.06,
+      "peak_vram_gb": 5.77,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-14",
+      "status": "ok"
+    },
+    "og_lsse": {
+      "model": "og_lsse",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": null,
+      "steps": 400,
+      "wall_seconds": 214.8,
+      "gpu_hours": 0.06,
+      "peak_vram_gb": 5.77,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-14",
+      "status": "ok"
+    },
+    "lsse_bal_mild": {
+      "model": "lsse_nudity_balanced_mild",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 59.27,
+      "steps": 60,
+      "wall_seconds": 50.9,
+      "gpu_hours": 0.014,
+      "peak_vram_gb": 3.67,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-14",
+      "status": "ok"
     }
   }
 }

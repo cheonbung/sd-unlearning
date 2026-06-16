@@ -20,6 +20,7 @@ needed) — a cheap ESD/ODACE-style objective over the latent distribution.
 from __future__ import annotations
 
 import argparse, os, sys
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 from pathlib import Path
 
 import torch
@@ -45,12 +46,12 @@ def read_prompts(path: str) -> list[str]:
     return out
 
 
-def load_te(base_te: str, device) -> CLIPTextModel:
+def load_te(base_te: str, device, dtype=torch.float32) -> CLIPTextModel:
     """base_te == 'raw' -> SD14 text_encoder subfolder; else a saved CLIPTextModel dir."""
     if base_te == "raw":
-        te = CLIPTextModel.from_pretrained(SD14, subfolder="text_encoder")
+        te = CLIPTextModel.from_pretrained(SD14, subfolder="text_encoder", torch_dtype=dtype)
     else:
-        te = CLIPTextModel.from_pretrained(base_te)
+        te = CLIPTextModel.from_pretrained(base_te, torch_dtype=dtype)
     return te.to(device)
 
 
@@ -63,8 +64,12 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--steps", type=int, default=400)
     ap.add_argument("--og_eta", type=float, default=1.0, help="forget weight (ESD-style)")
+    ap.add_argument("--neg_guidance", type=float, default=3.0,
+                    help="ESD negative-guidance scale: forget target = uncond - g*(concept - uncond)")
+    ap.add_argument("--t_lo", type=int, default=50, help="min sampled timestep (skip washed-out high noise)")
+    ap.add_argument("--t_hi", type=int, default=800, help="max sampled timestep (conditioning-informative band)")
     ap.add_argument("--lr", type=float, default=1e-5)
-    ap.add_argument("--batch", type=int, default=4)
+    ap.add_argument("--batch", type=int, default=2)
     ap.add_argument("--device", type=str, default=None)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--exp_name", type=str, default="og")
@@ -77,7 +82,10 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # --- frozen SD UNet + scheduler; tokenizer ---
-    pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float32, safety_checker=None)
+    # UNet in bf16 (inference-only target): halves VRAM/compute vs fp32 and avoids the fp32 cuBLAS
+    # workspace OOM (CUBLAS_STATUS_EXECUTION_FAILED) that crashed the original fp32 backward. The
+    # trainable TE stays fp32 for stable Adam; forward runs under bf16 autocast.
+    pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.bfloat16, safety_checker=None)
     unet = pipe.unet.to(device).eval().requires_grad_(False)
     tokenizer: CLIPTokenizer = pipe.tokenizer
     noise_sched = DDPMScheduler.from_config(pipe.scheduler.config)
@@ -86,8 +94,8 @@ def main():
     latent_res = 64  # 512/8
 
     # --- trainable TE (from base) + frozen TE (reference for retain/uncond targets) ---
-    text_encoder = load_te(args.base_te, device).train().requires_grad_(True)
-    frozen_te = load_te(args.base_te, device).eval().requires_grad_(False)
+    text_encoder = load_te(args.base_te, device, dtype=torch.float32).train().requires_grad_(True)
+    frozen_te = load_te(args.base_te, device, dtype=torch.bfloat16).eval().requires_grad_(False)
 
     opt = torch.optim.Adam(text_encoder.parameters(), lr=args.lr)
 
@@ -109,34 +117,48 @@ def main():
         idx = torch.randint(0, len(pool), (k,), generator=g).tolist()
         return [pool[i] for i in idx]
 
+    DT = torch.bfloat16
+    t_hi = min(args.t_hi, n_train_t)
     with CostMeter(args.exp_name, str(out_dir), steps=args.steps):
         for step in range(1, args.steps + 1):
-            opt.zero_grad()
+            opt.zero_grad(set_to_none=True)
             bf = sample_batch(forget, args.batch)
             br = sample_batch(retain, args.batch)
             ids_f, ids_r = tok(bf), tok(br)
             ids_uncond = tok([""] * args.batch)
 
-            # shared random latent state x_t and timestep across cond/uncond for a fair contrast
-            x = torch.randn(args.batch, latent_ch, latent_res, latent_res, device=device)
-            t = torch.randint(0, n_train_t, (args.batch,), device=device).long()
+            # shared random latent state x_t and timestep across cond/uncond for a fair contrast.
+            # Sample t in an informative mid-band: at very high noise the conditioning is washed out
+            # (the original full-range uniform t made the loss collapse to ~0 with no gradient).
+            x = torch.randn(args.batch, latent_ch, latent_res, latent_res, device=device, dtype=DT)
+            t = torch.randint(args.t_lo, t_hi, (args.batch,), device=device).long()
 
-            with torch.no_grad():
-                tgt_forget = unet(x, t, encoder_hidden_states=emb(frozen_te, ids_uncond)).sample
-                tgt_retain = unet(x, t, encoder_hidden_states=emb(frozen_te, ids_r)).sample
+            # ESD-style negatively-guided forget target: push the forget prompt's prediction AWAY
+            # from the concept (uncond - g*(concept - uncond)), giving a real gradient instead of the
+            # signal-free "match uncond". Retain target = the frozen prediction (locality anchor).
+            with torch.no_grad(), torch.autocast("cuda", dtype=DT):
+                n_unc = unet(x, t, encoder_hidden_states=emb(frozen_te, ids_uncond)).sample
+                n_for = unet(x, t, encoder_hidden_states=emb(frozen_te, ids_f)).sample
+                tgt_forget = (n_unc - args.neg_guidance * (n_for - n_unc)).float()
+                tgt_retain = unet(x, t, encoder_hidden_states=emb(frozen_te, ids_r)).sample.float()
 
-            pred_forget = unet(x, t, encoder_hidden_states=emb(text_encoder, ids_f)).sample
-            pred_retain = unet(x, t, encoder_hidden_states=emb(text_encoder, ids_r)).sample
+            # forget and retain backprop SEPARATELY so only one full-UNet grad graph is alive at a
+            # time -> halves peak activation memory (the fp32 two-graph backward was the OOM).
+            with torch.autocast("cuda", dtype=DT):
+                pred_forget = unet(x, t, encoder_hidden_states=emb(text_encoder, ids_f)).sample
+                L_forget = F.mse_loss(pred_forget.float(), tgt_forget) * args.og_eta
+            L_forget.backward()
 
-            L_forget = F.mse_loss(pred_forget, tgt_forget.detach())
-            L_retain = F.mse_loss(pred_retain, tgt_retain.detach())
-            L = L_retain + args.og_eta * L_forget
-            L.backward()
+            with torch.autocast("cuda", dtype=DT):
+                pred_retain = unet(x, t, encoder_hidden_states=emb(text_encoder, ids_r)).sample
+                L_retain = F.mse_loss(pred_retain.float(), tgt_retain)
+            L_retain.backward()
+
             opt.step()
 
             if step % 25 == 0 or step == 1:
                 print(f"[og] step {step}/{args.steps} L_forget={L_forget.item():.4f} "
-                      f"L_retain={L_retain.item():.4f} L={L.item():.4f}", flush=True)
+                      f"L_retain={L_retain.item():.4f}", flush=True)
 
     final = out_dir / "final"
     text_encoder.eval().save_pretrained(str(final))

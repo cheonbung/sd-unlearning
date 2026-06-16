@@ -1,0 +1,71 @@
+{
+  "_doc": "LSSE/Sph+OT improvement sweep v2. (B)=output-grounding hybrid (og_*, fixed bf16+ESD neg-guidance). (A-mild)=sphot_retain_mild (full-retain every 2nd epoch), lsse_bal_mild (beta1.5/clm3/ortho0.10). Compare each to its TE base (sph_ot / lsse_plu), the OVERSHOT v1 (sphot_retain / lsse_bal), and the ODACE v3 ceiling. asr_mean lower=safer; coco_clip higher / coco_fid,coco_lpips lower = better locality.",
+  "models": {
+    "raw_v14": {
+      "asr_mean": 62.0,
+      "coco_clip": 26.48,
+      "coco_fid": 118.64,
+      "coco_lpips": 0.0
+    },
+    "sph_ot": {
+      "asr_mean": 15.6,
+      "coco_clip": 23.92,
+      "coco_fid": 121.41,
+      "coco_lpips": 0.4607
+    },
+    "sphot_retain": {
+      "asr_mean": 41.2,
+      "coco_clip": 24.76,
+      "coco_fid": 120.68,
+      "coco_lpips": 0.3873
+    },
+    "sphot_retain_mild": {
+      "asr_mean": 39.2,
+      "coco_clip": 24.6,
+      "coco_fid": 118.43,
+      "coco_lpips": 0.3933
+    },
+    "og_sphot": {
+      "asr_mean": 16.8,
+      "coco_clip": 21.87,
+      "coco_fid": 123.01,
+      "coco_lpips": 0.502
+    },
+    "og_raw": {
+      "asr_mean": 29.6,
+      "coco_clip": 23.33,
+      "coco_fid": 118.45,
+      "coco_lpips": 0.4985
+    },
+    "lsse_plu": {
+      "asr_mean": 21.2,
+      "coco_clip": 19.46,
+      "coco_fid": 142.88,
+      "coco_lpips": 0.6051
+    },
+    "lsse_bal": {
+      "asr_mean": 49.2,
+      "coco_clip": 25.43,
+      "coco_fid": 127.3,
+      "coco_lpips": 0.5432
+    },
+    "lsse_bal_mild": {
+      "asr_mean": 48.4,
+      "coco_clip": 24.32,
+      "coco_fid": 147.17,
+      "coco_lpips": 0.6395
+    },
+    "og_lsse": {
+      "asr_mean": 12.4,
+      "coco_clip": 14.11,
+      "coco_fid": 180.28,
+      "coco_lpips": 0.6336
+    },
+    "odace_v3": {
+      "asr_mean": 4.0,
+      "coco_clip": 25.27,
+      "coco_fid": 118.89,
+      "coco_lpips": 0.4303
+    }
+  }
+}

@@ -4,6 +4,19 @@
 - `lsse/outputs/comparison_unified.md` — 텍스트인코더 계열(FCF/LSSE/DACE) + ODACE의 단일-harness ASR
 - `compare/comparison_models.md` — 교차모델(SD v1.4/v1.5/v2.1 + 안전 기준선)의 ASR + 표준 COCO
 
+## 🎯 한눈에 보기 (TL;DR)
+
+| 질문 | 답 |
+|---|---|
+| **최강 효능·강건성?** | **ODACE** (UNet cross-attn 출력접지) — 정적 ASR **4.0**, 적응형 RPG-RT asr_query **1.5**, 둘 다 1위 |
+| **왜 ODACE가 이기나?** | 개입이 **출력(UNet)에 가까울수록 강건**: 추론(SLD 45~62) < 텍스트인코더(15~73) < UNet(ESD 21.6 · ODACE 4.0). 적응공격에서 더 극명(Safe-CLIP/SLD-Max asr_query 34/22 ↔ ODACE 1.5) |
+| **가성비 최고?** | **Sph+OT** (TE) — ASR 15.6·적응 2.5를 **0.026 GPU-h**(ESD의 1/50)로. 단 다개념에선 붕괴 |
+| **다개념(3개) 가능?** | **UNet만 생존** — ODACE-MC는 효용 보존(COCO-CLIP 24.8); TE 계열(LSSE/Sph+OT-MC)은 모델 붕괴(CLIP ~10) |
+| **FCF 재현됐나?** | ✅ 공식 저자 코드로 **FCF-P full-set 4-label 3.7 ≈ 논문 3.43** (§③-정정) |
+| **핵심 교훈** | **개입 규모 ≠ 깊이.** ESD는 UNet의 95%를 편집하고도 ODACE(소수 cross-attn)에 5배 뒤짐 → "무엇을 목적함수로 누르나(출력접지)"가 결정적 |
+
+> 자세한 수치·프로토콜은 아래 표 A(통합)·§④(개입 깊이)·§⑥(적응형 레드티밍)·§⑦(다개념)·§⑧(비용) 참조.
+
 ## ⚠️ 측정 프로토콜 (비교 가능성의 핵심)
 
 - **ASR↓ (효능): 전 모델 동일 프로토콜 → 직접 비교 가능.** NudeNet v3(score>0.3), 5공격(I2P,
@@ -402,25 +415,56 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
 1회 이상 NSFW 우회 비율, `asr_query↓`=전체 쿼리의 NSFW 비율. **낮을수록 강건.** 아래는 **iter-0
 base 공격**(공격자 LLM DPO 학습 *전*) — 20프롬프트×10쿼리, vicuna-7b 4-bit.
 
-| 모델 | 계열/개입 | asr_prompt↓ | asr_query↓ | sec/query |
-|---|---|---|---|---|
-| 🥇 **ODACE v3** | ODACE/UNet (단일) | **10.0** | **1.5** | 6.57 |
-| 2 **Sph+OT** | TE (단일) | 25.0 | **2.5** | 6.25 |
-| 3 FCF-P (공식) | TE (단일) | 45.0 | 9.0 | 6.24 |
-| 4 ODACE-MC v1 | ODACE/UNet (다개념) | 35.0 | 10.5 | 6.18 |
-| 4 ★ ESD-u | ESD/UNet (단일) | 65.0 | 10.5 | 6.31 |
-| 4 ODACE-MC v2 | ODACE/UNet (다개념) | 50.0 | 10.5 | 6.22 |
-| — raw v1.4 | (무방어) | 100.0 | 64.5 | 6.81 |
+| 순위 | 모델 | 계열/개입 | asr_prompt↓ | asr_query↓ | sec/query |
+|---|---|---|---|---|---|
+| 🥇 1 | **ODACE v3** | ODACE/UNet (단일) | **10.0** | **1.5** | 6.57 |
+| 2 | **Sph+OT** | TE (단일) | 25.0 | **2.5** | 6.25 |
+| 3 | FCF-P (공식) | TE (단일) | 45.0 | 9.0 | 6.24 |
+| 4 | ODACE-MC v1 | ODACE/UNet (다개념) | 35.0 | 10.5 | 6.18 |
+| 4 | ★ ESD-u | ESD/UNet (단일) | 65.0 | 10.5 | 6.31 |
+| 4 | ODACE-MC v2 | ODACE/UNet (다개념) | 50.0 | 10.5 | 6.22 |
+| 7 | **★ SLD-Max** | SLD/추론 가이던스 | 80.0 | 22.0 | 7.37 |
+| 8 | **★ Safe-CLIP** | CLIP 텍스트인코더 교체 | 90.0 | 34.0 | 6.31 |
+| — | raw v1.4 | (무방어) | 100.0 | 64.5 | 6.81 |
 
 - **ODACE v3가 적응공격에도 최강**(asr_query 1.5): 정적 ASR 4.0 + 적응 1.5 = 효능·강건성 동시 1위.
 - **Sph+OT가 2위(2.5)** — 텍스트인코더 개입인데도 적응공격에 강한 **유일한 예외**. FCF-P(9.0)·ESD(10.5)를 앞섬.
+- **추론·CLIP교체 개입이 적응공격에 가장 취약(신규 확정):** **SLD-Max asr_query 22.0 · Safe-CLIP 34.0**, asr_prompt는
+  **80·90** — 10회 재작성 중 8~9할 프롬프트가 한 번은 뚫린다. 정적 ASR(45.2/44.0)이 적응공격에서 그대로 무너짐 =
+  "개입이 얕을수록 적응공격에 취약"을 직접 확인.
 - **ESD는 적응공격에 취약:** 정적 21.6은 양호하나 LLM 재작성에 asr_prompt **65%** 뚫림. 동일 UNet 비용(~1.3 GPU-h)에서 ODACE(10) ≫ ESD(65).
 - **다개념 ODACE는 강건성↔범위 트레이드오프:** asr_query 10.5(단일 1.5↑) — 용량을 3개념에 분산하니 nudity 강건성 약화. 그래도 raw 대비 6배 방어.
+- **강건성 순위 = 개입 깊이 순위:** UNet 출력접지(ODACE 1.5) < TE 측지선(Sph+OT 2.5) < TE proxy(FCF-P 9.0) <
+  UNet 음성가이던스(ESD 10.5) ≈ 다개념 ODACE < 추론(SLD-Max 22) < CLIP교체(Safe-CLIP 34) < 무방어(raw 64.5).
 
-> ⏳ **진행 중:** `sld_max`·`safeclip`(로더 수정 후 재공격) + **RPG-RT 풀 DPO 공격자**(`eval/rpgrt_dpo_attack.py`,
-> vicuna+LoRA를 자기 롤아웃으로 4-iter DPO 미세조정해 강건성 한계까지 압박)가 백그라운드 실행 중. 완료 시
-> 본 표에 sld_max/safeclip 행 + **DPO iter0→best** 컬럼이 추가된다.
-> 산출물: `models/fcf/rpgrt_redteam.json` · (예정) `models/fcf/rpgrt_dpo.json`.
+### ⑥-DPO. RPG-RT 풀 적응 공격자 (DPO 미세조정) — 진짜 worst-case 강건성
+
+위 iter0은 *고정* 공격자다. 여기서는 vicuna+LoRA 공격자를 **각 방어 모델을 표적으로 자기 롤아웃에 4-iter DPO
+미세조정**해 방어별로 진화시킨다. `asr_query`를 iter0(학습 전)→best(4-iter 중 최고)로 본다 — **iter0→best 격차가
+클수록 적응 학습에 약함**. ⚠️ 평가셋은 `unsafe-prompts4703`의 nudity>50 분할이라 §⑥ iter0-base 표(I2P 20p)와
+프롬프트셋이 달라 **절대값 직접 비교 금지**(본 표 내부에서만 비교).
+
+| 모델 | asr_query iter0→best↓ | best_iter | 격차↓ | asr_prompt iter0→best |
+|---|---|---|---|---|
+| 🥇 **ODACE v3** | **0.0 → 1.5** | 1 | +1.5 | 0 → 10 |
+| **Sph+OT** | **3.0 → 3.0** | 0 | **+0.0** | 25 → 25 |
+| ODACE-MC v2 | 8.5 → 9.5 | 1 | +1.0 | 45 → 65 |
+| ★ ESD-u | 6.5 → 10.5 | 3 | +4.0 | 35 → 55 |
+| FCF-P (공식) | 2.5 → 7.5 | 2 | +5.0 | 20 → 55 |
+| raw v1.4 | 52.5 → **75.0** | 3 | **+22.5** | 100 → 100 |
+
+- **ODACE v3가 적응 학습 후에도 worst-case 최저(1.5).** 0.0에서 시작해 4-iter DPO로도 1.5까지만 — 최강.
+- **Sph+OT는 DPO가 전혀 안 먹힘(격차 0, best_iter=0):** 4-iter 학습이 iter0(3.0)을 *한 번도 못 넘었다*. TE 측지선
+  방어가 적응 공격자에 **구조적으로 안정**(공격자 학습 페어 n_pairs도 매 iter 1~2개뿐 = 성공 사례를 거의 못 만듦).
+- **raw는 적응 학습에 폭발(52.5→75.0, +22.5):** 무방어 모델은 공격자가 학습할수록 급격히 뚫린다 = DPO 공격자가
+  제대로 작동함을 검증(없는 효과를 본 게 아님).
+- **적응 취약도(격차) 순위:** Sph+OT(0) < ODACE-MC(+1.0) < ODACE v3(+1.5) < ESD(+4.0) < FCF-P(+5.0) ≪ raw(+22.5).
+  **worst-case 절대값:** ODACE v3 **1.5** < Sph+OT **3.0** < FCF-P 7.5 < ODACE-MC 9.5 < ESD 10.5 ≪ raw **75.0**.
+- **결론:** 가장 깊은 개입(ODACE 출력접지)이 적응 worst-case도 최저. TE 측지선(Sph+OT)은 효율적이면서 적응
+  안정성까지 특이하게 높아 단일개념 실용 대안. 추론·CLIP교체(SLD/Safe-CLIP)는 iter0부터 약해(asr_prompt 80/90) DPO 미측정.
+
+> 산출물: `models/fcf/rpgrt_dpo.json` (6타깃 × 4-iter, 각 ~4.2h wall, 총 ~25 GPU-h). iter0 base 9모델은
+> `models/fcf/rpgrt_redteam.json`.
 
 ## ⑦ 다개념 소거 (nudity + 폭력 + Van Gogh 화풍, **3개념 동시**)
 
@@ -468,13 +512,63 @@ USD 없음(하드웨어 중립). 다른 환경에서 재학습 시 `eval/aggrega
 | **UNet (비쌈)** | ODACE-MC v1 | 2500 | 1.152 | 다개념 |
 | | ODACE-MC v2 | 2800 | 1.234 | 다개념 winner |
 | | ★ ESD-u | 1000 | **1.326** | UNet 95% 편집 |
-| | ODACE 단일 | 1500 | *(측정 중)* | A2 진행 중 |
+| | ODACE 단일 | 1500 | **0.652** | 단일개념(동일 trainer/arch, ESD의 1/2) |
 
 - **TE는 UNet보다 ~50–150배 저렴**(Sph+OT 0.026 vs ESD 1.326 vs ODACE-MC 1.234). 단 (a) 다개념 붕괴, (b) Sph+OT
   외엔 강건성 약함. **UNet(ODACE)은 비싸도 강건성+다개념 둘 다 되는 유일 방식** — 비용↔능력 트레이드오프가 명확.
 - **Sph+OT의 가성비:** 단일개념 최저 ASR(15.6)·2위 강건성(2.5)을 **0.026 GPU-h**(ESD의 1/50)로 달성. fidelity만 양보.
 
-> 산출물: `models/fcf/train_cost.json` (env-aware) · `eval/aggregate_cost.py`. (odace 단일 비용은 백그라운드 A2에서 측정 중.)
+> 산출물: `models/fcf/train_cost.json` (env-aware) · `eval/aggregate_cost.py`.
+
+## ⑨ LSSE/Sph+OT 성능개선 실험 (A 풋프린트·B 출력접지) — v2 확정 중
+
+TE 계열의 한계(단일개념 ASR floor 15~20 + locality 붕괴: LSSE COCO-CLIP 19·FID 143)를 개선하려는 두 갈래:
+- **(A) retain/풋프린트 튜닝 (TE-only):** retain anchor를 단일 프롬프트 → 전체 retain set으로 확장(`retain_full`),
+  LSSE 편집 footprint 축소(beta↑·clm_top_k↓).
+- **(B) 출력접지 하이브리드:** `eval/og_finetune.py` — UNet은 **동결**한 채 TE만, *고정 UNet 출력* 기준 **ESD 음수가이던스**
+  목적으로 미세조정(TE를 ODACE의 출력접지 깊이 쪽으로 끌어올리되 UNet 학습 비용 없이).
+
+**1차(v1) 결과 — A는 과교정, B는 무산:**
+
+| 변형 | 계열 | ASR↓ | COCO-CLIP↑ | FID↓ | LPIPS↓ | 판정 |
+|---|---|---|---|---|---|---|
+| sph_ot (base) | TE | **15.6** | 23.92 | 121.4 | 0.461 | 기준 |
+| sphot_retain (every-epoch) | A | 41.2 | 24.76 | 120.7 | 0.387 | ❌ 과교정(locality↑ 효능 상실) |
+| lsse_plu (base) | TE | **21.2** | 19.46 | 142.9 | 0.605 | 기준 |
+| lsse_bal (balanced) | A | 49.2 | 25.43 | 127.3 | 0.543 | ❌ 과교정(CLIP 19→25 회복했으나 ASR↑) |
+| og_raw / og_sphot / og_lsse | B | — | — | — | — | ❌ fp32 backward OOM·신호 소실로 무산 |
+
+- **A의 교훈:** retain을 매 에폭 전체로 걸면 locality는 회복되나(LSSE CLIP 19.5→25.4) **효능을 너무 양보**(ASR↑↑).
+  Pareto 중간해가 필요 → **A-mild**(sphot_retain_mild=full-retain 매 2에폭, lsse_bal_mild=PLU↔balanced 중간값).
+- **B의 교훈:** fp32 2-그래프 backward가 12GB OOM(CUBLAS) + uniform-timestep "match uncond"는 노이즈에 신호 소실
+  (loss≈0) → **bf16 autocast + forget/retain 순차 backward + ESD 음수가이던스 + 정보량 있는 timestep 밴드**로 수정 완료(검증됨).
+
+**v2 최종 결과 (B 수정판 + A-mild, `improve_sweep_v2.json`):**
+
+| 변형 | 계열 | ASR↓ | COCO-CLIP↑ | FID↓ | LPIPS↓ | base 대비 판정 |
+|---|---|---|---|---|---|---|
+| **odace_v3** (UNet 천장) | UNet | **4.0** | 25.27 | 118.9 | 0.430 | — (참조 상한) |
+| **sph_ot** (TE base) | TE | **15.6** | 23.92 | 121.4 | 0.461 | — (TE frontier) |
+| og_sphot | B | 16.8 | 21.87 | 123.0 | 0.502 | ❌ ASR·CLIP 둘 다 악화 |
+| sphot_retain (A v1) | A | 41.2 | 24.76 | 120.7 | 0.387 | ❌ 과교정 |
+| sphot_retain_mild | A | 39.2 | 24.6 | 118.4 | 0.393 | ❌ 절반 강도도 과교정 |
+| **lsse_plu** (TE base) | TE | **21.2** | 19.46 | 142.9 | 0.605 | — |
+| lsse_bal (A v1) | A | 49.2 | 25.43 | 127.3 | 0.543 | ❌ 과교정 |
+| lsse_bal_mild | A | 48.4 | 24.32 | 147.2 | 0.640 | ❌ 절반 강도도 과교정 |
+| og_raw | B | 29.6 | 23.33 | 118.5 | 0.499 | △ 독립 ESD-on-TE (raw 62→30) |
+| og_lsse | B | 12.4 | **14.11** | 180.3 | 0.634 | ❌ 붕괴(낮은 ASR=아티팩트) |
+
+**최종 판정 — A도 B도 Sph+OT base(15.6)를 못 넘었다:**
+- **(B) 출력접지 하이브리드 실패:** 최선 og_sphot(16.8)이 base(15.6)와 사실상 동률이면서 CLIP은 오히려 **−2.05**
+  (23.92→21.87) 악화. og_lsse는 CLIP **14.11**로 붕괴, og_raw(29.6)는 raw 대비 개선이나 Sph+OT엔 한참 못 미침. →
+  **고정 UNet에 출력접지를 걸어도 TE의 표현력 병목 때문에 ODACE(4.0)의 깊이에 도달 못 함.**
+- **(A) retain/풋프린트 튜닝 실패:** 절반 강도(mild)로도 sphot_retain_mild 39.2·lsse_bal_mild 48.4로 여전히 과교정 —
+  retain anchor를 조금만 키워도 효능이 급락하는 TE의 구조적 trade-off 재확인(locality 회복 ↔ ASR base의 2~3배).
+- 🔑 **핵심(음성 결과):** **TE 개입점의 ASR floor(~15)는 retain 튜닝(A)이나 출력접지(B)로 깨지지 않는다.** floor를
+  깨려면 개입을 UNet으로 옮겨야 한다(ODACE 4.0). §④ 개입-깊이 명제와 [[odace-breakthrough]]를 직접 재확인. 단,
+  Sph+OT base 자체가 0.026 GPU-h로 ASR 15.6·적응 격차 0(§⑥-DPO)을 내는 강한 가성비 기준선임은 유지.
+
+> 산출물: `models/fcf/improve_sweep_v2.json` · 학습비용은 §⑧ 비용표 참조(og_* / *_mild).
 
 ## 출처
 - ASR: `lsse/outputs/comparison_unified.md` (텍스트인코더 계열) · `eval/outputs/<label>/metrics.json` (교차모델)

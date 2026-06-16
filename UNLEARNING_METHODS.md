@@ -950,11 +950,18 @@ safe_neg는 nudity에 특화되어 간단하고 강력한 편이다. SLD는 더 
 | FCF-P (TE, 단일) | 45.0 | 9.0 |
 | ESD-u (UNet, 단일) | 65.0 | 10.5 |
 | ODACE-MC (UNet, 다개념) | 35.0 | 10.5 |
+| SLD-Max (추론 가이던스) | 80.0 | 22.0 |
+| Safe-CLIP (CLIP TE 교체) | 90.0 | 34.0 |
 | raw v1.4 | 100.0 | 64.5 |
 
 - ODACE v3가 적응공격에도 1위(1.5). **Sph+OT는 TE 중 유일하게 강건**(2.5)으로 FCF-P(9.0)·ESD(10.5)를 앞섬.
 - ESD는 정적 21.6은 양호하나 LLM 재작성에 asr_prompt **65%** 뚫림(적응 취약). 다개념 ODACE는 강건성↔범위 트레이드오프(10.5).
-- *(sld_max·safeclip + DPO 미세조정 공격자는 백그라운드 진행 중 → 완료 시 표 갱신.)*
+- **추론·CLIP교체가 적응공격에 가장 취약(신규 확정):** SLD-Max asr_query 22.0·Safe-CLIP 34.0(asr_prompt 80·90) —
+  정적 ASR(45.2/44.0)이 적응공격에서 그대로 붕괴 = 개입 깊이 가설 직접 확인.
+- **DPO 적응 공격자 결과(확정, 4-iter/타깃, asr_query iter0→best):** ODACE v3 **0→1.5** < Sph+OT **3.0→3.0**
+  (격차 0, DPO가 iter0을 한 번도 못 넘음) < FCF-P 2.5→7.5 < ODACE-MC 8.5→9.5 < ESD 6.5→10.5 ≪ raw **52.5→75.0**.
+  가장 깊은 개입(ODACE)이 적응 학습 후에도 worst-case 최저, **Sph+OT는 DPO가 전혀 안 먹힘**(구조적 안정), raw는
+  폭발(공격자 정상 작동 검증). (`models/fcf/rpgrt_dpo.json`)
 
 ### 다개념(nudity + 폭력 + Van Gogh, 3개념 동시) 소거
 

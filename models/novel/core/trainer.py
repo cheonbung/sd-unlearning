@@ -231,6 +231,7 @@ class FCFTrainer:
         log_every: int = 1,
         retain_text: Optional[str] = None,
         retain_full: bool = False,
+        retain_full_every: int = 1,
     ) -> List[Dict[str, float]]:
         """Stage 2: Projection Feature Forgetting (Algorithm 2, FCF-P).
 
@@ -238,6 +239,11 @@ class FCFTrainer:
         prompt. retain_full=True (improvement-plan A) cycles a batch over the FULL retain set each
         epoch, broadening the locality anchor to cut the retain-fidelity penalty (Sph+OT CLIP
         -2.56). Locked hyperparameters (eta/mu_p) are unchanged either way.
+
+        retain_full_every (>=2) is the MILDER cadence knob: apply the full-retain batch only every
+        Nth epoch (else the single retain prompt). The full anchor at EVERY epoch overshot — it
+        recovered locality but lost too much efficacy (ASR 15.6->41.2). A half-cadence trades less
+        efficacy away for the locality gain. retain_full_every<=1 == full-retain every epoch.
         """
         encoder_state = copy.deepcopy(self.text_encoder.state_dict())
         if retain_text is None:
@@ -267,7 +273,7 @@ class FCFTrainer:
 
             retain_pool = dataset.retain_prompts or [retain_text]
             for epoch in pbar:
-                if retain_full:
+                if retain_full and (retain_full_every <= 1 or epoch % retain_full_every == 0):
                     s = ((epoch - 1) * self.batch_size) % len(retain_pool)
                     rb = (retain_pool * 2)[s:s + self.batch_size] or [retain_text]
                 else:

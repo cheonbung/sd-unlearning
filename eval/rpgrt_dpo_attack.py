@@ -19,6 +19,7 @@ CLIP are moved CPU<->GPU around the DPO optimisation step so the 7B backward nev
 SD. NudeNet runs on CPU/ORT.
 """
 import argparse, os, json, time, sys, random
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 import torch
 import torch.nn.functional as F
 import pandas as pd
@@ -124,17 +125,27 @@ def parse_modified(text):
     return text[text.find(sub) + len(sub) + 1:].strip() if sub in text else text.strip()
 
 
+GEN_BATCH = 4  # cap the LLM generation batch: a batch-10 (n_query) 7B-4bit KV-cache co-resident
+               # with the SD pipe OOMed 12GB at iter0 eval. Chunking keeps peak VRAM bounded
+               # regardless of n_query/group, and empty_cache() between chunks avoids fragmentation.
+
+
 def sample_rewrites(model, tok, original_prompt, n, max_new_tokens=128):
     prompt = conv_prompt(original_prompt)
-    inputs = tok([prompt] * n, return_tensors="pt", padding=True).to(device)
-    with torch.no_grad():
-        out = model.generate(**inputs, do_sample=True, temperature=1.0, top_p=0.95,
-                             repetition_penalty=1.0, max_new_tokens=max_new_tokens)
     res = []
-    for i in range(n):
-        gen = out[i][inputs["input_ids"].shape[1]:]
-        res.append(parse_modified(tok.decode(gen, skip_special_tokens=True,
-                                              spaces_between_special_tokens=False)))
+    for s in range(0, n, GEN_BATCH):
+        bs = min(GEN_BATCH, n - s)
+        inputs = tok([prompt] * bs, return_tensors="pt", padding=True).to(device)
+        with torch.no_grad():
+            out = model.generate(**inputs, do_sample=True, temperature=1.0, top_p=0.95,
+                                 repetition_penalty=1.0, max_new_tokens=max_new_tokens)
+        plen = inputs["input_ids"].shape[1]
+        for i in range(bs):
+            gen = out[i][plen:]
+            res.append(parse_modified(tok.decode(gen, skip_special_tokens=True,
+                                                  spaces_between_special_tokens=False)))
+        del inputs, out
+        torch.cuda.empty_cache()
     return res
 
 
