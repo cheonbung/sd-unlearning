@@ -41,6 +41,8 @@ FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"   # raw_v14 / fcf_p
 RPGRT_REDTEAM = REPO / "models" / "fcf" / "rpgrt_redteam.json"  # RPG-RT iter0 base attack (9 models)
 RPGRT_DPO = REPO / "models" / "fcf" / "rpgrt_dpo.json"          # RPG-RT DPO-fine-tuned attacker (6 targets)
 RPGRT_OURS = REPO.parent / "RPG-RT" / "output" / "rpgrt_ours"   # retained iter0 attack images + per-query CSVs
+RPGRT_DPO_DIR = REPO / "eval" / "outputs" / "rpgrt_dpo"         # per-target DPO-run images + nsfw_iter0.json (eval/rpgrt_label_iter0.py)
+RPGRT_DPO_TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u", "odace_v3", "odace_mc_v2"]
 
 # (display label, key, group, base, modification site)
 #   key       -> images at eval/outputs/<key>_fs/, metrics at eval/outputs/<key>/
@@ -369,45 +371,58 @@ def rpgrt_tables():
     return _table(h1, b1), _table(h2, b2)
 
 
-def rpgrt_gallery():
-    """(target_label, grid_html) over the retained iter0 attack images, or (None, None).
-
-    DPO per-target images were not retained (disk); only the last iter0 attack run's image set
-    survives in RPG-RT/output/rpgrt_ours/img with a matching attack_<target>.csv (per-query NSFW).
-    """
-    img_dir = RPGRT_OURS / "img"
-    if not img_dir.exists():
-        return None, None
-    csvs = sorted(RPGRT_OURS.glob("attack_*.csv"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not csvs:
-        return None, None
-    csvp = csvs[0]
-    target = csvp.stem.replace("attack_", "")
-    lab = {}; n_pi = 0; n_q = 0
-    try:
-        with csvp.open(encoding="utf-8", errors="replace") as fh:
-            for row in csv.DictReader(fh):
-                pi = int(row["pi"]); q = int(row["query"])
-                lab[(pi, q)] = (str(row.get("nsfw", "")).strip().lower() == "true")
-                n_pi = max(n_pi, pi + 1); n_q = max(n_q, q + 1)
-    except Exception:
-        return None, None
-    if n_pi == 0 or n_q == 0:
-        return None, None
+def _rpgrt_target_grid(target, lab):
+    """One prompt x query grid for a target from its nsfw_iter0 labels + retained images."""
+    bypass = lab.get("bypass") or {}
+    n_pi = int(lab.get("n_pi") or 0)
+    n_q = int(lab.get("n_q") or 0)
+    img_dir = RPGRT_DPO_DIR / target / "img"
     cells = ['<div class="c h pc">Prompt</div>']
     cells += ['<div class="c h">q{0}</div>'.format(q) for q in range(n_q)]
     for pi in range(n_pi):
         cells.append('<div class="c pc"><b>#{0:02d}</b></div>'.format(pi))
         for q in range(n_q):
-            src = rel(img_dir / "{0}_{1}.png".format(pi, q))
-            byp = lab.get((pi, q), False)
+            src = rel(img_dir / "iter0_{0}_{1}.png".format(pi, q))
+            byp = bool(bypass.get("{0}_{1}".format(pi, q), False))
             cells.append(
                 '<div class="c"><a href="{0}" target="_blank" rel="noopener">'
                 '<img loading="lazy" class="pending{1}" data-src="{0}" src="{0}" alt="{2}_{3}">'
                 '</a><div class="lbl">{4}</div></div>'.format(
                     src, " byp" if byp else "", pi, q, "BYPASS" if byp else "safe"))
-    grid = '<div class="grid" style="--mc:{0}">'.format(n_q) + "".join(cells) + '</div>'
-    return target, grid
+    # rtgrid class: keep applyFilter() from overwriting --mc (query cols, not model cols)
+    return '<div class="grid rtgrid" style="--mc:{0}">'.format(n_q) + "".join(cells) + '</div>'
+
+
+def rpgrt_gallery():
+    """HTML for the per-target iter0 attack-image gallery (target sub-tabs), or None.
+
+    Reads eval/outputs/rpgrt_dpo/<target>/nsfw_iter0.json (NudeNet re-labels of the retained iter0
+    images, written by eval/rpgrt_label_iter0.py) + the matching images. iter0 = frozen-base
+    attacker, identical rewrite policy across targets -> same attack, different defense. Targets are
+    ordered worst-first (highest iter0 query-ASR) to tell the robustness story.
+    """
+    found = []
+    for t in RPGRT_DPO_TARGETS:
+        labp = RPGRT_DPO_DIR / t / "nsfw_iter0.json"
+        if not labp.exists():
+            continue
+        try:
+            lab = json.loads(labp.read_text())
+        except Exception:
+            continue
+        if lab.get("bypass") and (RPGRT_DPO_DIR / t / "img").exists():
+            found.append((t, lab))
+    if not found:
+        return None
+    found.sort(key=lambda tl: tl[1].get("asr_query_iter0", 0.0), reverse=True)
+    btns, secs = [], []
+    for i, (t, lab) in enumerate(found):
+        aq = lab.get("asr_query_iter0", 0.0)
+        btns.append('<button class="{0}" data-rt="{1}">{2} <span class="muted">aq {3}</span></button>'.format(
+            "active" if i == 0 else "", html.escape(t), html.escape(_rnm(t)), aq))
+        secs.append('<div class="rtsec{0}" data-rtsec="{1}">{2}</div>'.format(
+            "" if i == 0 else " hidden", html.escape(t), _rpgrt_target_grid(t, lab)))
+    return '<div class="rttabs">' + "".join(btns) + "</div>" + "".join(secs)
 
 
 def chip_bar():
@@ -430,6 +445,7 @@ h1{margin:0 0 8px;font-size:19px}
 .toolbar.filt{margin-top:8px}
 button,input,label.t{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:6px;padding:7px 10px;font:inherit}
 button{cursor:pointer}button.active{border-color:var(--accent);background:#17352f}
+.rttabs{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 12px}.rtsec{margin-top:4px}
 label.t{display:inline-flex;gap:6px;align-items:center}
 .live{color:var(--accent);font-size:12px;margin-left:6px}
 .fgl{color:var(--muted);font-size:12px;margin-left:6px}
@@ -488,7 +504,7 @@ function applyFilter(){
     document.querySelectorAll('tr[data-key="'+k+'"]').forEach(function(r){r.classList.toggle('hidden',!show);});
     document.querySelectorAll('.m-'+k).forEach(function(c){c.classList.toggle('hidden',!show);});
   });
-  document.querySelectorAll('.grid').forEach(function(g){g.style.setProperty('--mc',vis);});
+  document.querySelectorAll('.grid:not(.rtgrid)').forEach(function(g){g.style.setProperty('--mc',vis);});
   var vc=document.getElementById('viscount'); if(vc)vc.textContent=vis;
 }
 function retry(){
@@ -506,6 +522,13 @@ document.addEventListener('DOMContentLoaded',function(){
     btns.forEach(function(x){x.classList.toggle('active',x===b);});
     var k=b.dataset.ab;
     secs.forEach(function(s){s.classList.toggle('hidden',k!=='all'&&s.dataset.as!==k);});
+  });});
+  var rtb=[].slice.call(document.querySelectorAll('[data-rt]'));
+  var rts=[].slice.call(document.querySelectorAll('[data-rtsec]'));
+  rtb.forEach(function(b){b.addEventListener('click',function(){
+    rtb.forEach(function(x){x.classList.toggle('active',x===b);});
+    var k=b.dataset.rt;
+    rts.forEach(function(s){s.classList.toggle('hidden',s.dataset.rtsec!==k);});
   });});
   document.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){
     var dim=c.dataset.dim, val=c.dataset.val;
@@ -591,18 +614,18 @@ def build(rows_cap):
         'asr_query iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). ODACE v3 stays lowest worst-case '
         '(1.5); SLERP-OT unmovable (gap 0, DPO never beats iter0); raw explodes 52.5&rarr;75. '
         'Eval split differs from the iter0 table &mdash; compare within each table only.</div></section>')
-    tgt, grid = rpgrt_gallery()
-    if grid:
+    rt_grid = rpgrt_gallery()
+    if rt_grid:
         parts.append(
             '<section class="sec hidden" data-as="rpgrt"><h2>RPG-RT attack samples '
-            '<span>(retained iter0 image set &middot; target: {0} &middot; '
+            '<span>(retained iter0 images &middot; frozen-base attacker, identical rewrites across '
+            'models &middot; 20 I2P nudity prompts &times; 10 queries &middot; '
             '<span style="color:#e0857d">red outline</span> = NudeNet bypass &middot; '
-            'per-model DPO images were not retained)</span></h2><div class="wrap">{1}</div></section>'.format(
-                html.escape(_rnm(tgt)), grid))
+            'pick a target below)</span></h2><div class="wrap">' + rt_grid + '</div></section>')
     else:
         parts.append(
             '<section class="sec hidden" data-as="rpgrt"><h2>RPG-RT attack samples '
-            '<span>(no retained image set found at RPG-RT/output/rpgrt_ours/img)</span></h2></section>')
+            '<span>(no labeled iter0 image set &mdash; run eval/rpgrt_label_iter0.py)</span></h2></section>')
 
     # 2) live image gallery, one section per attack
     for albl, sub, pf in ATTACKS:
