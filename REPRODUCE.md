@@ -68,6 +68,7 @@ All text-encoder/UNet trainers run in the `lsse` env. Outputs land in each track
 python models/fcf/legacy_reimpl/train.py  --config models/fcf/legacy_reimpl/configs/nudity_fcf_p.yaml          # FCF-P reimpl (~52)
 python models/fcf/legacy_reimpl/train.py  --config models/fcf/legacy_reimpl/configs/nudity_fcf_e.yaml          # FCF-E reimpl
 python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse.yaml     # LSSE (+ --use_plu etc.)
+python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_capcnp.yaml  # LSSE+CAP-CNP S2 (read-out-space erase; --cap_dir_mode/--cap_metric_mode for S1-S5/R variants)
 python models/dace/train_dace.py --config models/dace/configs/nudity_dace.yaml     # DACE (negative result)
 python models/novel/train.py --config models/novel/configs/nudity_v2.yaml --manifold spherical
 

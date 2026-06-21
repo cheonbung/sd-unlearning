@@ -1,0 +1,9 @@
+{
+  "lsse_capcnp_proxy_asr": 4.0,
+  "baseline_lsse_plu_w2_proxy": 20.0,
+  "target_sph_ot_proxy": 14.0,
+  "improved": true,
+  "weak_improved": true,
+  "beats_sph_ot": true,
+  "next": "WIN: capcnp 4.0 beats sph_ot 14.0 -> record + full-set"
+}

@@ -1,0 +1,38 @@
+{
+  "refs": {
+    "baseline": {
+      "asr": 20.0,
+      "clip": 19.19
+    },
+    "S2_contrastive_ortho_kv": {
+      "asr": 10.0,
+      "clip": 22.04
+    },
+    "sph_ot": {
+      "asr": 14.0,
+      "clip": 23.92
+    }
+  },
+  "runs": [
+    {
+      "scenario": "R1",
+      "dir": "contrastive_ortho",
+      "metric": "v_only",
+      "asr": 6.0,
+      "clip": 11.1,
+      "fid": 174.19,
+      "beats_S2": false,
+      "strict_baseline_win": false
+    },
+    {
+      "scenario": "R2",
+      "dir": "contrastive_ortho",
+      "metric": "perlayer",
+      "asr": 0.0,
+      "clip": 17.69,
+      "fid": 171.14,
+      "beats_S2": false,
+      "strict_baseline_win": false
+    }
+  ]
+}

@@ -41,6 +41,9 @@ from .cnp import (
     compute_concept_direction_macd,
     compute_concept_direction_token_selective,
     compute_concept_directions,
+    compute_concept_direction_contrastive,
+    compute_concept_direction_whitened,
+    orthogonalize_direction,
     cnp_loss,
     cnp_loss_ddf,
     cnp_loss_margin,
@@ -60,6 +63,7 @@ from .clm import (
     get_trainable_param_count,
     recompute_layer_mask_dynamic,
 )
+from .xattn_metric import load_xattn_metric_sqrt
 from . import diagnostics as diag
 
 logger = logging.getLogger(__name__)
@@ -103,6 +107,12 @@ class LSSETrainer:
         use_dynamic_clm: bool = False,
         dynamic_clm_every: int = 15,
         use_adaptive_weights: bool = False,
+        use_cap_cnp: bool = False,
+        cap_unet_id: str = "CompVis/stable-diffusion-v1-4",
+        cap_ortho_weight: float = 0.1,
+        cap_cache_path: Optional[str] = None,
+        cap_dir_mode: str = "svd",
+        cap_metric_mode: str = "kv",
     ):
         """
         Args:
@@ -150,7 +160,28 @@ class LSSETrainer:
         self.use_dynamic_clm = use_dynamic_clm
         self.dynamic_clm_every = dynamic_clm_every
         self.use_adaptive_weights = use_adaptive_weights
+        self.use_cap_cnp = use_cap_cnp
+        self.cap_ortho_weight = cap_ortho_weight
+        self.cap_dir_mode = cap_dir_mode        # svd | contrastive | contrastive_ortho | whitened
+        self.cap_metric_mode = cap_metric_mode  # kv | v_only | perlayer
         self._clm_top_k = clm_top_k          # W5 동적 재랭킹용 보존
+        # CAP-CNP: 동결 UNet cross-attn 읽기-공간 메트릭 M^{1/2} (1회 로드 후 UNet 폐기).
+        # 개념 방향/erasure를 R = C·M^{1/2} 위에서 계산 → UNet이 보는 개념만 제거.
+        # metric_mode: kv(기본) / v_only(W_v만) / perlayer(레이어별 리스트). 모드별 캐시 분리.
+        self.M_sqrt: Optional[torch.Tensor] = None
+        self.M_sqrt_list: Optional[List[torch.Tensor]] = None
+        self.concept_dir_list: Optional[List[torch.Tensor]] = None
+        if use_cap_cnp:
+            cache_p = self._mode_cache_path(cap_cache_path, cap_metric_mode)
+            loaded = load_xattn_metric_sqrt(
+                unet_id=cap_unet_id, device=device, cache_path=cache_p,
+                value_only=(cap_metric_mode == "v_only"),
+                per_layer=(cap_metric_mode == "perlayer"),
+            )
+            if cap_metric_mode == "perlayer":
+                self.M_sqrt_list = loaded
+            else:
+                self.M_sqrt = loaded
         self.memory_bank = MemoryBank(membank_size) if use_membank else None
         # W6 uncertainty weighting: 손실별 log-variance (cnp, csr, implicit)
         self.log_vars = (
@@ -169,6 +200,43 @@ class LSSETrainer:
         self._reset_optimizer()
 
         logger.info(f"[LSSE] 학습 가능 파라미터: {get_trainable_param_count(self.text_encoder):,}")
+
+    @staticmethod
+    def _mode_cache_path(path: Optional[str], mode: str) -> Optional[str]:
+        """모드별 M^{1/2} 캐시 파일 분리 (kv는 원본 경로, 그 외는 .mode 접미사)."""
+        if not path or mode == "kv":
+            return path
+        base, ext = os.path.splitext(path)
+        return f"{base}.{mode}{ext}"
+
+    @torch.no_grad()
+    def _cap_direction(self, expl_R: torch.Tensor, ret_R: Optional[torch.Tensor]) -> torch.Tensor:
+        """cap_dir_mode에 따라 읽기-공간(R) 개념 방향 계산. ret_R은 contrastive/ortho/whitened용."""
+        mode = self.cap_dir_mode
+        if mode == "svd":
+            return compute_concept_direction(expl_R)
+        if ret_R is None:
+            raise ValueError(f"cap_dir_mode='{mode}'는 retain 임베딩이 필요합니다.")
+        if mode == "contrastive":
+            return compute_concept_direction_contrastive(expl_R, ret_R)
+        if mode == "contrastive_ortho":
+            base = compute_concept_direction_contrastive(expl_R, ret_R)
+            return orthogonalize_direction(base, ret_R)
+        if mode == "whitened":
+            return compute_concept_direction_whitened(expl_R, ret_R)
+        raise ValueError(f"알 수 없는 cap_dir_mode: {mode}")
+
+    def _cap_margin_loss(self, z_cur: torch.Tensor, z_frozen: torch.Tensor) -> torch.Tensor:
+        """CAP-CNP W2 margin 손실 (읽기-공간). perlayer면 레이어별 합 평균, 아니면 단일 M^{1/2}."""
+        if self.cap_metric_mode == "perlayer" and self.M_sqrt_list is not None:
+            terms = [
+                cnp_loss_margin(z_cur @ Mh, z_frozen @ Mh, cdir, self.cap_ortho_weight)
+                for Mh, cdir in zip(self.M_sqrt_list, self.concept_dir_list)
+            ]
+            return sum(terms) / max(len(terms), 1)
+        return cnp_loss_margin(
+            z_cur @ self.M_sqrt, z_frozen @ self.M_sqrt, self.concept_dir, self.cap_ortho_weight
+        )
 
     def _setup_layer_masking(self, cap_json_path: Optional[str], top_k: int):
         if cap_json_path and Path(cap_json_path).exists():
@@ -232,11 +300,12 @@ class LSSETrainer:
         return self.frozen_encoder(tokens.input_ids).last_hidden_state
 
     @torch.no_grad()
-    def precompute_concept_direction(self, explicit_prompts: List[str]):
+    def precompute_concept_direction(self, explicit_prompts: List[str],
+                                     retain_prompts: Optional[List[str]] = None):
         """학습 전 1회 개념 방향 계산 (N7 CNP 핵심).
 
         frozen 인코더 기준 explicit 임베딩의 첫 번째 주성분 추출.
-        학습 루프 내 재계산 금지.
+        학습 루프 내 재계산 금지. retain_prompts는 CAP-CNP의 contrastive/ortho/whitened용.
         """
         logger.info("개념 방향(c_dir) 계산 중 ...")
         all_z = []
@@ -244,7 +313,30 @@ class LSSETrainer:
             batch = explicit_prompts[i : i + self.batch_size]
             all_z.append(self._encode_frozen(batch))
         all_z_cat = torch.cat(all_z, dim=0)  # (N, L, D)
-        if self.use_multi_cnp:
+        if self.use_cap_cnp:
+            # 읽기-공간 R = C·M^{1/2} 에서 개념 방향 추출 (UNet이 보는 개념 축).
+            ret_raw = None
+            if self.cap_dir_mode != "svd":
+                if not retain_prompts:
+                    raise ValueError("CAP-CNP dir_mode!=svd 에는 retain_prompts 필요")
+                rz = [self._encode_frozen(retain_prompts[i:i + self.batch_size])
+                      for i in range(0, len(retain_prompts), self.batch_size)]
+                ret_raw = torch.cat(rz, dim=0)
+            if self.cap_metric_mode == "perlayer" and self.M_sqrt_list is not None:
+                self.concept_dir_list = [
+                    self._cap_direction(all_z_cat @ Mh,
+                                        (ret_raw @ Mh) if ret_raw is not None else None)
+                    for Mh in self.M_sqrt_list
+                ]
+                self.concept_dir = self.concept_dir_list[0]
+                logger.info(f"  [CAP-CNP] per-layer 개념 방향 {len(self.concept_dir_list)}개 "
+                            f"(dir_mode={self.cap_dir_mode})")
+            else:
+                ret_R = (ret_raw @ self.M_sqrt) if ret_raw is not None else None
+                self.concept_dir = self._cap_direction(all_z_cat @ self.M_sqrt, ret_R)
+                logger.info(f"  [CAP-CNP] R=C·M^1/2 개념 방향 "
+                            f"(dir_mode={self.cap_dir_mode}, metric_mode={self.cap_metric_mode})")
+        elif self.use_multi_cnp:
             self.concept_dirs = compute_concept_directions(all_z_cat, self.num_concept_dirs)
             self.concept_dir = self.concept_dirs[0].clone()
             logger.info(f"  [Multi-CNP] {self.num_concept_dirs}개 개념 방향 추출")
@@ -299,13 +391,16 @@ class LSSETrainer:
         z_retain = self._encode(batch_retain)
         with torch.no_grad():
             z_retain_frozen = self._encode_frozen(batch_retain)
-            need_forget_frozen = self.use_ddf or self.use_margin_cnp
+            need_forget_frozen = self.use_ddf or self.use_margin_cnp or self.use_cap_cnp
             z_forget_frozen = (
                 self._encode_frozen(batch_forget) if need_forget_frozen else None
             )
 
         # --- CNP explicit (forget) ---
-        if self.use_multi_cnp and self.concept_dirs is not None:
+        if self.use_cap_cnp:                                            # CAP-CNP
+            # 읽기-공간 R = C·M^{1/2} 위에서 W2 margin erasure (UNet이 보는 개념만 제거).
+            L_cnp_explicit = self._cap_margin_loss(z_forget, z_forget_frozen)
+        elif self.use_multi_cnp and self.concept_dirs is not None:
             L_cnp_explicit = cnp_loss_multi(z_forget, self.concept_dirs,
                                             getattr(self, "concept_weights", None))
         elif self.use_margin_cnp:                                       # W2
@@ -333,7 +428,11 @@ class LSSETrainer:
         L_cnp_implicit = torch.tensor(0.0, device=self.device)
         if batch_implicit:
             z_implicit = self._encode(batch_implicit)
-            if self.use_multi_cnp and self.concept_dirs is not None:
+            if self.use_cap_cnp:                                        # CAP-CNP
+                with torch.no_grad():
+                    z_implicit_frozen = self._encode_frozen(batch_implicit)
+                L_cnp_implicit = self._cap_margin_loss(z_implicit, z_implicit_frozen)
+            elif self.use_multi_cnp and self.concept_dirs is not None:
                 L_cnp_implicit = cnp_loss_multi(z_implicit, self.concept_dirs,
                                                 getattr(self, "concept_weights", None))
             elif self.use_margin_cnp:                                   # W2
@@ -390,7 +489,7 @@ class LSSETrainer:
             history: epoch별 평균 손실 딕셔너리 리스트.
         """
         if self.concept_dir is None:
-            self.precompute_concept_direction(dataset.explicit_prompts)
+            self.precompute_concept_direction(dataset.explicit_prompts, dataset.retain_prompts)
 
         self.text_encoder.train()
         explicit_p = dataset.explicit_prompts

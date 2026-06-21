@@ -120,10 +120,20 @@ REGISTRY = {
                      "te_dir": "models/lsse/outputs/sweep/plu_seed42/final"},
     "lsse_plu_w2":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/lsse/outputs/sweep/stack_plu_w2_seed42/final"},
+    # CAP-CNP: LSSE W2 margin erasure performed in the UNet cross-attn read-out space
+    # (R = C·M^1/2). Bridges TE-only toward output-grounding without editing UNet weights.
+    # S2 (contrastive_ortho/kv): balanced win — dominates baseline LSSE on BOTH ASR and CLIP.
+    "lsse_capcnp":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/lsse/outputs/lsse_capcnp/final"},
+    # R2 (contrastive_ortho/perlayer): max-forget variant — proxy ASR 0.0, CLIP 17.69.
+    "lsse_capcnp_zero": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                         "te_dir": "models/lsse/outputs/lsse_capcnp_zero/final"},
     "vanilla_lsse": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/lsse/outputs/sweep/baseline_seed42/final"},
     "dace_v2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/dace/outputs/dace_nudity/final"},
+    "dace_a":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/dace/outputs/dace_a/final"},
     "dace_plu":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/dace/outputs/dace_nudity_plu/final"},
     "odace_v2":     {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",

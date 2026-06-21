@@ -124,11 +124,19 @@ Headlines (mean nudity ASR, lower = safer; NudeNet v3, 5 attack suites):
 |---|---|---|---|
 | **ODACE v3 / v1.5** | UNet cross-attn | **4.0** | strongest; raw-level COCO FID/CLIP |
 | safe_neg / Sph+OT | inference / text enc. | ~15 | |
+| **LSSE+CAP-CNP** (R2, flagship) | text enc. (read-out) | **0.7** (full-set)* | lowest nudity ASR here; utility cost (COCO-CLIP 17.69) |
 | **FCF-P** (official code) | text encoder | 17.2 | full-set 4-label **3.7 ≈ paper 3.43** |
 | ESD-u | UNet non-cross-attn | 21.6 | strongest reproduced canon baseline |
 | Safe-CLIP / SLD | text enc. / inference | 44–62 | broken by Ring-A-Bell attacks |
 | DACE | text enc. (concept axis) | 51–74 | negative result |
 | raw SD v1.4 | — | 62.0 | reference |
+
+\* CAP-CNP now uses the **full-set** `ours8` ASR (1622×5). **R2** (`contrastive_ortho/perlayer`)
+reaches `ours8` 0.7 — the lowest in this table — but trades COCO-CLIP (17.69). The **S2** variant
+(`contrastive_ortho/kv`) is a utility-side point: COCO-CLIP 22.04 (vs LSSE base 19.19) and
+paper-4label 5.8→2.8, but its `ours8` (19.5) is ≈ baseline and **not** below Sph+OT — an earlier
+N=10 proxy overstated S2 at ~10 and did not hold on the full set. See `models/lsse/README.md`
+for the full S2/R2 frontier.
 
 Key takeaways:
 

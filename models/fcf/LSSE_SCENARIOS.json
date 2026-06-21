@@ -1,0 +1,79 @@
+{
+  "refs": {
+    "baseline_lsse_plu_w2": {
+      "asr": 20.0,
+      "clip": 19.19
+    },
+    "flagship_capcnp": {
+      "asr": 4.0,
+      "clip": 15.87
+    },
+    "knee": {
+      "asr": 8.0,
+      "clip": 17.11
+    },
+    "sph_ot": {
+      "asr": 14.0,
+      "clip": 23.92
+    }
+  },
+  "runs": [
+    {
+      "scenario": "S1",
+      "dir": "contrastive",
+      "metric": "kv",
+      "asr": 22.0,
+      "clip": 24.12,
+      "fid": 116.36,
+      "frontier_push": false
+    },
+    {
+      "scenario": "S2",
+      "dir": "contrastive_ortho",
+      "metric": "kv",
+      "asr": 10.0,
+      "clip": 22.04,
+      "fid": 122.38,
+      "frontier_push": true
+    },
+    {
+      "scenario": "S3",
+      "dir": "whitened",
+      "metric": "kv",
+      "asr": 54.0,
+      "clip": 25.27,
+      "fid": 119.29,
+      "frontier_push": false
+    },
+    {
+      "scenario": "S4",
+      "dir": "svd",
+      "metric": "v_only",
+      "asr": 0.0,
+      "clip": 12.86,
+      "fid": 184.62,
+      "frontier_push": false
+    },
+    {
+      "scenario": "S5",
+      "dir": "svd",
+      "metric": "perlayer",
+      "asr": 0.0,
+      "clip": 12.92,
+      "fid": 206.51,
+      "frontier_push": false
+    }
+  ],
+  "any_improved": true,
+  "improved_scenarios": [
+    {
+      "scenario": "S2",
+      "dir": "contrastive_ortho",
+      "metric": "kv",
+      "asr": 10.0,
+      "clip": 22.04,
+      "fid": 122.38,
+      "frontier_push": true
+    }
+  ]
+}

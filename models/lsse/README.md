@@ -92,6 +92,9 @@ The main training loop is `LSSETrainer.train` in `methods/lsse_trainer.py`.
 | W4 | `--use_membank` | MoCo-style retain memory bank. |
 | W5 | `--use_dynamic_clm` | Re-rank trainable layers during training. |
 | W6 | `--use_adaptive_weights` | Uncertainty-based adaptive loss weighting. |
+| CAP-CNP | `--use_cap_cnp` | Erase concept in the **UNet cross-attn read-out space** `R = C·M^½` (`M = mean_ℓ WₖᵀWₖ+WᵥᵀWᵥ`, frozen UNet). TE-only (UNet not edited). |
+| CAP dir | `--cap_dir_mode <svd\|contrastive\|contrastive_ortho\|whitened>` | Concept-direction estimator. `contrastive_ortho` (S2) = `mean(explicit)−mean(retain)` ⟂ retain span. |
+| CAP metric | `--cap_metric_mode <kv\|v_only\|perlayer>` | Read-out metric: K+V (default), V-only, or per-layer (summed). |
 
 ## Latest Local Result
 
@@ -114,6 +117,39 @@ Interpretation:
 - W2/margin CNP gives a small additional gain and is the best LSSE stack.
 - LSSE appears to hit a text-encoder-only floor around 20 ASR, which motivated
   the later DACE and ODACE investigations.
+
+## CAP-CNP — breaking the LSSE floor (2026-06)
+
+**Cross-Attention-Pullback CNP** removes the LSSE ~20-ASR floor by erasing the concept
+in the space the UNet actually reads (`K=W_k C, V=W_v C`) instead of raw CLIP space.
+Still text-encoder-only: `M^½` is a frozen-UNet constant, gradient flows to the TE only.
+See `methods/xattn_metric.py` + `cap_dir_mode`/`cap_metric_mode` in `methods/lsse_trainer.py`.
+
+The parameter-free direction/metric modes **move the Pareto frontier** (lower ASR at equal
+utility), unlike λ/β which only slide along it. Numbers below are the **full-set** eval
+(1622 prompts × 5 attacks; `ours8` = NudeNet 8-label nudity ASR, `fcf4` = paper 4-label rule)
++ 300-img COCO CLIP/FID:
+
+| Variant (dir / metric) | ours8 ASR ↓ | fcf4 ASR ↓ | COCO CLIP ↑ | note |
+|---|---:|---:|---:|---|
+| baseline LSSE+PLU+W2 | 20.5 | 5.8 | 19.19 | previous best LSSE |
+| Spherical+OT (ref) | 14.0 | 1.7 | 23.92 | previous best TE-only |
+| **CAP-CNP — R2 `contrastive_ortho / perlayer` (flagship)** | **0.7** | **0.5** | 17.69 | **strongest forget in all of Table A** (beats ODACE v3 5.2/0.8); utility traded |
+| CAP-CNP — S2 `contrastive_ortho / kv` | 19.5 | 2.8 | **22.04** | utility-side: CLIP +2.85 & fcf4 5.8→2.8 vs baseline, ours8 ≈ baseline |
+
+> **Proxy → full-set correction.** An earlier N=10 proxy (Spearman 0.929) put S2 at ASR 10
+> (≈ "beats sph_ot"); the **full set does not confirm this** — S2's `ours8` is **19.5**, on par
+> with baseline (20.5) and worse than sph_ot (14.0). S2 is a genuine **utility** + paper-4label
+> win, not a strict ASR win. The real Pareto mover is **R2 (zero)**: `ours8` 0.7 is the lowest
+> nudity ASR in the whole comparison, at the cost of COCO CLIP (17.69). Lesson: validate
+> direction/metric modes on the full set, not the proxy.
+
+Mechanism: `contrastive_ortho` direction = forget−retain mean shift, Gram-Schmidt
+orthogonalized against the retain span → erases only the concept-discriminative axis while
+structurally preserving general content. The `kv` metric (S2) preserves utility but the
+read-out pullback alone is not enough to drop `ours8`; the aggressive `perlayer` metric (R2)
+sums the margin loss over every cross-attn layer → reaches `ours8` 0.7 (full block) but pays
+COCO CLIP — the metric aggressiveness, not the direction, is what trades forget for utility.
 
 ## Run
 

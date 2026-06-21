@@ -174,6 +174,16 @@ def main():
     parser.add_argument("--use_membank",          action="store_true", help="W4: 메모리뱅크 CSR")
     parser.add_argument("--use_dynamic_clm",      action="store_true", help="W5: 동적 CLM 재랭킹")
     parser.add_argument("--use_adaptive_weights", action="store_true", help="W6: 적응 손실 가중")
+    parser.add_argument("--use_cap_cnp",          action="store_true",
+                        help="CAP-CNP: cross-attn 읽기-공간 R=C·M^1/2 위 erasure (UNet 동결)")
+    parser.add_argument("--cap_ortho_weight",     type=float, default=None,
+                        help="CAP-CNP 직교 앵커 λ (재라우팅 억제, 권장 0.05~0.2)")
+    parser.add_argument("--cap_unet_id",          type=str,   default=None,
+                        help="M 추출용 동결 UNet id (기본 CompVis/stable-diffusion-v1-4)")
+    parser.add_argument("--cap_dir_mode",         type=str,   default=None,
+                        help="CAP-CNP 개념방향: svd|contrastive|contrastive_ortho|whitened")
+    parser.add_argument("--cap_metric_mode",      type=str,   default=None,
+                        help="CAP-CNP 읽기-공간 메트릭: kv|v_only|perlayer")
     parser.add_argument("--output_dir",       type=str,   default=None)
     parser.add_argument("--save_every",       type=int,   default=None,
                         help="N epoch마다 체크포인트 저장 (0=off, 궤적 진단용)")
@@ -206,10 +216,21 @@ def main():
     if args.use_ldlr:
         cfg["use_ldlr"] = True
     for _flag in ["use_tokensel_dir", "use_margin_cnp", "use_tokenwise_csr",
-                  "use_membank", "use_dynamic_clm", "use_adaptive_weights"]:
+                  "use_membank", "use_dynamic_clm", "use_adaptive_weights",
+                  "use_cap_cnp"]:
         if getattr(args, _flag):
             cfg[_flag] = True
             logger.info(f"  Override: {_flag} = True")
+    if args.cap_ortho_weight is not None:
+        cfg["cap_ortho_weight"] = args.cap_ortho_weight
+    if args.cap_unet_id is not None:
+        cfg["cap_unet_id"] = args.cap_unet_id
+    if args.cap_dir_mode is not None:
+        cfg["cap_dir_mode"] = args.cap_dir_mode
+        logger.info(f"  Override: cap_dir_mode = {args.cap_dir_mode}")
+    if args.cap_metric_mode is not None:
+        cfg["cap_metric_mode"] = args.cap_metric_mode
+        logger.info(f"  Override: cap_metric_mode = {args.cap_metric_mode}")
     if args.use_multi_cnp:
         cfg["use_multi_cnp"] = True
     if args.num_concept_dirs is not None:
@@ -290,6 +311,13 @@ def main():
         use_dynamic_clm=cfg.get("use_dynamic_clm", False),
         dynamic_clm_every=cfg.get("dynamic_clm_every", 15),
         use_adaptive_weights=cfg.get("use_adaptive_weights", False),
+        use_cap_cnp=cfg.get("use_cap_cnp", False),
+        cap_unet_id=cfg.get("cap_unet_id", "CompVis/stable-diffusion-v1-4"),
+        cap_ortho_weight=cfg.get("cap_ortho_weight", 0.1),
+        cap_cache_path=(str(Path(base_dir) / cfg["cap_cache_path"])
+                        if cfg.get("cap_cache_path") else None),
+        cap_dir_mode=cfg.get("cap_dir_mode", "svd"),
+        cap_metric_mode=cfg.get("cap_metric_mode", "kv"),
     )
 
     output_dir = str(Path(base_dir) / cfg["output_dir"])

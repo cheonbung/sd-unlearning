@@ -33,7 +33,8 @@ OUT = REPO / "compare" / "comparison_gallery_live.html"
 FS_ROOT = REPO / "eval" / "outputs"
 PROMPT_DIR = REPO / "models" / "fcf" / "data" / "eval"
 VIOLENCE_JSON = REPO / "models" / "fcf" / "violence_q16.json"
-STYLE_JSON = REPO / "models" / "fcf" / "style_vangogh.json"   # Van Gogh style locality (img2raw)
+STYLE_JSON = REPO / "models" / "fcf" / "style_vangogh.json"   # Van Gogh style locality (img2raw) + LPIPS_f
+COCO5K_JSON = REPO / "models" / "fcf" / "coco5k.json"         # Phase-4 COCO FID-5K with coco_lpips (FCF-P/E)
 VIOLENCE50_JSON = REPO / "models" / "fcf" / "violence_q16_smoke.json"  # 50-prompt violence subset
 TRAINCOST_JSON = REPO / "models" / "fcf" / "train_cost.json"   # env-aware training cost (GPU-h)
 FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"     # 17 Table-A methods (frozen full-set)
@@ -64,12 +65,11 @@ MODELS = [
     ("LSSE",                   "vanilla_lsse",   "core",     "1.4", "text"),
     ("LSSE+PLU",               "lsse_plu",       "core",     "1.4", "text"),
     ("LSSE+PLU+W2",            "lsse_plu_w2",    "core",     "1.4", "text"),
+    ("LSSE+CAP-CNP S2 (kv)",        "lsse_capcnp",      "novel",  "1.4", "text"),
+    ("LSSE+CAP-CNP R2 (perlayer)",  "lsse_capcnp_zero", "novel",  "1.4", "text"),
     ("SLERP-OT",               "sph_ot",         "novel",    "1.4", "text"),
-    ("DACE",                   "dace_v2",        "core",     "1.4", "text"),
-    ("DACE+PLU",               "dace_plu",       "core",     "1.4", "text"),
     ("ODACE (SD v1.4)",        "odace_v3",       "novel",    "1.4", "unet"),
     ("ODACE (SD v1.5)",        "odace_v15",      "novel",    "1.5", "unet"),
-    ("ODACE (SD v1.4, early)", "odace_v2",       "novel",    "1.4", "unet"),
     ("LSSE-MC (n+v+vg)",       "lsse_mc_nvg",     "novel",    "1.4", "text"),
     ("ODACE-MC (n+v+vg)",      "odace_mc",        "novel",    "1.4", "unet"),
     ("LSSE-MC v2 (n*3+v+vg)",  "lsse_mc_nvg_v2",  "novel",    "1.4", "text"),
@@ -160,6 +160,33 @@ def load_style():
     return out
 
 
+def load_style_lpips():
+    """key -> style_lpips_f (LPIPS vs raw on Van Gogh prompts; higher = stronger style forgetting)."""
+    out = {}
+    j = _load_json(STYLE_JSON) if STYLE_JSON.exists() else None
+    if j:
+        for lbl, d in (j.get("models") or {}).items():
+            v = d.get("style_lpips_f")
+            if v is not None:
+                out[lbl] = v
+    return out
+
+
+def load_coco_lpips():
+    """key -> coco_lpips (COCO perceptual distance vs raw). coco5k.json has the 3 paper-fidelity
+    N=5000 models; coco5k_lpips.json (run_coco_lpips.sh, N=100, all 23) overlays the rest and, for
+    consistency, the headline 3 too -> one same-N column."""
+    out = {}
+    for jp in (COCO5K_JSON, REPO / "models" / "fcf" / "coco5k_lpips.json"):
+        j = _load_json(jp) if jp.exists() else None
+        if j:
+            for lbl, d in (j.get("models") or {}).items():
+                v = d.get("coco_lpips")
+                if v is not None:
+                    out[lbl] = v
+    return out
+
+
 def load_fullset():
     """key -> {a8:{label:val}, m8, m4}. Frozen full-set nudity ASR (score>0.3).
 
@@ -192,15 +219,18 @@ def load_metrics():
     viol = load_violence()
     viol50 = load_violence50()
     sty = load_style()
+    slpips = load_style_lpips()
+    clpips = load_coco_lpips()
     cost = load_cost()
     fs = load_fullset()
     data = {}
     for _, key, *_ in MODELS:
         d = {"fs_asr": {}, "fs_mean8": None, "fs_mean4": None,
              "leg_asr": {}, "leg_mean": None,
-             "fid": None, "coco_clip": None, "violence": viol.get(key),
+             "fid": None, "coco_clip": None, "coco_lpips": clpips.get(key),
+             "violence": viol.get(key),
              "violence50": viol50.get(key), "style": sty.get(key),
-             "cost": cost.get(key)}
+             "style_lpips": slpips.get(key), "cost": cost.get(key)}
         m = _load_json(FS_ROOT / key / "metrics.json")
         if m:
             d["leg_asr"] = m.get("asr", {}) or {}
@@ -247,6 +277,14 @@ def ret_cell(v):
         120 * t, pct)
 
 
+def lpips_cell(v):
+    """LPIPS cell (perceptual distance, ~0-0.6), 3 decimals, neutral. Higher = more changed from raw
+    (= stronger forgetting for a forgotten concept; for retained concepts low = preserved)."""
+    if v is None:
+        return '<td class="num pend">—</td>'
+    return '<td class="num muted" data-v="{0:.4f}">{0:.3f}</td>'.format(float(v))
+
+
 def cost_cell(c):
     """Training cost cell: green = cheaper. 'free' = no local training (raw/SLD/safe-neg)."""
     if not c:
@@ -256,12 +294,37 @@ def cost_cell(c):
     gh = c.get("gpu_hours")
     if gh is None:
         return '<td class="num muted">—</td>'
-    pm = c.get("trainable_params_M")
-    lbl = "{0:.2f}h".format(float(gh)) + ("/{0:.0f}M".format(float(pm)) if pm else "")
+    mins = float(gh) * 60.0
+    lbl = "{0:.0f}min".format(mins) if mins >= 10 else "{0:.1f}min".format(mins)
     t = max(0.0, min(1.0, float(gh) / 3.0))
     bg = "background:hsl({0:.0f},55%,26%)".format(120 * (1 - t))
-    return '<td class="num" data-v="{0:.3f}" title="{1}" style="{2}">{3}</td>'.format(
-        float(gh), html.escape(str(c.get("gpu", ""))), bg, lbl)
+    return '<td class="num" data-v="{0:.2f}" title="{1}" style="{2}">{3}</td>'.format(
+        mins, html.escape(str(c.get("gpu", ""))), bg, lbl)
+
+
+def vram_cell(c):
+    """Peak training VRAM (GB). CostMeter rows = torch allocator peak; a '†' marks
+    nvidia-smi device-used peak (FCF / SLERP-OT trainers have no CostMeter, so VRAM is
+    polled externally) — higher than and not directly comparable to allocator rows.
+    training-free baselines / unmeasured -> —."""
+    if not c or c.get("training_free"):
+        return '<td class="num pend">—</td>'
+    v = c.get("peak_vram_gb")
+    if v is None:
+        return '<td class="num muted">—</td>'
+    dag = "&dagger;" if c.get("vram_source") == "nvidia-smi" else ""
+    return '<td class="num muted" data-v="{0:.2f}">{0:.1f}G{1}</td>'.format(float(v), dag)
+
+
+def params_cell(c):
+    """Trainable parameters (millions) updated during training — requires_grad count
+    (CostMeter definition). training-free / unrecorded -> —."""
+    if not c or c.get("training_free"):
+        return '<td class="num pend">—</td>'
+    pm = c.get("trainable_params_M")
+    if pm is None:
+        return '<td class="num muted">—</td>'
+    return '<td class="num muted" data-v="{0:.2f}">{0:.0f}M</td>'.format(float(pm))
 
 
 def _mh(label, key, group, base, mod):
@@ -287,9 +350,13 @@ def fullset_table(M):
              '<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br><span class="sub">4-lab</span></th>',
              '<th class="muted">COCO-FID&nbsp;<span class="ar">&darr;</span></th>',
              '<th class="muted">COCO-CLIP&nbsp;<span class="ar">&uarr;</span></th>',
+             '<th class="muted">COCO-LPIPS<br><span class="sub">vs raw</span></th>',
              '<th>Violence&nbsp;Q16&nbsp;<span class="ar">&darr;</span></th>',
              '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>',
-             '<th>Train&nbsp;<span class="ar">&darr;</span><br><span class="sub">GPU-h</span></th>']
+             '<th>VanGogh&nbsp;LPIPS<sub>f</sub>&nbsp;<span class="ar">&uarr;</span><br><span class="sub">forget</span></th>',
+             '<th>Train&nbsp;<span class="ar">&darr;</span><br><span class="sub">GPU-min</span></th>',
+             '<th>Params&nbsp;<span class="ar">&darr;</span><br><span class="sub">M trainable</span></th>',
+             '<th>VRAM<br><span class="sub">GB peak &middot; &dagger;=nvidia-smi</span></th>']
     body = []
     for label, key, group, base, mod in MODELS:
         d = M[key]
@@ -299,9 +366,13 @@ def fullset_table(M):
         tds.append(asr_cell(d["fs_mean4"], bold=True))
         tds.append(num_cell(d["fid"]))
         tds.append(num_cell(d["coco_clip"]))
+        tds.append(lpips_cell(d["coco_lpips"]))
         tds.append(asr_cell(d["violence"]))
         tds.append(ret_cell(d["style"]))
+        tds.append(lpips_cell(d["style_lpips"]))
         tds.append(cost_cell(d["cost"]))
+        tds.append(params_cell(d["cost"]))
+        tds.append(vram_cell(d["cost"]))
         body.append(_tr(key, group, base, mod, tds))
     return _table(head, body)
 

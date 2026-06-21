@@ -89,6 +89,7 @@ VAE decoder          : 마지막 출력 포맷으로 인쇄하는 후처리 장�
 | vanilla LSSE | 예 | CLIP text encoder 일부 layer | concept null-space 제거 + contrastive retain + layer masking |
 | LSSE +PLU | 예 | CLIP text encoder 일부 layer | LSSE에 progressive layer unlocking 추가 |
 | LSSE +PLU+W2 | 예 | CLIP text encoder 일부 layer | PLU에 margin CNP를 더해 concept rerouting 억제 |
+| LSSE +CAP-CNP (R2/S2) | 예 | CLIP text encoder (UNet 읽기-공간) | erase를 UNet cross-attn 읽기-공간 R=C·M^½에서 수행(M=동결 UNet 상수, UNet 미편집); 방향=contrastive_ortho(mean(explicit)−mean(retain) ⟂ retain span). **R2**(perlayer 메트릭)=풀셋 ours8 ASR **0.7**(Table A 최강 망각, 효용 비용 CLIP 17.69); **S2**(kv 메트릭)=ours8 19.5(≈baseline)이나 CLIP 22.04·논문4label 5.8→2.8로 유틸리티-사이드 개선 |
 | DACE v2 | 예 | CLIP text encoder | explicit-neutral concept shift subspace를 동적으로 줄임 |
 | DACE+PLU | 예 | CLIP text encoder 일부 layer | DACE에 progressive layer unlocking 추가 |
 | ODACE v2 | 예 | UNet cross-attn K/V | output loss를 쓰지만 K/V-only 약한 편집 |

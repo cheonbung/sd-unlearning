@@ -1,0 +1,57 @@
+# LSSE + CAP-CNP — Cross-Attention-Pullback Concept Null-space Projection (nudity).
+#
+# 진단: 기존 LSSE는 raw CLIP 좌표계에서 ‖C·c_dir‖² 를 지운다. 그러나 UNet은 cross-attn으로
+#   C를 W_k, W_v 로만 읽으므로(Attn(K=W_k C, V=W_v C)) raw-공간 erasure는 UNet이 실제로
+#   보는 개념을 과소결정한다(TE-only floor ~20). CAP-CNP는 읽기-공간 R = C·M^{1/2}
+#   (M = mean_ℓ W_k^ℓᵀW_k^ℓ + W_v^ℓᵀW_v^ℓ, 동결 UNet 상수) 위에서 erasure를 수행해
+#   "UNet이 보는 개념"만 제거한다. M^{1/2}는 상수 → gradient는 텍스트 인코더로만 흐름(LSSE 순수성).
+#
+# baseline: PLU+W2 (stack_plu_w2, ASR 20.8) = 현재 최강 LSSE. CAP-CNP는 그 W2 margin을
+#   읽기-공간에서 수행하는 것(use_cap_cnp가 use_margin_cnp를 R-공간으로 일반화). 나머지
+#   하이퍼파라미터는 공정 비교를 위해 baseline과 동일.
+
+experiment_name: "lsse_capcnp"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+# PLU: 점진적 레이어 개방 (baseline 최강 변형의 핵심)
+use_plu: true
+
+# CAP-CNP: 읽기-공간 W2 margin erasure
+use_cap_cnp: true
+cap_ortho_weight: 0.1                     # 직교 앵커 λ (재라우팅 억제; W2 기본값과 동일)
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"   # M^{1/2} 캐시 (UNet 1회 로드 후 폐기)
+
+# 구조적 모드 (λ/β 노브가 아닌 카테고리형). S1~S5 스윕 결과 S2가 최적:
+#   contrastive_ortho = c_dir=mean(explicit)-mean(retain) 후 retain span 직교화 →
+#   ASR 20→10 AND COCO CLIP 19.19→22.04 로 baseline LSSE를 양 축 모두 지배 (sph_ot ASR도 돌파).
+cap_dir_mode: "contrastive_ortho"        # svd | contrastive | contrastive_ortho | whitened
+cap_metric_mode: "kv"                     # kv | v_only | perlayer
+
+# 데이터 (로컬 복사본)
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_capcnp"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

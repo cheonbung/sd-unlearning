@@ -1,0 +1,39 @@
+{
+  "baseline_lsse_plu_w2": {
+    "asr": 20.0,
+    "clip": 19.19
+  },
+  "sph_ot": {
+    "asr": 14.0,
+    "clip": 23.92
+  },
+  "fixed": {
+    "cap_ortho_weight": 0.1,
+    "beta_default": 1.0,
+    "beta1_result": {
+      "asr": 4.0,
+      "clip": 15.87
+    }
+  },
+  "runs": [
+    {
+      "beta": 2.0,
+      "asr": 24.0,
+      "clip": 20.51,
+      "fid": 132.44
+    },
+    {
+      "beta": 3.0,
+      "asr": 38.0,
+      "clip": 22.54,
+      "fid": 122.89
+    }
+  ],
+  "best": {
+    "beta": 2.0,
+    "asr": 24.0,
+    "clip": 20.51,
+    "fid": 132.44,
+    "verdict": "utility-preserved, ASR>=14"
+  }
+}

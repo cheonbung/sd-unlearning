@@ -247,3 +247,82 @@ def cnp_loss_margin(
     loss_orth = ((zc_orth - zf_orth) ** 2).mean()
 
     return loss_proj + ortho_weight * loss_orth
+
+
+# --- Parameter-free concept-discriminative directions (S1/S2/S3) ----------------------------------
+# These make erasure concept-SPECIFIC (forget-vs-retain) instead of max-variance, expanding the
+# Pareto frontier (lower ASR at same utility) WITHOUT any tunable λ/β knob. Caller passes embeddings
+# already in the desired space (CAP-CNP transforms by M^½ first, so directions live in read-out space).
+
+@torch.no_grad()
+def compute_concept_direction_contrastive(
+    explicit: torch.Tensor, retain: torch.Tensor
+) -> torch.Tensor:
+    """S1: 대조적 개념 방향 = normalize(mean(explicit) − mean(retain)).
+
+    max-variance(top-SVD) 대신 forget↔retain 평균 이동 축. 정의상 retain 공통 변동과 거의 직교
+    → 개념만 제거하고 일반 콘텐츠 보존. 파라미터 없음(평균 차이 한 벡터).
+
+    Args:
+        explicit: (Ne, L, D) frozen explicit 임베딩 (또는 M^½ 변환된 것).
+        retain:   (Nr, L, D) frozen retain 임베딩 (같은 공간).
+    Returns:
+        c_dir: (L, D) unit-normalized.
+    """
+    L, D = explicit.shape[1], explicit.shape[2]
+    delta = explicit.mean(dim=0) - retain.mean(dim=0)        # (L, D)
+    flat = delta.reshape(-1)
+    return (flat / (flat.norm() + 1e-12)).reshape(L, D)
+
+
+@torch.no_grad()
+def orthogonalize_direction(c_dir: torch.Tensor, retain: torch.Tensor) -> torch.Tensor:
+    """S2: c_dir에서 retain span 성분 제거 (Gram-Schmidt) 후 정규화.
+
+    erasure 방향이 retain 부분공간과 0 성분이 되도록 보장 → 유틸리티 구조적 보존.
+    retain 전체(절단 rank 노브 없음)의 centered SVD 기저에 대해 직교화.
+
+    Args:
+        c_dir:  (L, D) 개념 방향 (contrastive 또는 svd).
+        retain: (Nr, L, D) retain 임베딩 (같은 공간).
+    Returns:
+        c_dir_orth: (L, D) unit-normalized, span(retain)에 직교.
+    """
+    L, D = c_dir.shape
+    c = c_dir.reshape(-1)                                     # (L*D,)
+    R = retain.reshape(retain.shape[0], -1)                   # (Nr, L*D)
+    R = R - R.mean(dim=0, keepdim=True)
+    # orthonormal basis of retain row-space (rows of Vt with non-trivial singular value)
+    _, S, Vt = torch.linalg.svd(R, full_matrices=False)       # Vt: (k, L*D)
+    if S.numel() > 0:
+        keep = S > (S.max() * 1e-5)
+        B = Vt[keep]                                          # (m, L*D) orthonormal
+        if B.shape[0] > 0:
+            c = c - B.t() @ (B @ c)                           # remove span(B) component
+    return (c / (c.norm() + 1e-12)).reshape(L, D)
+
+
+@torch.no_grad()
+def compute_concept_direction_whitened(
+    explicit: torch.Tensor, retain: torch.Tensor
+) -> torch.Tensor:
+    """S3: 화이트닝된 대조 방향 (Fisher 풍) = Σ_retain^{-1} (μ_explicit − μ_retain).
+
+    retain 분산이 큰 방향(일반 콘텐츠)을 down-weight → UNet이 읽으면서 retain엔 안 쓰이는
+    개념-특이 방향만 강조. Σ_retain은 D×D 풀드 공분산, pinv로 파라미터 없이 역행렬(ridge 불요).
+
+    Args:
+        explicit: (Ne, L, D), retain: (Nr, L, D) (같은 공간).
+    Returns:
+        c_dir: (L, D) unit-normalized.
+    """
+    L, D = explicit.shape[1], explicit.shape[2]
+    delta = explicit.mean(dim=0) - retain.mean(dim=0)        # (L, D)
+    Rr = retain.reshape(-1, D)                                # (Nr*L, D)
+    Rr = Rr - Rr.mean(dim=0, keepdim=True)
+    Sigma = (Rr.t() @ Rr) / max(Rr.shape[0] - 1, 1)          # (D, D) pooled retain cov
+    Sigma = 0.5 * (Sigma + Sigma.t())
+    Sinv = torch.linalg.pinv(Sigma)                          # parameter-free inverse
+    cdir = delta @ Sinv                                       # (L,D)@(D,D); Sinv symmetric
+    flat = cdir.reshape(-1)
+    return (flat / (flat.norm() + 1e-12)).reshape(L, D)
