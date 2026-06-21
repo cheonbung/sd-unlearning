@@ -113,6 +113,8 @@ class LSSETrainer:
         cap_cache_path: Optional[str] = None,
         cap_dir_mode: str = "svd",
         cap_metric_mode: str = "kv",
+        cap_loss_mode: str = "margin",
+        cap_retain_anchor: bool = False,
     ):
         """
         Args:
@@ -163,7 +165,10 @@ class LSSETrainer:
         self.use_cap_cnp = use_cap_cnp
         self.cap_ortho_weight = cap_ortho_weight
         self.cap_dir_mode = cap_dir_mode        # svd | contrastive | contrastive_ortho | whitened
-        self.cap_metric_mode = cap_metric_mode  # kv | v_only | perlayer
+        self.cap_metric_mode = cap_metric_mode  # kv | v_only | perlayer | perlayer_causal | perlayer_topk
+        self.cap_loss_mode = cap_loss_mode      # margin (proj²+ortho anchor) | project (exact projection target, no overshoot)
+        self.cap_retain_anchor = cap_retain_anchor  # A: pin retain embeddings in the SAME read-out metric
+        self.cap_layer_weights: Optional[List[float]] = None  # B: per-layer concept-causality weights (parameter-free)
         self._clm_top_k = clm_top_k          # W5 동적 재랭킹용 보존
         # CAP-CNP: 동결 UNet cross-attn 읽기-공간 메트릭 M^{1/2} (1회 로드 후 UNet 폐기).
         # 개념 방향/erasure를 R = C·M^{1/2} 위에서 계산 → UNet이 보는 개념만 제거.
@@ -171,14 +176,18 @@ class LSSETrainer:
         self.M_sqrt: Optional[torch.Tensor] = None
         self.M_sqrt_list: Optional[List[torch.Tensor]] = None
         self.concept_dir_list: Optional[List[torch.Tensor]] = None
+        is_perlayer = cap_metric_mode in ("perlayer", "perlayer_causal", "perlayer_topk")
         if use_cap_cnp:
-            cache_p = self._mode_cache_path(cap_cache_path, cap_metric_mode)
+            # perlayer 계열은 동일한 레이어별 M^{1/2} 추출을 공유(가중만 다름) → "perlayer" 캐시 통일.
+            cache_p = self._mode_cache_path(
+                cap_cache_path, "perlayer" if is_perlayer else cap_metric_mode
+            )
             loaded = load_xattn_metric_sqrt(
                 unet_id=cap_unet_id, device=device, cache_path=cache_p,
                 value_only=(cap_metric_mode == "v_only"),
-                per_layer=(cap_metric_mode == "perlayer"),
+                per_layer=is_perlayer,
             )
-            if cap_metric_mode == "perlayer":
+            if is_perlayer:
                 self.M_sqrt_list = loaded
             else:
                 self.M_sqrt = loaded
@@ -226,17 +235,86 @@ class LSSETrainer:
             return compute_concept_direction_whitened(expl_R, ret_R)
         raise ValueError(f"알 수 없는 cap_dir_mode: {mode}")
 
+    def _cap_loss_one(self, z_cur_R: torch.Tensor, z_frozen_R: torch.Tensor,
+                      cdir: torch.Tensor) -> torch.Tensor:
+        """단일 읽기-공간 erasure 손실.
+
+        cap_loss_mode:
+          margin  — proj²→0 + 약한 직교 앵커 (W2). 경계 너머로 계속 미는 오버슈팅 가능.
+          project — 정확 사영 목표 P=I−ĉĉᵀ (cnp_loss_ddf). 직교 보완을 frozen에 고정,
+                    과회전 불가 → 일반 콘텐츠 보존(D3 해결).
+        """
+        if self.cap_loss_mode == "project":
+            return cnp_loss_ddf(z_cur_R, z_frozen_R, cdir)
+        return cnp_loss_margin(z_cur_R, z_frozen_R, cdir, self.cap_ortho_weight)
+
     def _cap_margin_loss(self, z_cur: torch.Tensor, z_frozen: torch.Tensor) -> torch.Tensor:
-        """CAP-CNP W2 margin 손실 (읽기-공간). perlayer면 레이어별 합 평균, 아니면 단일 M^{1/2}."""
-        if self.cap_metric_mode == "perlayer" and self.M_sqrt_list is not None:
-            terms = [
-                cnp_loss_margin(z_cur @ Mh, z_frozen @ Mh, cdir, self.cap_ortho_weight)
-                for Mh, cdir in zip(self.M_sqrt_list, self.concept_dir_list)
-            ]
+        """CAP-CNP erasure 손실 (읽기-공간).
+
+        perlayer 계열: 레이어별 손실의 (인과)가중 합.
+          - 가중 None(plain perlayer) → 균일 평균 (R2 기존 동작 보존).
+          - cap_layer_weights 존재(causal/topk) → Σ_ℓ w_ℓ·loss_ℓ, Σw=1 (정규화 불필요).
+            w_ℓ≈0 레이어는 건너뜀 → 비인과 레이어 왜곡 제거(D2 해결).
+        그 외: 단일 M^{1/2}.
+        """
+        if self.M_sqrt_list is not None:
+            w = self.cap_layer_weights
+            terms = []
+            for i, (Mh, cdir) in enumerate(zip(self.M_sqrt_list, self.concept_dir_list)):
+                wi = 1.0 if w is None else float(w[i])
+                if wi <= 0.0:
+                    continue
+                terms.append(wi * self._cap_loss_one(z_cur @ Mh, z_frozen @ Mh, cdir))
+            if not terms:
+                return torch.tensor(0.0, device=z_cur.device)
+            denom = float(len(terms)) if w is None else 1.0  # causal/topk weights already sum to 1
+            return sum(terms) / denom
+        return self._cap_loss_one(z_cur @ self.M_sqrt, z_frozen @ self.M_sqrt, self.concept_dir)
+
+    def _cap_retain_anchor_loss(self, z_ret_cur: torch.Tensor,
+                                z_ret_frozen: torch.Tensor) -> torch.Tensor:
+        """A: retain 임베딩을 erasure와 같은 읽기-공간 메트릭에 고정 (UNet이 보는 일반 콘텐츠 보존).
+
+        L = mean_ℓ ‖(z_cur − z_frozen) @ M_ℓ^{1/2}‖²  (perlayer면 전 레이어 균일 평균).
+        개념 가중(w_ℓ)을 쓰지 않음 — 일반 콘텐츠는 개념이 약한 레이어에서도 보존돼야 하므로.
+        소거 연산자가 retain 부분공간에서 항등이 되도록 강제 → COCO-CLIP이 측정하는 공간을 직접 보호(D1 해결).
+        """
+        if self.M_sqrt_list is not None:
+            terms = [((z_ret_cur @ Mh - z_ret_frozen @ Mh) ** 2).mean()
+                     for Mh in self.M_sqrt_list]
             return sum(terms) / max(len(terms), 1)
-        return cnp_loss_margin(
-            z_cur @ self.M_sqrt, z_frozen @ self.M_sqrt, self.concept_dir, self.cap_ortho_weight
-        )
+        d = z_ret_cur @ self.M_sqrt - z_ret_frozen @ self.M_sqrt
+        return (d ** 2).mean()
+
+    @torch.no_grad()
+    def _compute_layer_weights(self, expl_raw: torch.Tensor,
+                               ret_raw: Optional[torch.Tensor]) -> Optional[List[float]]:
+        """B: 레이어별 개념-인과 가중 w_ℓ = ‖(μ_explicit − μ_retain) @ M_ℓ^{1/2}‖² (파라미터-free).
+
+        perlayer(plain) → None(균일). perlayer_causal → Σw=1 정규화 연속 가중.
+        perlayer_topk → 누적 개념 에너지 90%를 담는 최소 레이어 집합만 유지(나머지 0), 그 안에서 정규화.
+        근거: 최소 왜곡 하 개념-에너지 제거 — 개념이 약한 레이어 소거는 순수 손실이므로 가중 0.
+        """
+        if self.cap_metric_mode not in ("perlayer_causal", "perlayer_topk"):
+            return None
+        if ret_raw is None or self.M_sqrt_list is None:
+            logger.warning("  [CAP-CNP] causal 가중에 retain 필요 — 균일 fallback")
+            return None
+        delta = expl_raw.mean(dim=0) - ret_raw.mean(dim=0)                 # (L, D)
+        energies = torch.stack([((delta @ Mh) ** 2).sum() for Mh in self.M_sqrt_list])
+        if self.cap_metric_mode == "perlayer_topk":
+            total_e = energies.sum().clamp_min(1e-12)
+            sorted_e, idx = torch.sort(energies, descending=True)
+            cum = torch.cumsum(sorted_e, 0) / total_e
+            k = int((cum < 0.9).sum().item()) + 1     # 누적 에너지 ≥90% 최소 집합
+            mask = torch.zeros_like(energies)
+            mask[idx[:k]] = energies[idx[:k]]
+            energies = mask
+        w = (energies / energies.sum().clamp_min(1e-12)).tolist()
+        nz = sum(1 for x in w if x > 0)
+        logger.info(f"  [CAP-CNP] layer weights ({self.cap_metric_mode}): "
+                    f"{nz}/{len(w)} active, top3={sorted(w, reverse=True)[:3]}")
+        return w
 
     def _setup_layer_masking(self, cap_json_path: Optional[str], top_k: int):
         if cap_json_path and Path(cap_json_path).exists():
@@ -322,15 +400,18 @@ class LSSETrainer:
                 rz = [self._encode_frozen(retain_prompts[i:i + self.batch_size])
                       for i in range(0, len(retain_prompts), self.batch_size)]
                 ret_raw = torch.cat(rz, dim=0)
-            if self.cap_metric_mode == "perlayer" and self.M_sqrt_list is not None:
+            if self.M_sqrt_list is not None:
                 self.concept_dir_list = [
                     self._cap_direction(all_z_cat @ Mh,
                                         (ret_raw @ Mh) if ret_raw is not None else None)
                     for Mh in self.M_sqrt_list
                 ]
                 self.concept_dir = self.concept_dir_list[0]
+                # B: 인과 레이어 가중 (perlayer_causal/topk일 때만; 그 외 None=균일)
+                self.cap_layer_weights = self._compute_layer_weights(all_z_cat, ret_raw)
                 logger.info(f"  [CAP-CNP] per-layer 개념 방향 {len(self.concept_dir_list)}개 "
-                            f"(dir_mode={self.cap_dir_mode})")
+                            f"(dir_mode={self.cap_dir_mode}, metric={self.cap_metric_mode}, "
+                            f"layer_w={'uniform' if self.cap_layer_weights is None else 'causal'})")
             else:
                 ret_R = (ret_raw @ self.M_sqrt) if ret_raw is not None else None
                 self.concept_dir = self._cap_direction(all_z_cat @ self.M_sqrt, ret_R)
@@ -424,6 +505,11 @@ class LSSETrainer:
         else:
             L_csr = csr_loss(z_retain, z_retain_frozen, self.temperature)
 
+        # --- A: 읽기-공간 retain 앵커 (CAP-CNP 전용; 소거가 일어나는 바로 그 공간에서 retain 고정) ---
+        L_retain_anchor = torch.tensor(0.0, device=self.device)
+        if self.use_cap_cnp and self.cap_retain_anchor:
+            L_retain_anchor = self._cap_retain_anchor_loss(z_retain, z_retain_frozen)
+
         # --- CNP implicit ---
         L_cnp_implicit = torch.tensor(0.0, device=self.device)
         if batch_implicit:
@@ -456,11 +542,14 @@ class LSSETrainer:
                 torch.exp(-self.log_vars[i]) * losses[i] + self.log_vars[i]
                 for i in range(3)
             )
+            # retain 앵커는 균형된 가중 없이 단위 추가(소거와 동급 보존 제약)
+            L_total = L_total + L_retain_anchor
         else:
             L_total = (
                 self.alpha * L_cnp_explicit
                 + self.beta * L_csr
                 + self.gamma * L_cnp_implicit
+                + self.beta * L_retain_anchor   # CSR와 동일 retain 가중 재사용 → 새 하이퍼파라미터 없음
             )
         L_total.backward()
         self.optimizer.step()
@@ -469,6 +558,7 @@ class LSSETrainer:
             "L_cnp_explicit": L_cnp_explicit.item(),
             "L_csr": L_csr.item(),
             "L_cnp_implicit": L_cnp_implicit.item(),
+            "L_retain_anchor": L_retain_anchor.item(),
             "L_total": L_total.item(),
         }
 
@@ -533,6 +623,7 @@ class LSSETrainer:
                 "L_cnp_explicit": 0.0,
                 "L_csr": 0.0,
                 "L_cnp_implicit": 0.0,
+                "L_retain_anchor": 0.0,
                 "L_total": 0.0,
             }
 

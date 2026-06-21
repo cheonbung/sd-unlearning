@@ -21,7 +21,7 @@
 | **N7** | Concept Null-Space Projection | `methods/cnp.py` | noise 불필요 — SVD로 개념 방향 추출 후 해당 성분 최소화 |
 | **N8** | Contrastive Semantic Retention | `methods/csr.py` | MSE retain → InfoNCE. retain/forget 공간 분리 강제 |
 | **N9** | CAP-Guided Layer Masking | `methods/clm.py` | N1 CAP 결과 → top-K 레이어만 학습 |
-| **CAP-CNP** | Cross-Attention-Pullback CNP | `methods/xattn_metric.py` + `cnp.py` | raw CLIP이 아닌 **UNet cross-attn 읽기-공간 `R=C·M^½`**(`M=mean_ℓ WₖᵀWₖ+WᵥᵀWᵥ`, 동결 UNet 상수)에서 erase → TE-only 천장(~20) 돌파. UNet 미편집(M^½ 상수, gradient는 TE로만). dir/metric 모드는 `--cap_dir_mode`/`--cap_metric_mode`. **풀셋 결과**(ours8 nudity ASR): R2 `contrastive_ortho/perlayer`(flagship) = **0.7** / CLIP 17.69 → Table A 최강 망각(ODACE v3 5.2 능가), 효용 비용. S2 `contrastive_ortho/kv` = ours8 19.5 / CLIP **22.04** → 유틸리티·논문4label(5.8→2.8) 개선이지 ASR 개선 아님(프록시 10은 풀셋에서 미확인). |
+| **CAP-CNP** | Cross-Attention-Pullback CNP | `methods/xattn_metric.py` + `cnp.py` | raw CLIP이 아닌 **UNet cross-attn 읽기-공간 `R=C·M^½`**(`M=mean_ℓ WₖᵀWₖ+WᵥᵀWᵥ`, 동결 UNet 상수)에서 erase → TE-only 천장(~20) 돌파. UNet 미편집(M^½ 상수, gradient는 TE로만). dir/metric 모드는 `--cap_dir_mode`/`--cap_metric_mode`. **풀셋 결과**(ours8 nudity ASR): R2 `contrastive_ortho/perlayer`(flagship) = **0.7** / CLIP 17.69 → Table A 최강 망각(ODACE v3 5.2 능가), 효용 비용. S2 `contrastive_ortho/kv` = ours8 19.5 / CLIP **22.04** → 유틸리티·논문4label(5.8→2.8) 개선이지 ASR 개선 아님(프록시 10은 풀셋에서 미확인). **R2q-ab(flagship, 2026-06-21)**=읽기-공간 retain 앵커(`cap_retain_anchor`)+`perlayer_causal` → ours8 **3.1**/4label 0.5/CLIP **23.62**로 S2·Sph+OT 양축 지배·ODACE(5.2)보다 낮은 ASR; R2q-a(앵커만)=1.3/20.13 max-forget. C(`cap_loss_mode=project`)는 과소소거로 기각. config `nudity_lsse_capcnp_r2q.yaml`. |
 
 ---
 

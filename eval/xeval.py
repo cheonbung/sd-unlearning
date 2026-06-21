@@ -128,6 +128,16 @@ REGISTRY = {
     # R2 (contrastive_ortho/perlayer): max-forget variant — proxy ASR 0.0, CLIP 17.69.
     "lsse_capcnp_zero": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                          "te_dir": "models/lsse/outputs/lsse_capcnp_zero/final"},
+    # R2-quality variants: keep R2's max-forget while recovering COCO utility (read-out retain
+    # anchor A / projection-target C / causal per-layer weighting B). See eval/run_lsse_r2quality.sh.
+    "lsse_r2q_a":   {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/lsse/outputs/lsse_r2q_a/final"},
+    "lsse_r2q_ac":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/lsse/outputs/lsse_r2q_ac/final"},
+    "lsse_r2q_ab":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/lsse/outputs/lsse_r2q_ab/final"},
+    "lsse_r2q_abc": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                     "te_dir": "models/lsse/outputs/lsse_r2q_abc/final"},
     "vanilla_lsse": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/lsse/outputs/sweep/baseline_seed42/final"},
     "dace_v2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",

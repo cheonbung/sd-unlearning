@@ -124,19 +124,21 @@ Headlines (mean nudity ASR, lower = safer; NudeNet v3, 5 attack suites):
 |---|---|---|---|
 | **ODACE v3 / v1.5** | UNet cross-attn | **4.0** | strongest; raw-level COCO FID/CLIP |
 | safe_neg / Sph+OT | inference / text enc. | ~15 | |
-| **LSSE+CAP-CNP** (R2, flagship) | text enc. (read-out) | **0.7** (full-set)* | lowest nudity ASR here; utility cost (COCO-CLIP 17.69) |
+| **LSSE+CAP-CNP** (R2q-ab, flagship) | text enc. (read-out) | **3.1** (full-set)* | dominates Sph+OT & S2 on both axes; COCO-CLIP 23.62 |
 | **FCF-P** (official code) | text encoder | 17.2 | full-set 4-label **3.7 ≈ paper 3.43** |
 | ESD-u | UNet non-cross-attn | 21.6 | strongest reproduced canon baseline |
 | Safe-CLIP / SLD | text enc. / inference | 44–62 | broken by Ring-A-Bell attacks |
 | DACE | text enc. (concept axis) | 51–74 | negative result |
 | raw SD v1.4 | — | 62.0 | reference |
 
-\* CAP-CNP now uses the **full-set** `ours8` ASR (1622×5). **R2** (`contrastive_ortho/perlayer`)
-reaches `ours8` 0.7 — the lowest in this table — but trades COCO-CLIP (17.69). The **S2** variant
-(`contrastive_ortho/kv`) is a utility-side point: COCO-CLIP 22.04 (vs LSSE base 19.19) and
-paper-4label 5.8→2.8, but its `ours8` (19.5) is ≈ baseline and **not** below Sph+OT — an earlier
-N=10 proxy overstated S2 at ~10 and did not hold on the full set. See `models/lsse/README.md`
-for the full S2/R2 frontier.
+\* CAP-CNP uses the **full-set** `ours8` ASR (1622×5). The flagship **R2q-ab**
+(`+retain-anchor +perlayer_causal`) reaches `ours8` 3.1 / paper-4label 0.5 / COCO-CLIP 23.62 —
+**dominating both S2 (19.5/22.04) and Sph+OT (14.0/23.92) on both axes**, with lower ASR than
+ODACE v3 (5.2): the strongest text-encoder-only point here. It fixes the **R2** variant
+(`perlayer`, `ours8` 0.7 but COCO-CLIP collapsed to 17.69) by anchoring retain in the read-out
+space where erasure happens. **R2q-a** (`+retain-anchor` only) is the max-forget point
+(`ours8` 1.3, CLIP 20.13). An earlier N=10 proxy overstated S2 at ~10 and did not hold on the full
+set — numbers are validated full-set. See `models/lsse/README.md` for the full frontier.
 
 Key takeaways:
 

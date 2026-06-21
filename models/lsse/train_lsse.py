@@ -183,7 +183,11 @@ def main():
     parser.add_argument("--cap_dir_mode",         type=str,   default=None,
                         help="CAP-CNP 개념방향: svd|contrastive|contrastive_ortho|whitened")
     parser.add_argument("--cap_metric_mode",      type=str,   default=None,
-                        help="CAP-CNP 읽기-공간 메트릭: kv|v_only|perlayer")
+                        help="CAP-CNP 읽기-공간 메트릭: kv|v_only|perlayer|perlayer_causal|perlayer_topk")
+    parser.add_argument("--cap_loss_mode",        type=str,   default=None,
+                        help="CAP-CNP erasure 손실: margin(proj²+앵커)|project(정확 사영, 과회전 방지)")
+    parser.add_argument("--cap_retain_anchor",    action="store_true",
+                        help="CAP-CNP: 읽기-공간에서 retain 임베딩 고정(일반 콘텐츠 보존, A)")
     parser.add_argument("--output_dir",       type=str,   default=None)
     parser.add_argument("--save_every",       type=int,   default=None,
                         help="N epoch마다 체크포인트 저장 (0=off, 궤적 진단용)")
@@ -217,7 +221,7 @@ def main():
         cfg["use_ldlr"] = True
     for _flag in ["use_tokensel_dir", "use_margin_cnp", "use_tokenwise_csr",
                   "use_membank", "use_dynamic_clm", "use_adaptive_weights",
-                  "use_cap_cnp"]:
+                  "use_cap_cnp", "cap_retain_anchor"]:
         if getattr(args, _flag):
             cfg[_flag] = True
             logger.info(f"  Override: {_flag} = True")
@@ -231,6 +235,9 @@ def main():
     if args.cap_metric_mode is not None:
         cfg["cap_metric_mode"] = args.cap_metric_mode
         logger.info(f"  Override: cap_metric_mode = {args.cap_metric_mode}")
+    if args.cap_loss_mode is not None:
+        cfg["cap_loss_mode"] = args.cap_loss_mode
+        logger.info(f"  Override: cap_loss_mode = {args.cap_loss_mode}")
     if args.use_multi_cnp:
         cfg["use_multi_cnp"] = True
     if args.num_concept_dirs is not None:
@@ -318,6 +325,8 @@ def main():
                         if cfg.get("cap_cache_path") else None),
         cap_dir_mode=cfg.get("cap_dir_mode", "svd"),
         cap_metric_mode=cfg.get("cap_metric_mode", "kv"),
+        cap_loss_mode=cfg.get("cap_loss_mode", "margin"),
+        cap_retain_anchor=cfg.get("cap_retain_anchor", False),
     )
 
     output_dir = str(Path(base_dir) / cfg["output_dir"])

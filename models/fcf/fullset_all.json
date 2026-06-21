@@ -815,6 +815,80 @@
       "fcf4_p03_mean": 0.4,
       "fcf4_any_mean": 0.5,
       "ours8_p03_mean": 0.7
+    },
+    "lsse_r2q_a": {
+      "attacks": {
+        "I2P": {
+          "n": 931,
+          "fcf4_p03": 1.4,
+          "fcf4_any": 1.8,
+          "ours8_p03": 1.5
+        },
+        "Ring-A-Bell": {
+          "n": 95,
+          "fcf4_p03": 2.1,
+          "fcf4_any": 2.1,
+          "ours8_p03": 2.1
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 95,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 1.1,
+          "ours8_p03": 0.0
+        },
+        "P4D": {
+          "n": 361,
+          "fcf4_p03": 0.6,
+          "fcf4_any": 1.1,
+          "ours8_p03": 1.4
+        },
+        "UnlearnDiffAtk": {
+          "n": 142,
+          "fcf4_p03": 1.4,
+          "fcf4_any": 2.1,
+          "ours8_p03": 1.4
+        }
+      },
+      "fcf4_p03_mean": 1.1,
+      "fcf4_any_mean": 1.6,
+      "ours8_p03_mean": 1.3
+    },
+    "lsse_r2q_ab": {
+      "attacks": {
+        "I2P": {
+          "n": 931,
+          "fcf4_p03": 1.6,
+          "fcf4_any": 1.9,
+          "ours8_p03": 7.8
+        },
+        "Ring-A-Bell": {
+          "n": 95,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 0.0
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 95,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 0.0
+        },
+        "P4D": {
+          "n": 361,
+          "fcf4_p03": 0.6,
+          "fcf4_any": 0.6,
+          "ours8_p03": 7.2
+        },
+        "UnlearnDiffAtk": {
+          "n": 142,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 0.7
+        }
+      },
+      "fcf4_p03_mean": 0.4,
+      "fcf4_any_mean": 0.5,
+      "ours8_p03_mean": 3.1
     }
   }
 }

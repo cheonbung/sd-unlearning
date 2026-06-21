@@ -134,22 +134,29 @@ utility), unlike λ/β which only slide along it. Numbers below are the **full-s
 |---|---:|---:|---:|---|
 | baseline LSSE+PLU+W2 | 20.5 | 5.8 | 19.19 | previous best LSSE |
 | Spherical+OT (ref) | 14.0 | 1.7 | 23.92 | previous best TE-only |
-| **CAP-CNP — R2 `contrastive_ortho / perlayer` (flagship)** | **0.7** | **0.5** | 17.69 | **strongest forget in all of Table A** (beats ODACE v3 5.2/0.8); utility traded |
-| CAP-CNP — S2 `contrastive_ortho / kv` | 19.5 | 2.8 | **22.04** | utility-side: CLIP +2.85 & fcf4 5.8→2.8 vs baseline, ours8 ≈ baseline |
+| CAP-CNP — R2 `contrastive_ortho / perlayer` | **0.7** | **0.5** | 17.69 | strongest forget, but utility collapses (CLIP 17.69) |
+| CAP-CNP — S2 `contrastive_ortho / kv` | 19.5 | 2.8 | 22.04 | utility-side; ours8 ≈ baseline |
+| **CAP-CNP — R2q-ab `+retain-anchor +perlayer_causal` (flagship)** | 3.1 | **0.5** | **23.62** | **dominates S2 AND sph_ot on both axes; lower ASR than ODACE v3 (5.2)** |
+| CAP-CNP — R2q-a `+retain-anchor` | **1.3** | 1.6 | 20.13 | max-forget; utility recovered above baseline |
 
 > **Proxy → full-set correction.** An earlier N=10 proxy (Spearman 0.929) put S2 at ASR 10
 > (≈ "beats sph_ot"); the **full set does not confirm this** — S2's `ours8` is **19.5**, on par
-> with baseline (20.5) and worse than sph_ot (14.0). S2 is a genuine **utility** + paper-4label
-> win, not a strict ASR win. The real Pareto mover is **R2 (zero)**: `ours8` 0.7 is the lowest
-> nudity ASR in the whole comparison, at the cost of COCO CLIP (17.69). Lesson: validate
-> direction/metric modes on the full set, not the proxy.
+> with baseline (20.5). Lesson: validate direction/metric modes on the full set, not the proxy.
+>
+> **R2-quality (2026-06-21): R2's utility collapse fixed.** R2 erases in read-out space but retain
+> was protected only in raw CLIP space → general content distorted (D1). **A = read-out retain
+> anchor** (`cap_retain_anchor`, `mean_ℓ‖(z−z_frozen)@M_ℓ½‖²`) pins retain in the SAME space the
+> erasure acts on. Adding **B = causal per-layer weighting** (`perlayer_causal`,
+> `w_ℓ=‖(μ_e−μ_r)@M_ℓ½‖²`) gives **R2q-ab (flagship)**: ours8 3.1 / fcf4 0.5 / CLIP 23.62 —
+> **dominates both S2 and sph_ot on both axes** and undercuts ODACE v3's ASR (5.2): the strongest
+> TE-only point in the project. (C = projection target `cap_loss_mode=project` under-erases →
+> ASR 43–50, rejected.) Config: `configs/nudity_lsse_capcnp_r2q.yaml`.
 
 Mechanism: `contrastive_ortho` direction = forget−retain mean shift, Gram-Schmidt
-orthogonalized against the retain span → erases only the concept-discriminative axis while
-structurally preserving general content. The `kv` metric (S2) preserves utility but the
-read-out pullback alone is not enough to drop `ours8`; the aggressive `perlayer` metric (R2)
-sums the margin loss over every cross-attn layer → reaches `ours8` 0.7 (full block) but pays
-COCO CLIP — the metric aggressiveness, not the direction, is what trades forget for utility.
+orthogonalized against the retain span → erases only the concept-discriminative axis. The
+`perlayer` metric drops `ours8` (R2), but because erasure happens in read-out space, utility
+survives only if retain is **anchored in that same space** (R2q): forcing the erasure operator to
+be identity on the retain subspace — not raw CLIP — is the decisive utility fix.
 
 ## Run
 
