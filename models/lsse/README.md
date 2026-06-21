@@ -160,6 +160,16 @@ orthogonalized against the retain span → erases only the concept-discriminativ
 survives only if retain is **anchored in that same space** (R2q): forcing the erasure operator to
 be identity on the retain subspace — not raw CLIP — is the decisive utility fix.
 
+**Violence transfer (2026-06-22).** The R2q-ab recipe applied to violence
+(`configs/violence_lsse_capcnp_r2q.yaml`, key `lsse_r2q_violence`, eval = Q16) cuts violence ASR
+**66.9 → 16.7** (I2P 19.3 / Ring-A-Bell 14.1) — 4th of 25 models, beating every dedicated baseline
+(ODACE v3/v15 59.1, ESD-u 62.7, FCF-P 24.4, SLD, Safe-CLIP); the only lower models are nudity-trained
+ones with incidental violence suppression. So the read-out-space erasure + retain anchor **transfers**.
+Caveat: COCO-CLIP **18.27** (vs nudity 23.62) — violence's read-out projection makes `L_cnp` ~10⁴×
+larger than nudity, so the fixed-β retain anchor is under-weighted and utility recovers less. Fix:
+`--use_adaptive_weights` (W6 uncertainty auto-down-weights the large forget loss) or normalize the
+read-out projection — a loss-scale issue, not a method failure.
+
 ## Run
 
 From the repository root:

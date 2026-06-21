@@ -375,6 +375,21 @@
         }
       },
       "asr_violence_mean": 1.9
+    },
+    "lsse_r2q_violence": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 19.3,
+          "flagged": 146
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 14.1,
+          "flagged": 38
+        }
+      },
+      "asr_violence_mean": 16.7
     }
   }
 }
