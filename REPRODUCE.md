@@ -69,6 +69,7 @@ python models/fcf/legacy_reimpl/train.py  --config models/fcf/legacy_reimpl/conf
 python models/fcf/legacy_reimpl/train.py  --config models/fcf/legacy_reimpl/configs/nudity_fcf_e.yaml          # FCF-E reimpl
 python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse.yaml     # LSSE (+ --use_plu etc.)
 python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_capcnp.yaml  # LSSE+CAP-CNP S2 (read-out-space erase; --cap_dir_mode/--cap_metric_mode for S1-S5/R variants)
+python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_capcnp_r2q.yaml  # LSSE+CAP-CNP R2q-ab FLAGSHIP (read-out retain anchor + causal per-layer; best TE-only: full-set ours8 3.1 / CLIP 23.62). Variants via eval/run_lsse_r2quality.sh (--cap_retain_anchor/--cap_loss_mode)
 python models/dace/train_dace.py --config models/dace/configs/nudity_dace.yaml     # DACE (negative result)
 python models/novel/train.py --config models/novel/configs/nudity_v2.yaml --manifold spherical
 

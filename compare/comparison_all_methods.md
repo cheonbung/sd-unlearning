@@ -59,6 +59,10 @@ harness 동일 프로토콜로 측정.
 생성쌍의 지각거리(편집 드리프트; 낮을수록 일반 생성을 raw 근처로 보존). **IQ↑** = CLIP-IQA "Good/Bad photo"
 확률(무참조 화질). raw 두 행은 자기 자신 기준이라 LPIPS=0; SD2.1-base는 동일 base raw가 없어 "—".)*
 
+> **⚠️ 프로젝트 최종 TE-only flagship은 표 A가 아니라 아래 표 A-bis의 `R2q-ab`** (풀셋 ours8 3.1 /
+> 4-lab 0.5 / COCO-CLIP 23.62, ODACE보다 낮은 ASR). 표 A의 ASR은 **xeval 정적 스케일**(ODACE 4.0 등),
+> 표 A-bis의 ASR은 **풀셋 스케일**(ODACE 5.2)이라 두 표의 ASR을 **직접 혼용하지 말 것**. COCO 지표는 양 표 동일(300장).
+
 ## 표 A-bis — CAP-CNP (LSSE 개선, 2026-06)
 
 **CAP-CNP (Cross-Attention-Pullback CNP)**: LSSE의 TE-only ~20 ASR 천장을, raw CLIP이 아닌

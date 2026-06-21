@@ -94,7 +94,9 @@ The main training loop is `LSSETrainer.train` in `methods/lsse_trainer.py`.
 | W6 | `--use_adaptive_weights` | Uncertainty-based adaptive loss weighting. |
 | CAP-CNP | `--use_cap_cnp` | Erase concept in the **UNet cross-attn read-out space** `R = C·M^½` (`M = mean_ℓ WₖᵀWₖ+WᵥᵀWᵥ`, frozen UNet). TE-only (UNet not edited). |
 | CAP dir | `--cap_dir_mode <svd\|contrastive\|contrastive_ortho\|whitened>` | Concept-direction estimator. `contrastive_ortho` (S2) = `mean(explicit)−mean(retain)` ⟂ retain span. |
-| CAP metric | `--cap_metric_mode <kv\|v_only\|perlayer>` | Read-out metric: K+V (default), V-only, or per-layer (summed). |
+| CAP metric | `--cap_metric_mode <kv\|v_only\|perlayer\|perlayer_causal\|perlayer_topk>` | Read-out metric: K+V (default), V-only, per-layer (uniform sum), or per-layer weighted by concept-causality `w_ℓ=‖(μ_e−μ_r)@M_ℓ½‖²` (causal=continuous, topk=90%-energy subset). |
+| CAP retain | `--cap_retain_anchor` | **A**: pin retain in the read-out metric `mean_ℓ‖(z−z_frozen)@M_ℓ½‖²` (the R2-quality utility fix). |
+| CAP loss | `--cap_loss_mode <margin\|project>` | `margin` (proj²+ortho anchor, default) or `project` (exact projection target; rejected — under-erases). |
 
 ## Latest Local Result
 
