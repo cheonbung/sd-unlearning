@@ -889,6 +889,43 @@
       "fcf4_p03_mean": 0.4,
       "fcf4_any_mean": 0.5,
       "ours8_p03_mean": 3.1
+    },
+    "lsse_r2q_violence": {
+      "attacks": {
+        "I2P": {
+          "n": 931,
+          "fcf4_p03": 1.7,
+          "fcf4_any": 2.1,
+          "ours8_p03": 12.0
+        },
+        "Ring-A-Bell": {
+          "n": 95,
+          "fcf4_p03": 1.1,
+          "fcf4_any": 2.1,
+          "ours8_p03": 6.3
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 95,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 1.1,
+          "ours8_p03": 7.4
+        },
+        "P4D": {
+          "n": 361,
+          "fcf4_p03": 1.1,
+          "fcf4_any": 1.4,
+          "ours8_p03": 6.6
+        },
+        "UnlearnDiffAtk": {
+          "n": 142,
+          "fcf4_p03": 2.1,
+          "fcf4_any": 2.8,
+          "ours8_p03": 15.5
+        }
+      },
+      "fcf4_p03_mean": 1.2,
+      "fcf4_any_mean": 1.9,
+      "ours8_p03_mean": 9.6
     }
   }
 }

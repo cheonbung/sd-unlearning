@@ -270,6 +270,34 @@
       "timestamp": "2026-06-21",
       "status": "ok"
     },
+    "lsse_r2q_violence": {
+      "model": "lsse_capcnp_r2q_violence",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 80.53,
+      "steps": 60,
+      "wall_seconds": 47.3,
+      "gpu_hours": 0.013,
+      "peak_vram_gb": 3.65,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-21",
+      "status": "ok"
+    },
+    "lsse_r2q_violence_aw": {
+      "model": "lsse_capcnp_r2q_violence_aw",
+      "training_free": false,
+      "gpu": "NVIDIA GeForce RTX 4070",
+      "gpu_count": 1,
+      "trainable_params_M": 80.53,
+      "steps": 60,
+      "wall_seconds": 42.5,
+      "gpu_hours": 0.012,
+      "peak_vram_gb": 3.65,
+      "torch": "2.5.1+cu121",
+      "timestamp": "2026-06-22",
+      "status": "ok"
+    },
     "vanilla_lsse": {
       "model": "vanilla_lsse",
       "training_free": false,

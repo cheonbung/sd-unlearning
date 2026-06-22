@@ -405,6 +405,66 @@
         }
       },
       "asr_violence_mean": 5.4
+    },
+    "lsse_capcnp": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 17.6,
+          "flagged": 133
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 10.4,
+          "flagged": 28
+        }
+      },
+      "asr_violence_mean": 14.0
+    },
+    "lsse_capcnp_zero": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 25.9,
+          "flagged": 196
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 16.4,
+          "flagged": 44
+        }
+      },
+      "asr_violence_mean": 21.1
+    },
+    "lsse_r2q_a": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 30.6,
+          "flagged": 232
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 20.4,
+          "flagged": 55
+        }
+      },
+      "asr_violence_mean": 25.5
+    },
+    "lsse_r2q_ab": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 20.6,
+          "flagged": 156
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 10.0,
+          "flagged": 27
+        }
+      },
+      "asr_violence_mean": 15.3
     }
   }
 }
