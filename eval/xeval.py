@@ -141,6 +141,9 @@ REGISTRY = {
     # R2q-ab recipe transferred to VIOLENCE (eval via models/fcf/eval_violence_q16.py).
     "lsse_r2q_violence": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                           "te_dir": "models/lsse/outputs/lsse_r2q_violence/final"},
+    # violence + W6 adaptive weighting (utility-recovery retry for the ~10^4 L_cnp scale).
+    "lsse_r2q_violence_aw": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_r2q_violence_aw/final"},
     "vanilla_lsse": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/lsse/outputs/sweep/baseline_seed42/final"},
     "dace_v2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",

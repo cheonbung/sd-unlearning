@@ -166,9 +166,18 @@ be identity on the retain subspace — not raw CLIP — is the decisive utility 
 (ODACE v3/v15 59.1, ESD-u 62.7, FCF-P 24.4, SLD, Safe-CLIP); the only lower models are nudity-trained
 ones with incidental violence suppression. So the read-out-space erasure + retain anchor **transfers**.
 Caveat: COCO-CLIP **18.27** (vs nudity 23.62) — violence's read-out projection makes `L_cnp` ~10⁴×
-larger than nudity, so the fixed-β retain anchor is under-weighted and utility recovers less. Fix:
-`--use_adaptive_weights` (W6 uncertainty auto-down-weights the large forget loss) or normalize the
-read-out projection — a loss-scale issue, not a method failure.
+larger than nudity, so the fixed-β retain anchor is under-weighted and utility recovers less. This is a
+loss-scale issue, not a method failure.
+
+> **W6 adaptive-weighting did NOT fix it (2026-06-22, `configs/violence_lsse_capcnp_r2q_aw.yaml`, key
+> `lsse_r2q_violence_aw`).** `--use_adaptive_weights` (Kendall uncertainty) moved the operating point the
+> **wrong way** on utility: Q16 ASR 16.7 → **5.4** (even stronger forget) but COCO-CLIP 18.27 → **14.13**
+> (FID 135.8 → 194.1, near broken-model territory). Uncertainty weighting rebalances by loss *magnitude*,
+> but the violence retain anchor is itself inflated, so AW suppressed retain harder instead of protecting
+> it. The magnitude imbalance ≠ importance imbalance, so adaptive weighting is the wrong tool here. The
+> remaining viable fix is to **normalize the read-out projection** (rescale `M_ℓ½` so violence `L_cnp`
+> matches the nudity scale), a deterministic loss-scale fix — not run yet. **Non-AW violence R2q
+> (16.7 / 18.27) remains the better-balanced violence operating point** and is the documented flagship.
 
 ## Run
 
