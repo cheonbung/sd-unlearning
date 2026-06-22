@@ -69,6 +69,7 @@ MODELS = [
     ("LSSE+CAP-CNP R2 (perlayer)",  "lsse_capcnp_zero", "novel",  "1.4", "text"),
     ("LSSE+CAP-CNP R2q-a (anchor)", "lsse_r2q_a",       "novel",  "1.4", "text"),
     ("LSSE+CAP-CNP R2q-ab (flagship)", "lsse_r2q_ab",   "novel",  "1.4", "text"),
+    ("LSSE R2q (violence-trained)", "lsse_r2q_violence", "novel", "1.4", "text"),
     ("SLERP-OT",               "sph_ot",         "novel",    "1.4", "text"),
     ("ODACE (SD v1.4)",        "odace_v3",       "novel",    "1.4", "unet"),
     ("ODACE (SD v1.5)",        "odace_v15",      "novel",    "1.5", "unet"),

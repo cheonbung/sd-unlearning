@@ -395,6 +395,34 @@ N_real=600이라 **소표본 FID 편향으로 ~118**에 머물러 논문(~15)과
 
 > 산출물: `models/fcf/eval_violence_q16.py` + `violence_q16.json`.
 
+### ③-정정-P5b: LSSE+CAP-CNP **R2q를 폭력으로 직접 학습** — recipe 전이 + 효용 caveat (2026-06-22)
+
+**목표.** P5는 *nudity-소거의 폭력 전이*(국소성 반증)였다. 여기서는 nudity SOTA였던 R2q-ab recipe
+(read-out-space erasure + read-out retain anchor)를 **폭력 개념으로 직접 학습**해 transfer 가능성을
+검증한다. 평가는 동일한 2-atk Q16(I2P 757·Ring-A-Bell 269) + COCO-300 효용.
+
+| 모델 | I2P-viol | Ring-A-Bell-viol | **mean(2-atk)** ↓ | COCO-CLIP ↑ | FID ↓ | 판정 |
+|---|---|---|---|---|---|---|
+| raw v1.4 | 42.7 | 91.1 | **66.9** | — | — | 기준 |
+| **R2q (violence, non-AW)** | 19.3 | 14.1 | **16.7** | 18.27 | 135.8 | ✅ 균형 작동점(flagship) |
+| R2q (violence) **+W6 AW** | 7.1 | 3.7 | 5.4 | 14.13 | 194.1 | ❌ 효용 붕괴(over-erase) |
+
+**판정.**
+- **recipe 전이 성공**: read-out-space erasure + retain anchor가 폭력에서도 작동 → 66.9→16.7(**−75%**).
+  25-모델 중 4위로, **모든 폭력 전용/일반 baseline(ODACE v3/v15 59.1, ESD-u 62.7, FCF-P 24.4, SLD, Safe-CLIP)
+  을 능가**. 더 낮은 건 nudity-학습 모델(sph_ot_mc/lsse_mc_v2/sph_ot 1.9/8.9/14.8)의 부수적 폭력 억제뿐 →
+  R2q는 **가장 강한 *폭력-학습* eraser**.
+- **효용 caveat**: COCO-CLIP **18.27**(nudity R2q-ab 23.62 대비 낮음). 원인 = 폭력 read-out projection이
+  `L_cnp`를 nudity의 **~10⁴×**로 키워 고정-β retain anchor가 묻힘. **방법 실패가 아니라 loss-scale 이슈.**
+- **W6 adaptive weighting은 역효과(negative result)**: ASR은 5.4로 더 내려갔지만 CLIP 14.13(broken-model
+  근접)·FID 194.1로 효용이 오히려 악화. uncertainty는 loss *크기*로 재가중하는데 violence retain anchor
+  손실도 부풀려져 있어 retain까지 함께 억눌러 erasure만 강화 → **크기 불균형 ≠ 중요도 불균형**. 적응
+  가중은 이 문제의 도구가 아님. 남은 처방 = **read-out projection 정규화**(M_ℓ½ 재스케일, 결정론적·미실행).
+  **non-AW(16.7/18.27)가 더 균형 잡힌 작동점이자 문서화된 flagship 전이 결과.**
+
+> 산출물: `models/lsse/configs/violence_lsse_capcnp_r2q{,_aw}.yaml` · `eval/run_lsse_r2q_violence{,_aw}.sh` ·
+> `violence_q16.json`(keys `lsse_r2q_violence{,_aw}`). 자세한 메커니즘은 `models/lsse/README.md` 참조.
+
 ### ④ 개입 지점별 강건성 (mean ASR↓, 우리 harness)
 
 | 개입 지점 | 방법(ASR) | 패턴 |
