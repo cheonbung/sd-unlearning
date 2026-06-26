@@ -1,0 +1,217 @@
+{
+  "_doc": "Phase 3 distribution shift vs raw SD over existing COCO images (no regen). fid_sd/kid_sd = clean-fid distance of model coco dir vs raw_v14 coco dir; lower = more localized edit. raw_v14 vs itself = 0.",
+  "baseline": "raw_v14",
+  "min_imgs": 50,
+  "models": {
+    "raw_v14": {
+      "n": 300,
+      "fid_sd": 0.0,
+      "kid_sd": 0.0
+    },
+    "dace_plu": {
+      "n": 300,
+      "fid_sd": 94.712,
+      "kid_sd": 0.9981
+    },
+    "dace_v2": {
+      "n": 300,
+      "fid_sd": 94.473,
+      "kid_sd": -0.7706
+    },
+    "esd_u": {
+      "n": 300,
+      "fid_sd": 91.281,
+      "kid_sd": -1.218
+    },
+    "fcf_e": {
+      "n": 300,
+      "fid_sd": 82.123,
+      "kid_sd": -1.5121
+    },
+    "fcf_e_official": {
+      "n": 300,
+      "fid_sd": 96.246,
+      "kid_sd": -1.4016
+    },
+    "fcf_p": {
+      "n": 300,
+      "fid_sd": 90.89,
+      "kid_sd": -1.3826
+    },
+    "fcf_p_official": {
+      "n": 300,
+      "fid_sd": 100.654,
+      "kid_sd": -1.0008
+    },
+    "lsse_bal": {
+      "n": 300,
+      "fid_sd": 118.364,
+      "kid_sd": 6.0096
+    },
+    "lsse_bal_mild": {
+      "n": 300,
+      "fid_sd": 154.029,
+      "kid_sd": 27.2952
+    },
+    "lsse_capcnp": {
+      "n": 300,
+      "fid_sd": 117.48,
+      "kid_sd": 1.994
+    },
+    "lsse_capcnp_zero": {
+      "n": 300,
+      "fid_sd": 189.013,
+      "kid_sd": 50.144
+    },
+    "lsse_mc_nvg": {
+      "n": 300,
+      "fid_sd": 214.649,
+      "kid_sd": 72.1245
+    },
+    "lsse_mc_nvg_v2": {
+      "n": 300,
+      "fid_sd": 209.746,
+      "kid_sd": 49.6076
+    },
+    "lsse_plu": {
+      "n": 300,
+      "fid_sd": 151.411,
+      "kid_sd": 20.7106
+    },
+    "lsse_plu_w2": {
+      "n": 300,
+      "fid_sd": 155.361,
+      "kid_sd": 25.3147
+    },
+    "lsse_r2q_a": {
+      "n": 300,
+      "fid_sd": 160.55,
+      "kid_sd": 25.8322
+    },
+    "lsse_r2q_ab": {
+      "n": 300,
+      "fid_sd": 111.43,
+      "kid_sd": 0.3005
+    },
+    "lsse_r2q_abc": {
+      "n": 300,
+      "fid_sd": 62.389,
+      "kid_sd": -2.0622
+    },
+    "lsse_r2q_ac": {
+      "n": 300,
+      "fid_sd": 61.11,
+      "kid_sd": -1.9915
+    },
+    "lsse_r2q_violence": {
+      "n": 300,
+      "fid_sd": 146.495,
+      "kid_sd": 7.4462
+    },
+    "lsse_r2q_violence_aw": {
+      "n": 300,
+      "fid_sd": 213.646,
+      "kid_sd": 75.1315
+    },
+    "odace_mc": {
+      "n": 300,
+      "fid_sd": 99.472,
+      "kid_sd": -0.4231
+    },
+    "odace_mc_v2": {
+      "n": 300,
+      "fid_sd": 104.999,
+      "kid_sd": -0.4948
+    },
+    "odace_v15": {
+      "n": 300,
+      "fid_sd": 104.822,
+      "kid_sd": -0.0956
+    },
+    "odace_v2": {
+      "n": 300,
+      "fid_sd": 72.172,
+      "kid_sd": -1.8285
+    },
+    "odace_v3": {
+      "n": 300,
+      "fid_sd": 95.943,
+      "kid_sd": -0.7587
+    },
+    "og_lsse": {
+      "n": 300,
+      "fid_sd": 206.131,
+      "kid_sd": 66.1353
+    },
+    "og_raw": {
+      "n": 300,
+      "fid_sd": 105.794,
+      "kid_sd": 0.6468
+    },
+    "og_sphot": {
+      "n": 300,
+      "fid_sd": 109.81,
+      "kid_sd": 0.2552
+    },
+    "raw_v15": {
+      "n": 300,
+      "fid_sd": 84.891,
+      "kid_sd": -1.6808
+    },
+    "safe_neg": {
+      "n": 300,
+      "fid_sd": 93.722,
+      "kid_sd": -0.0688
+    },
+    "safeclip": {
+      "n": 300,
+      "fid_sd": 88.079,
+      "kid_sd": -1.2883
+    },
+    "sd21base": {
+      "n": 300,
+      "fid_sd": 99.845,
+      "kid_sd": -1.304
+    },
+    "sld_max": {
+      "n": 300,
+      "fid_sd": 98.719,
+      "kid_sd": 1.4565
+    },
+    "sld_medium": {
+      "n": 300,
+      "fid_sd": 70.915,
+      "kid_sd": -0.8779
+    },
+    "sld_strong": {
+      "n": 300,
+      "fid_sd": 86.598,
+      "kid_sd": -0.1589
+    },
+    "sph_ot": {
+      "n": 300,
+      "fid_sd": 101.842,
+      "kid_sd": -0.1506
+    },
+    "sph_ot_mc": {
+      "n": 300,
+      "fid_sd": 312.983,
+      "kid_sd": 221.5469
+    },
+    "sphot_retain": {
+      "n": 300,
+      "fid_sd": 89.384,
+      "kid_sd": -0.4234
+    },
+    "sphot_retain_mild": {
+      "n": 300,
+      "fid_sd": 89.91,
+      "kid_sd": -0.8007
+    },
+    "vanilla_lsse": {
+      "n": 300,
+      "fid_sd": 155.805,
+      "kid_sd": 28.7729
+    }
+  }
+}

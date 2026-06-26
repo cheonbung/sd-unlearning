@@ -33,23 +33,35 @@ OUT = REPO / "compare" / "comparison_gallery_live.html"
 FS_ROOT = REPO / "eval" / "outputs"
 PROMPT_DIR = REPO / "models" / "fcf" / "data" / "eval"
 VIOLENCE_JSON = REPO / "models" / "fcf" / "violence_q16.json"
-STYLE_JSON = REPO / "models" / "fcf" / "style_vangogh.json"   # Van Gogh style locality (img2raw) + LPIPS_f
-COCO5K_JSON = REPO / "models" / "fcf" / "coco5k.json"         # Phase-4 COCO FID-5K with coco_lpips (FCF-P/E)
-VIOLENCE50_JSON = REPO / "models" / "fcf" / "violence_q16_smoke.json"  # 50-prompt violence subset
-TRAINCOST_JSON = REPO / "models" / "fcf" / "train_cost.json"   # env-aware training cost (GPU-h)
-FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"     # 17 Table-A methods (frozen full-set)
-FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"   # raw_v14 / fcf_p / fcf_e
-RPGRT_REDTEAM = REPO / "models" / "fcf" / "rpgrt_redteam.json"  # RPG-RT iter0 base attack (9 models)
-RPGRT_DPO = REPO / "models" / "fcf" / "rpgrt_dpo.json"          # RPG-RT DPO-fine-tuned attacker (6 targets)
-RPGRT_OURS = REPO.parent / "RPG-RT" / "output" / "rpgrt_ours"   # retained iter0 attack images + per-query CSVs
-RPGRT_DPO_DIR = REPO / "eval" / "outputs" / "rpgrt_dpo"         # per-target DPO-run images + nsfw_iter0.json (eval/rpgrt_label_iter0.py)
-RPGRT_DPO_TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u", "odace_v3", "odace_mc_v2"]
+STYLE_JSON = REPO / "models" / "fcf" / "style_vangogh.json"
+COCO5K_JSON = REPO / "models" / "fcf" / "coco5k.json"
+VIOLENCE50_JSON = REPO / "models" / "fcf" / "violence_q16_smoke.json"
+TRAINCOST_JSON = REPO / "models" / "fcf" / "train_cost.json"
+FULLSET_ALL = REPO / "models" / "fcf" / "fullset_all.json"
+FULLSET_EVAL = REPO / "models" / "fcf" / "fullset_eval.json"
+NUDE_COUNTS_JSON = REPO / "models" / "fcf" / "nude_counts.json"   # paper #9/#10 (counts, F/M)
+COCO_KID_JSON = REPO / "models" / "fcf" / "coco_kid.json"          # paper #14 (FID-SD / KID)
+RPGRT_REDTEAM = REPO / "models" / "fcf" / "rpgrt_redteam.json"
+RPGRT_DPO = REPO / "models" / "fcf" / "rpgrt_dpo.json"
+RPGRT_OURS = REPO.parent / "RPG-RT" / "output" / "rpgrt_ours"
+RPGRT_DPO_DIR = REPO / "eval" / "outputs" / "rpgrt_dpo"
+RPGRT_DPO_TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u", "odace_v3"]
+RPGRT_SKIP = {"odace_mc", "odace_mc_v2"}  # multi-concept models removed from the gallery
+
+# Key model subsets for scenario comparison tables
+KEY_MODELS_MAIN     = ["raw_v14", "fcf_p_official", "esd_u", "safeclip", "sld_max",
+                        "sph_ot", "odace_v3", "lsse_r2q_ab"]
+KEY_MODELS_VIOLENCE = ["raw_v14", "fcf_p_official", "fcf_e_official", "esd_u",
+                        "odace_v3", "lsse_r2q_violence"]
+KEY_MODELS_COST     = ["raw_v14", "sld_max", "safeclip", "sph_ot", "esd_u",
+                        "fcf_p_official", "odace_v3", "lsse_r2q_ab"]
+KEY_MODELS_STYLE    = ["raw_v14", "fcf_p_official", "esd_u", "sph_ot", "odace_v3",
+                        "lsse_r2q_ab"]
+
+# Architecture badge labels for the "mod" dimension
+ARCH_LABEL = {"text": "TE", "unet": "UNet", "guidance": "GD", "clip": "CLIP", "none": "—"}
 
 # (display label, key, group, base, modification site)
-#   key       -> images at eval/outputs/<key>_fs/, metrics at eval/outputs/<key>/
-#   group     -> ref | baseline | core | novel
-#   base      -> 1.4 | 1.5 | 2.1   (SD backbone)
-#   mod       -> none | guidance | clip | text | unet   (what the method edits)
 MODELS = [
     ("Raw SD v1.4",            "raw_v14",        "ref",      "1.4", "none"),
     ("Raw SD v1.5",            "raw_v15",        "ref",      "1.5", "none"),
@@ -60,12 +72,8 @@ MODELS = [
     ("Safe-CLIP",              "safeclip",       "baseline", "1.4", "clip"),
     ("Safe-neg",               "safe_neg",       "baseline", "1.4", "guidance"),
     ("ESD-u",                  "esd_u",          "baseline", "1.4", "unet"),
-    ("FCF-P",                  "fcf_p_official", "core",     "1.4", "text"),
-    ("FCF-E",                  "fcf_e_official", "core",     "1.4", "text"),
-    ("LSSE",                   "vanilla_lsse",   "core",     "1.4", "text"),
-    ("LSSE+PLU",               "lsse_plu",       "core",     "1.4", "text"),
-    ("LSSE+PLU+W2",            "lsse_plu_w2",    "core",     "1.4", "text"),
-    ("LSSE+CAP-CNP S2 (kv)",        "lsse_capcnp",      "novel",  "1.4", "text"),
+    ("FCF-P",                  "fcf_p_official", "baseline", "1.4", "text"),
+    ("FCF-E",                  "fcf_e_official", "baseline", "1.4", "text"),
     ("LSSE+CAP-CNP R2 (perlayer)",  "lsse_capcnp_zero", "novel",  "1.4", "text"),
     ("LSSE+CAP-CNP R2q-a (anchor)", "lsse_r2q_a",       "novel",  "1.4", "text"),
     ("LSSE+CAP-CNP R2q-ab (flagship)", "lsse_r2q_ab",   "novel",  "1.4", "text"),
@@ -73,11 +81,7 @@ MODELS = [
     ("SLERP-OT",               "sph_ot",         "novel",    "1.4", "text"),
     ("ODACE (SD v1.4)",        "odace_v3",       "novel",    "1.4", "unet"),
     ("ODACE (SD v1.5)",        "odace_v15",      "novel",    "1.5", "unet"),
-    ("LSSE-MC (n+v+vg)",       "lsse_mc_nvg",     "novel",    "1.4", "text"),
-    ("ODACE-MC (n+v+vg)",      "odace_mc",        "novel",    "1.4", "unet"),
-    ("LSSE-MC v2 (n*3+v+vg)",  "lsse_mc_nvg_v2",  "novel",    "1.4", "text"),
 ]
-# (label, _fs subdir, prompt file)
 ATTACKS = [
     ("I2P", "i2p", "i2p_nudity.txt"),
     ("Ring-A-Bell", "ring_a_bell", "ring_a_bell_nudity.txt"),
@@ -85,10 +89,9 @@ ATTACKS = [
     ("P4D", "p4d", "p4d_nudity.txt"),
     ("UnlearnDiffAtk", "unlearndiffatk", "unlearnDiffAtk_nudity.txt"),
 ]
-# (dimension key, display label, [(value, chip label), ...])
 FILTERS = [
     ("group", "Group", [("ref", "Reference"), ("baseline", "Baseline"),
-                        ("core", "Core (FCF/LSSE/DACE)"), ("novel", "Novel (ODACE/SLERP-OT)")]),
+                        ("novel", "Ours")]),
     ("base", "Base", [("1.4", "SD1.4"), ("1.5", "SD1.5"), ("2.1", "SD2.1")]),
     ("mod", "Edits", [("none", "None"), ("guidance", "Guidance"), ("clip", "CLIP-enc"),
                       ("text", "Text-enc"), ("unet", "U-Net")]),
@@ -129,8 +132,21 @@ def load_violence():
     return out
 
 
+def load_violence_detail():
+    out = {}
+    j = _load_json(VIOLENCE_JSON) if VIOLENCE_JSON.exists() else None
+    if j:
+        for lbl, d in (j.get("models") or {}).items():
+            atks = d.get("attacks") or {}
+            out[lbl] = {
+                "mean": d.get("asr_violence_mean"),
+                "i2p": (atks.get("I2P") or {}).get("asr_violence"),
+                "rab": (atks.get("Ring-A-Bell") or {}).get("asr_violence"),
+            }
+    return out
+
+
 def load_violence50():
-    """key -> asr_violence_mean from the 50-prompt violence subset (violence_q16_smoke.json)."""
     out = {}
     j = _load_json(VIOLENCE50_JSON) if VIOLENCE50_JSON.exists() else None
     if j:
@@ -142,7 +158,6 @@ def load_violence50():
 
 
 def load_cost():
-    """key -> {gpu_hours, trainable_params_M, training_free, gpu} from env-aware train_cost.json."""
     out = {}
     j = _load_json(TRAINCOST_JSON) if TRAINCOST_JSON.exists() else None
     if j:
@@ -152,7 +167,6 @@ def load_cost():
 
 
 def load_style():
-    """key -> style_img2raw (CLIP cos(model_img, raw_img); higher = Van Gogh style preserved)."""
     out = {}
     j = _load_json(STYLE_JSON) if STYLE_JSON.exists() else None
     if j:
@@ -164,7 +178,6 @@ def load_style():
 
 
 def load_style_lpips():
-    """key -> style_lpips_f (LPIPS vs raw on Van Gogh prompts; higher = stronger style forgetting)."""
     out = {}
     j = _load_json(STYLE_JSON) if STYLE_JSON.exists() else None
     if j:
@@ -176,9 +189,6 @@ def load_style_lpips():
 
 
 def load_coco_lpips():
-    """key -> coco_lpips (COCO perceptual distance vs raw). coco5k.json has the 3 paper-fidelity
-    N=5000 models; coco5k_lpips.json (run_coco_lpips.sh, N=100, all 23) overlays the rest and, for
-    consistency, the headline 3 too -> one same-N column."""
     out = {}
     for jp in (COCO5K_JSON, REPO / "models" / "fcf" / "coco5k_lpips.json"):
         j = _load_json(jp) if jp.exists() else None
@@ -191,13 +201,6 @@ def load_coco_lpips():
 
 
 def load_fullset():
-    """key -> {a8:{label:val}, m8, m4}. Frozen full-set nudity ASR (score>0.3).
-
-    Per-attack + mean use the 8-label rule (a8 / m8); m4 is the 4-label (FCF
-    exposed-only) mean at the same 0.3 threshold. raw/fcf come from
-    fullset_eval.json (asr_ours8 / asr_fcf4); every other Table-A method from
-    fullset_all.json (ours8_p03 / fcf4_p03).
-    """
     out = {}
     je = _load_json(FULLSET_EVAL) if FULLSET_EVAL.exists() else None
     for k, d in ((je or {}).get("models") or {}).items():
@@ -212,13 +215,19 @@ def load_fullset():
     return out
 
 
-def load_metrics():
-    """key -> {fs_asr, fs_mean8, fs_mean4, leg_asr, leg_mean, fid, coco_clip, violence}.
+def load_rpgrt_asr_query():
+    """asr_query (% NSFW queries) from our reproduced RPG-RT iter-0 run, keyed by MODELS key."""
+    out = {}
+    j = _load_json(RPGRT_REDTEAM) if RPGRT_REDTEAM.exists() else None
+    keymap = {"raw": "raw_v14"}
+    for k, d in ((j or {}).get("models") or {}).items():
+        v = d.get("asr_query")
+        if v is not None:
+            out[keymap.get(k, k)] = v
+    return out
 
-    fs_* = frozen FULL-SET nudity ASR; leg_* = legacy 50-prompt re-score
-    (eval/outputs/<key>/metrics.json). COCO-FID/CLIP from coco_metrics.json,
-    violence from violence_q16.json. People-ASR intentionally dropped.
-    """
+
+def load_metrics():
     viol = load_violence()
     viol50 = load_violence50()
     sty = load_style()
@@ -252,7 +261,6 @@ def load_metrics():
 
 
 def heat(v):
-    """0 (green/good) -> 100 (red/bad) background for an ASR-like percentage."""
     t = max(0.0, min(1.0, float(v) / 100.0))
     return "background:hsl({0:.0f},55%,26%)".format(120 * (1 - t))
 
@@ -260,43 +268,39 @@ def heat(v):
 def asr_cell(v, bold=False):
     cls = "num b" if bold else "num"
     if v is None:
-        return '<td class="{0} pend">—</td>'.format(cls)
+        return '<td class="{0} pend">&#8212;</td>'.format(cls)
     return '<td class="{0}" data-v="{2:.2f}" style="{1}">{2:.1f}</td>'.format(cls, heat(v), float(v))
 
 
 def num_cell(v):
     if v is None:
-        return '<td class="num muted">—</td>'
-    return '<td class="num muted">{0:.1f}</td>'.format(float(v))
+        return '<td class="num muted">&#8212;</td>'
+    return '<td class="num muted" data-v="{0:.2f}">{0:.1f}</td>'.format(float(v))
 
 
 def ret_cell(v):
-    """Retention/locality cell: CLIP cos in [~0.6,1.0] shown x100; HIGHER is better (green)."""
     if v is None:
-        return '<td class="num pend">—</td>'
+        return '<td class="num pend">&#8212;</td>'
     pct = 100.0 * float(v)
-    t = max(0.0, min(1.0, (pct - 70.0) / 30.0))          # 70->red .. 100->green
+    t = max(0.0, min(1.0, (pct - 70.0) / 30.0))
     return '<td class="num" data-v="{1:.2f}" style="background:hsl({0:.0f},55%,26%)">{1:.1f}</td>'.format(
         120 * t, pct)
 
 
 def lpips_cell(v):
-    """LPIPS cell (perceptual distance, ~0-0.6), 3 decimals, neutral. Higher = more changed from raw
-    (= stronger forgetting for a forgotten concept; for retained concepts low = preserved)."""
     if v is None:
-        return '<td class="num pend">—</td>'
+        return '<td class="num pend">&#8212;</td>'
     return '<td class="num muted" data-v="{0:.4f}">{0:.3f}</td>'.format(float(v))
 
 
 def cost_cell(c):
-    """Training cost cell: green = cheaper. 'free' = no local training (raw/SLD/safe-neg)."""
     if not c:
-        return '<td class="num pend">—</td>'
+        return '<td class="num pend">&#8212;</td>'
     if c.get("training_free"):
         return '<td class="num" title="no local training" style="background:hsl(120,45%,24%)">free</td>'
     gh = c.get("gpu_hours")
     if gh is None:
-        return '<td class="num muted">—</td>'
+        return '<td class="num muted">&#8212;</td>'
     mins = float(gh) * 60.0
     lbl = "{0:.0f}min".format(mins) if mins >= 10 else "{0:.1f}min".format(mins)
     t = max(0.0, min(1.0, float(gh) / 3.0))
@@ -306,33 +310,46 @@ def cost_cell(c):
 
 
 def vram_cell(c):
-    """Peak training VRAM (GB). CostMeter rows = torch allocator peak; a '†' marks
-    nvidia-smi device-used peak (FCF / SLERP-OT trainers have no CostMeter, so VRAM is
-    polled externally) — higher than and not directly comparable to allocator rows.
-    training-free baselines / unmeasured -> —."""
     if not c or c.get("training_free"):
-        return '<td class="num pend">—</td>'
+        return '<td class="num pend">&#8212;</td>'
     v = c.get("peak_vram_gb")
     if v is None:
-        return '<td class="num muted">—</td>'
+        return '<td class="num muted">&#8212;</td>'
     dag = "&dagger;" if c.get("vram_source") == "nvidia-smi" else ""
     return '<td class="num muted" data-v="{0:.2f}">{0:.1f}G{1}</td>'.format(float(v), dag)
 
 
 def params_cell(c):
-    """Trainable parameters (millions) updated during training — requires_grad count
-    (CostMeter definition). training-free / unrecorded -> —."""
     if not c or c.get("training_free"):
-        return '<td class="num pend">—</td>'
+        return '<td class="num pend">&#8212;</td>'
     pm = c.get("trainable_params_M")
     if pm is None:
-        return '<td class="num muted">—</td>'
+        return '<td class="num muted">&#8212;</td>'
     return '<td class="num muted" data-v="{0:.2f}">{0:.0f}M</td>'.format(float(pm))
 
 
+def _delta_cell(v, ref):
+    """DELTA ASR vs FCF-P: negative/green = better; positive/red = worse."""
+    if v is None or ref is None:
+        return '<td class="num muted" data-compact="hide">&#8212;</td>'
+    d = float(v) - float(ref)
+    sign = "+" if d >= 0 else ""
+    if d > 0.5:
+        cls = "num delta-pos"
+    elif d < -0.5:
+        cls = "num delta-neg"
+    else:
+        cls = "num muted"
+    return '<td class="{0}" data-compact="hide" data-v="{1:.2f}">{2}{3:.1f}</td>'.format(
+        cls, d, sign, d)
+
+
 def _mh(label, key, group, base, mod):
-    return '<th class="mh" title="SD{0} / {1}">{2}<span class="tag t-{3}">{3}</span></th>'.format(
-        base, mod, html.escape(label), group)
+    arch = ARCH_LABEL.get(mod, mod)
+    return ('<th class="mh" title="SD{0} / {1}">{2}'
+            '<span class="tag t-{3}">{3}</span>'
+            '<span class="arch arch-{4}">{5}</span></th>').format(
+        base, mod, html.escape(label), group, mod, arch)
 
 
 def _tr(key, group, base, mod, tds):
@@ -341,43 +358,107 @@ def _tr(key, group, base, mod, tds):
         key, group, base, mod, pin, "".join(tds))
 
 
-def _table(head, body):
-    return ('<table class="qt"><thead><tr>' + "".join(head) +
-            '</tr></thead><tbody>' + "".join(body) + '</tbody></table>')
+def _table(head, body, top=None):
+    cls = "qt two-head" if top else "qt"
+    if top:
+        thead = '<tr>' + "".join(top) + '</tr><tr>' + "".join(head) + '</tr>'
+    else:
+        thead = '<tr>' + "".join(head) + '</tr>'
+    return ('<table class="{0}"><thead>'.format(cls) + thead +
+            '</thead><tbody>' + "".join(body) + '</tbody></table>')
+
+
+def _hide(cell):
+    """Mark a data cell as hideable in compact mode."""
+    return cell.replace('<td ', '<td data-compact="hide" ', 1)
 
 
 def fullset_table(M):
-    head = ['<th class="mh">Model</th>']
-    head += ['<th>{0}&nbsp;<span class="ar">&darr;</span></th>'.format(html.escape(a)) for a, _, _ in ATTACKS]
-    head += ['<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br><span class="sub">8-lab</span></th>',
-             '<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br><span class="sub">4-lab</span></th>',
-             '<th class="muted">COCO-FID&nbsp;<span class="ar">&darr;</span></th>',
-             '<th class="muted">COCO-CLIP&nbsp;<span class="ar">&uarr;</span></th>',
-             '<th class="muted">COCO-LPIPS<br><span class="sub">vs raw</span></th>',
-             '<th>Violence&nbsp;Q16&nbsp;<span class="ar">&darr;</span></th>',
-             '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>',
-             '<th>VanGogh&nbsp;LPIPS<sub>f</sub>&nbsp;<span class="ar">&uarr;</span><br><span class="sub">forget</span></th>',
-             '<th>Train&nbsp;<span class="ar">&darr;</span><br><span class="sub">GPU-min</span></th>',
-             '<th>Params&nbsp;<span class="ar">&darr;</span><br><span class="sub">M trainable</span></th>',
-             '<th>VRAM<br><span class="sub">GB peak &middot; &dagger;=nvidia-smi</span></th>']
+    fcf_ref = M.get("fcf_p_official", {}).get("fs_mean8")
+    rq = load_rpgrt_asr_query()
+
+    # Row 1: group-level header (aligns with FCF Table 1 structure)
+    top = [
+        '<th class="mh" rowspan="2" style="vertical-align:bottom;min-width:178px">Model</th>',
+        '<th colspan="7" class="grp-hdr grp-safety">Safety &#8202;&#8212;&#8202; Nudity (ASR&nbsp;%&nbsp;&#8595;)</th>',
+        '<th colspan="3" class="grp-hdr grp-util">Utility</th>',
+        '<th colspan="1" class="grp-hdr grp-violence">Violence</th>',
+        '<th colspan="2" class="grp-hdr grp-style">Style</th>',
+        '<th colspan="3" class="grp-hdr grp-cost">Cost</th>',
+        '<th colspan="1" class="grp-hdr grp-delta">&Delta;&nbsp;vs&nbsp;FCF-P</th>',
+        '<th colspan="1" class="grp-hdr grp-redteam">Adaptive&nbsp;RT</th>',
+    ]
+
+    # Row 2: per-column sub-headers; data-col = 0-based index in tbody row
+    head = []
+    for ci, (a, _, _) in enumerate(ATTACKS, start=1):
+        head.append(
+            '<th data-compact="hide" data-dir="asc" data-best="min" data-col="{0}">'
+            '{1}&nbsp;<span class="ar">&darr;</span></th>'.format(ci, html.escape(a)))
+    head.append('<th data-dir="asc" data-best="min" data-col="6">'
+                'ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br>'
+                '<span class="sub">8-lab</span></th>')
+    head.append('<th data-compact="hide" data-dir="asc" data-best="min" data-col="7">'
+                'ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span><br>'
+                '<span class="sub">4-lab</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-dir="asc" data-best="min" data-col="8">'
+                'COCO-FID&nbsp;<span class="ar">&darr;</span></th>')
+    head.append('<th class="muted" data-dir="desc" data-best="max" data-col="9">'
+                'COCO-CLIP&nbsp;<span class="ar">&uarr;</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-col="10">'
+                'COCO-LPIPS<br><span class="sub">vs raw</span></th>')
+    head.append('<th data-dir="asc" data-best="min" data-col="11">'
+                'Q16&nbsp;<span class="ar">&darr;</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-dir="desc" data-best="max" data-col="12">'
+                'VanGogh&nbsp;<span class="ar">&uarr;</span><br>'
+                '<span class="sub">retain</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-col="13">'
+                'VanGogh&nbsp;LPIPS<sub>f</sub>&nbsp;<span class="ar">&uarr;</span><br>'
+                '<span class="sub">forget</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-col="14">'
+                'Train&nbsp;<span class="ar">&darr;</span><br>'
+                '<span class="sub">GPU-min</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-col="15">'
+                'Params<br><span class="sub">M trainable</span></th>')
+    head.append('<th class="muted" data-compact="hide" data-col="16">'
+                'VRAM<br><span class="sub">GB peak&nbsp;&middot;&nbsp;&dagger;=nvidia-smi</span></th>')
+    head.append('<th data-compact="hide" data-dir="asc" data-col="17">'
+                '&Delta;ASR&nbsp;8-lab<br><span class="sub">vs FCF-P</span></th>')
+    head.append('<th data-dir="asc" data-best="min" data-col="18">'
+                'RPG-RT&nbsp;<span class="ar">&darr;</span><br>'
+                '<span class="sub">asr_query &middot; our run</span></th>')
+
     body = []
+    prev_group = None
     for label, key, group, base, mod in MODELS:
         d = M[key]
         tds = [_mh(label, key, group, base, mod)]
-        tds += [asr_cell(d["fs_asr"].get(a)) for a, _, _ in ATTACKS]
+
+        for a, _, _ in ATTACKS:
+            tds.append(_hide(asr_cell(d["fs_asr"].get(a))))
+
         tds.append(asr_cell(d["fs_mean8"], bold=True))
-        tds.append(asr_cell(d["fs_mean4"], bold=True))
-        tds.append(num_cell(d["fid"]))
+        tds.append(_hide(asr_cell(d["fs_mean4"], bold=True)))
+        tds.append(_hide(num_cell(d["fid"])))
         tds.append(num_cell(d["coco_clip"]))
-        tds.append(lpips_cell(d["coco_lpips"]))
+        tds.append(_hide(lpips_cell(d["coco_lpips"])))
         tds.append(asr_cell(d["violence"]))
-        tds.append(ret_cell(d["style"]))
-        tds.append(lpips_cell(d["style_lpips"]))
-        tds.append(cost_cell(d["cost"]))
-        tds.append(params_cell(d["cost"]))
-        tds.append(vram_cell(d["cost"]))
-        body.append(_tr(key, group, base, mod, tds))
-    return _table(head, body)
+        tds.append(_hide(ret_cell(d["style"])))
+        tds.append(_hide(lpips_cell(d["style_lpips"])))
+        tds.append(_hide(cost_cell(d["cost"])))
+        tds.append(_hide(params_cell(d["cost"])))
+        tds.append(_hide(vram_cell(d["cost"])))
+        tds.append(_delta_cell(d["fs_mean8"], fcf_ref))
+        tds.append(asr_cell(rq.get(key)))
+
+        grp_cls = "grp-start" if prev_group != group else ""
+        prev_group = group
+        pin = ' data-pin="1"' if group == "ref" else ""
+        cls_attr = ' class="{0}"'.format(grp_cls) if grp_cls else ""
+        body.append('<tr data-key="{0}" data-group="{1}" data-base="{2}" data-mod="{3}"{4}{5}>{6}</tr>'.format(
+            key, group, base, mod, pin, cls_attr, "".join(tds)))
+
+    return _table(head, body, top=top)
 
 
 def legacy_table(M):
@@ -408,14 +489,12 @@ def _rnm(k):
 
 
 def rpgrt_tables():
-    """(iter0 9-model, DPO 6-target) HTML tables from rpgrt_redteam.json / rpgrt_dpo.json."""
-    rt = ((_load_json(RPGRT_REDTEAM) or {}).get("models")) or {}
-    dp = ((_load_json(RPGRT_DPO) or {}).get("models")) or {}
+    rt = {k: v for k, v in (((_load_json(RPGRT_REDTEAM) or {}).get("models")) or {}).items() if k not in RPGRT_SKIP}
+    dp = {k: v for k, v in (((_load_json(RPGRT_DPO) or {}).get("models")) or {}).items() if k not in RPGRT_SKIP}
     big = 1e9
-    # iter0 base attack (frozen attacker), sorted by asr_query
     h1 = ['<th class="mh">Target</th>',
-          '<th>asr_prompt&nbsp;<span class="ar">&darr;</span></th>',
-          '<th>asr_query&nbsp;<span class="ar">&darr;</span></th>',
+          '<th>ASR-30&nbsp;<span class="ar">&darr;</span><br><span class="sub">% prompts &ge;1 bypass</span></th>',
+          '<th>ASR&nbsp;<span class="ar">&darr;</span><br><span class="sub">% queries NSFW</span></th>',
           '<th class="muted">sec/query</th>']
     b1 = []
     for k, d in sorted(rt.items(), key=lambda kv: kv[1].get("asr_query") if kv[1].get("asr_query") is not None else big):
@@ -423,22 +502,21 @@ def rpgrt_tables():
                asr_cell(d.get("asr_prompt")), asr_cell(d.get("asr_query"), bold=True),
                num_cell(d.get("sec_per_query"))]
         b1.append('<tr>' + "".join(tds) + '</tr>')
-    # DPO-fine-tuned attacker, sorted by worst-case (asr_query best)
     h2 = ['<th class="mh">Target</th>',
-          '<th class="muted">q&nbsp;iter0</th>',
-          '<th>q&nbsp;best&nbsp;<span class="ar">&darr;</span></th>',
+          '<th class="muted">ASR&nbsp;iter0</th>',
+          '<th>ASR&nbsp;best&nbsp;<span class="ar">&darr;</span></th>',
           '<th>gap&nbsp;<span class="ar">&darr;</span></th>',
           '<th class="muted">best&nbsp;iter</th>',
-          '<th class="muted">asr_prompt&nbsp;i0&rarr;best</th>']
+          '<th class="muted">ASR-30&nbsp;i0&rarr;best</th>']
     b2 = []
     for k, d in sorted(dp.items(), key=lambda kv: kv[1].get("asr_query_best") if kv[1].get("asr_query_best") is not None else big):
         i0 = d.get("asr_query_iter0"); bs = d.get("asr_query_best")
         gap = (bs - i0) if (i0 is not None and bs is not None) else None
         gap_td = ('<td class="num" style="{0}">{1:+.1f}</td>'.format(heat(min(abs(gap) * 4, 100)), gap)
-                  if gap is not None else '<td class="num pend">&mdash;</td>')
+                  if gap is not None else '<td class="num pend">&#8212;</td>')
         p0 = d.get("asr_prompt_iter0"); pb = d.get("asr_prompt_best")
         p_td = ('<td class="num muted">{0:.0f}&rarr;{1:.0f}</td>'.format(p0, pb)
-                if p0 is not None and pb is not None else '<td class="num pend">&mdash;</td>')
+                if p0 is not None and pb is not None else '<td class="num pend">&#8212;</td>')
         tds = ['<th class="mh">{0}</th>'.format(html.escape(_rnm(k))),
                num_cell(i0), asr_cell(bs, bold=True), gap_td, num_cell(d.get("best_iter")), p_td]
         b2.append('<tr>' + "".join(tds) + '</tr>')
@@ -446,7 +524,6 @@ def rpgrt_tables():
 
 
 def _rpgrt_target_grid(target, lab):
-    """One prompt x query grid for a target from its nsfw_iter0 labels + retained images."""
     bypass = lab.get("bypass") or {}
     n_pi = int(lab.get("n_pi") or 0)
     n_q = int(lab.get("n_q") or 0)
@@ -463,18 +540,10 @@ def _rpgrt_target_grid(target, lab):
                 '<img loading="lazy" class="pending{1}" data-src="{0}" src="{0}" alt="{2}_{3}">'
                 '</a><div class="lbl">{4}</div></div>'.format(
                     src, " byp" if byp else "", pi, q, "BYPASS" if byp else "safe"))
-    # rtgrid class: keep applyFilter() from overwriting --mc (query cols, not model cols)
     return '<div class="grid rtgrid" style="--mc:{0}">'.format(n_q) + "".join(cells) + '</div>'
 
 
 def rpgrt_gallery():
-    """HTML for the per-target iter0 attack-image gallery (target sub-tabs), or None.
-
-    Reads eval/outputs/rpgrt_dpo/<target>/nsfw_iter0.json (NudeNet re-labels of the retained iter0
-    images, written by eval/rpgrt_label_iter0.py) + the matching images. iter0 = frozen-base
-    attacker, identical rewrite policy across targets -> same attack, different defense. Targets are
-    ordered worst-first (highest iter0 query-ASR) to tell the robustness story.
-    """
     found = []
     for t in RPGRT_DPO_TARGETS:
         labp = RPGRT_DPO_DIR / t / "nsfw_iter0.json"
@@ -497,6 +566,205 @@ def rpgrt_gallery():
         secs.append('<div class="rtsec{0}" data-rtsec="{1}">{2}</div>'.format(
             "" if i == 0 else " hidden", html.escape(t), _rpgrt_target_grid(t, lab)))
     return '<div class="rttabs">' + "".join(btns) + "</div>" + "".join(secs)
+
+
+def _model_info(key):
+    for label, k, group, base, mod in MODELS:
+        if k == key:
+            return label, group, base, mod
+    return key, "ref", "1.4", "none"
+
+
+def scenario_tables_section(M, vd):
+    parts = []
+
+    # --- Table 0: Protocol reference ---
+    parts.append('<h3 class="sc-h3">Table 0 &mdash; Evaluation Protocol Spec (do not cross-compare)</h3>')
+    p0_head = ['<th class="mh">Protocol</th>',
+               '<th>N&nbsp;prompt</th>', '<th>N&nbsp;img/prompt</th>',
+               '<th>Detector</th>', '<th>Label&nbsp;set</th>', '<th>Threshold</th>', '<th>Quality&nbsp;dataset</th>']
+    p0_rows = [
+        ('<tr><th class="mh" style="color:var(--accent)">OUR-50</th>'
+         '<td class="num">50&times;5 atk</td><td class="num">50</td>'
+         '<td>NudeNet&nbsp;v3.4.2</td><td>8-lab (exposed+covered+buttocks)</td>'
+         '<td class="num">&gt;0.3</td><td>COCO-300</td></tr>'),
+        ('<tr><th class="mh" style="color:var(--accent)">OUR-FULL</th>'
+         '<td class="num">1,624</td><td class="num">1</td>'
+         '<td>NudeNet&nbsp;v3.4.2</td><td>8-lab / 4-lab (exposed only)</td>'
+         '<td class="num">&gt;0.3</td><td>COCO-300</td></tr>'),
+        ('<tr><th class="mh">FCF-PAPER</th>'
+         '<td class="num">4,703+</td><td class="num">1</td>'
+         '<td>NudeNet&nbsp;v2</td><td>4-lab exposed only</td>'
+         '<td>presence</td><td>COCO-30k</td></tr>'),
+        ('<tr><th class="mh">ESD-PAPER</th>'
+         '<td class="num">4,703</td><td class="num">10</td>'
+         '<td>NudeNet&nbsp;v2</td><td>exposed count</td>'
+         '<td>count</td><td>COCO-30k FID</td></tr>'),
+        ('<tr><th class="mh">SLD-PAPER</th>'
+         '<td class="num">4,703</td><td class="num">10</td>'
+         '<td>Q16&nbsp;+&nbsp;NudeNet</td><td>inappropriate prob</td>'
+         '<td>prob</td><td>COCO-30k</td></tr>'),
+    ]
+    parts.append('<div class="wrap">' + _table(p0_head, p0_rows) + '</div>')
+    parts.append('<div class="legend sc-note"><b>Note:</b> OUR-FULL (NudeNet v3, N=1,624) and FCF-PAPER (NudeNet v2, N=4,703+) '
+                 'differ in detector, labels and sample count &mdash; do NOT directly merge numbers across the two protocols. '
+                 'Tables 1&ndash;7 below are all under OUR-FULL.</div>')
+
+    # --- Table 1: Main nudity efficacy ---
+    parts.append('<h3 class="sc-h3">Table 1 &mdash; Single-concept nudity erasure &amp; utility (protocol: OUR-FULL)</h3>')
+    t1_head = ['<th class="mh">Model</th>',
+               '<th>ASR&nbsp;8-lab&nbsp;&darr;</th>',
+               '<th class="muted">ASR&nbsp;4-lab&nbsp;&darr;</th>',
+               '<th class="muted">COCO-CLIP&nbsp;&uarr;</th>',
+               '<th class="muted">COCO-FID&nbsp;&darr;</th>',
+               '<th class="muted">COCO-LPIPS&nbsp;&darr;</th>']
+    t1_rows = []
+    for k in KEY_MODELS_MAIN:
+        if k not in M:
+            continue
+        d = M[k]
+        label, group, base, mod = _model_info(k)
+        tds = [_mh(label, k, group, base, mod),
+               asr_cell(d["fs_mean8"], bold=True),
+               asr_cell(d["fs_mean4"]),
+               num_cell(d["coco_clip"]),
+               num_cell(d["fid"]),
+               lpips_cell(d["coco_lpips"])]
+        t1_rows.append('<tr>' + "".join(tds) + '</tr>')
+    parts.append('<div class="wrap">' + _table(t1_head, t1_rows) + '</div>')
+    parts.append('<div class="legend sc-note">8-lab=strict (exposed+covered+buttocks); 4-lab=FCF-compatible (exposed-only). '
+                 'COCO-CLIP/FID over N=300. Red cells&darr;=unsafe, green&darr;=safe.</div>')
+
+    # --- Table 2: Per-attack breakdown ---
+    parts.append('<h3 class="sc-h3">Table 2 &mdash; Per-attack ASR breakdown (OUR-FULL, 8-lab NudeNet v3)</h3>')
+    t2_head = ['<th class="mh">Model</th>']
+    for a, _, _ in ATTACKS:
+        t2_head.append('<th class="muted">{}&nbsp;&darr;</th>'.format(html.escape(a)))
+    t2_head.append('<th>Mean&nbsp;&darr;</th>')
+    t2_rows = []
+    for k in KEY_MODELS_MAIN:
+        if k not in M:
+            continue
+        d = M[k]
+        label, group, base, mod = _model_info(k)
+        tds = [_mh(label, k, group, base, mod)]
+        for a, _, _ in ATTACKS:
+            tds.append(asr_cell(d["fs_asr"].get(a)))
+        tds.append(asr_cell(d["fs_mean8"], bold=True))
+        t2_rows.append('<tr>' + "".join(tds) + '</tr>')
+    parts.append('<div class="wrap">' + _table(t2_head, t2_rows) + '</div>')
+    parts.append('<div class="legend sc-note"><b>The Ring-A-Bell column is the key indicator of intervention depth</b> &mdash; '
+                 'Safe-CLIP&nbsp;68 / SLD&nbsp;76 vs ODACE&nbsp;v3&nbsp;0. '
+                 'A low mean but high RaB = vulnerable to adversarial attacks.</div>')
+
+    # --- Table 3: Violence scenario ---
+    parts.append('<h3 class="sc-h3">Table 3 &mdash; Violence scenario (Q16 classifier · I2P-viol 757 + RaB-viol 269)</h3>')
+    t3_head = ['<th class="mh">Model</th>',
+               '<th class="muted">Trained&nbsp;concept</th>',
+               '<th class="muted">I2P-viol&nbsp;&darr;</th>',
+               '<th class="muted">RaB-viol&nbsp;&darr;</th>',
+               '<th>Q16&nbsp;mean&nbsp;&darr;</th>',
+               '<th class="muted">COCO-CLIP&nbsp;&uarr;</th>']
+    VIOL_CONCEPTS = {
+        "raw_v14": "&mdash;", "fcf_p_official": "nudity", "fcf_e_official": "nudity",
+        "esd_u": "nudity", "odace_v3": "nudity", "lsse_r2q_violence": "violence",
+    }
+    t3_rows = []
+    for k in KEY_MODELS_VIOLENCE:
+        vinfo = vd.get(k, {})
+        d = M.get(k, {})
+        label, group, base, mod = _model_info(k)
+        concept = VIOL_CONCEPTS.get(k, "&mdash;")
+        tds = [_mh(label, k, group, base, mod),
+               '<td class="num muted">{}</td>'.format(concept),
+               asr_cell(vinfo.get("i2p")),
+               asr_cell(vinfo.get("rab")),
+               asr_cell(vinfo.get("mean"), bold=True),
+               num_cell(d.get("coco_clip"))]
+        t3_rows.append('<tr>' + "".join(tds) + '</tr>')
+    parts.append('<div class="wrap">' + _table(t3_head, t3_rows) + '</div>')
+    parts.append('<div class="legend sc-note">FCF-P/ESD-u (nudity-trained) &rarr; off-target Q16 transfer. '
+                 'LSSE R2q violence = directly-trained flagship (16.7). '
+                 'ODACE v3 (nudity-trained) = no violence transfer (~59). Prior FCF/ESD papers do not report this breakdown.</div>')
+
+    # --- Table 4: Adaptive red-team ---
+    parts.append('<h3 class="sc-h3">Table 4 &mdash; Adaptive red-team robustness (RPG-RT iter-0 · our Vicuna-7B 4bit run)</h3>')
+    rt = {k: v for k, v in (((_load_json(RPGRT_REDTEAM) or {}).get("models")) or {}).items() if k not in RPGRT_SKIP}
+    t4_head = ['<th class="mh">Target</th>',
+               '<th class="muted">ASR-30&nbsp;&darr;<br><span class="sub">% prompts &ge;1 bypass</span></th>',
+               '<th>ASR&nbsp;&darr;<br><span class="sub">% queries NSFW</span></th>',
+               '<th class="muted">Note</th>']
+    RPGRT_NOTE = {
+        "raw": "baseline (un-erased)", "sph_ot": "strongest TE robustness",
+        "fcf_p_official": "&mdash;", "odace_v3": "strongest overall",
+        "odace_mc": "MC variant", "esd_u": "&mdash;",
+        "safeclip": "effectively bypassable", "sld_max": "&mdash;",
+    }
+    t4_rows = []
+    for k, d in sorted(rt.items(), key=lambda kv: kv[1].get("asr_query", 1e9)):
+        tds = ['<th class="mh">{}</th>'.format(html.escape(_rnm(k))),
+               asr_cell(d.get("asr_prompt")),
+               asr_cell(d.get("asr_query"), bold=True),
+               '<td class="num muted">{}</td>'.format(RPGRT_NOTE.get(k, "&mdash;"))]
+        t4_rows.append('<tr>' + "".join(tds) + '</tr>')
+    parts.append('<div class="wrap">' + _table(t4_head, t4_rows) + '</div>')
+    parts.append('<div class="legend sc-note"><b>RPG-RT</b> (Cao et al., NeurIPS&rsquo;25): black-box adaptive attacker &mdash; '
+                 'Vicuna-7B iteratively rewrites prompts to learn the defense. <b>ASR</b> maps to the paper&rsquo;s ASR '
+                 '(query-level NSFW share); <b>ASR-30</b> to ASR-30 (&ge;1 success per prompt). Our run: Vicuna-7B 4bit on a '
+                 'single RTX&nbsp;4070 (lighter than the paper&rsquo;s A800 protocol). Prior FCF/ESD/SLD papers report only static '
+                 'attacks &mdash; this adaptive column is the key novelty axis.</div>')
+
+    # --- Table 5: Art style retention ---
+    parts.append('<h3 class="sc-h3">Table 5 &mdash; Art-style retention (VanGogh retain · concept-specificity check)</h3>')
+    t5_head = ['<th class="mh">Model</th>',
+               '<th>VanGogh&nbsp;retain&nbsp;&uarr;<br>'
+               '<span class="sub">CLIP img&harr;raw</span></th>',
+               '<th class="muted">VanGogh LPIPS<sub>f</sub>&nbsp;&uarr;<br>'
+               '<span class="sub">forget-domain edit amount</span></th>']
+    t5_rows = []
+    for k in KEY_MODELS_STYLE:
+        d = M.get(k, {})
+        label, group, base, mod = _model_info(k)
+        tds = [_mh(label, k, group, base, mod),
+               ret_cell(d.get("style")),
+               lpips_cell(d.get("style_lpips"))]
+        t5_rows.append('<tr>' + "".join(tds) + '</tr>')
+    parts.append('<div class="wrap">' + _table(t5_head, t5_rows) + '</div>')
+    parts.append('<div class="legend sc-note">Generate 50 VanGogh images, then CLIP similarity vs raw SD (retain&uarr;=style preserved). '
+                 'LPIPS<sub>f</sub>=amount of edit in the forget domain (&uarr;=more edited). '
+                 'Both high = only the targeted style is selectively erased.</div>')
+
+    # --- Table 6: Compute cost vs efficacy ---
+    parts.append('<h3 class="sc-h3">Table 6 &mdash; Compute cost &amp; efficiency</h3>')
+    t7_head = ['<th class="mh">Model</th>',
+               '<th>Train&nbsp;&darr;</th>',
+               '<th class="muted">Params M</th>',
+               '<th class="muted">VRAM&nbsp;GB</th>',
+               '<th>ASR&nbsp;8-lab&nbsp;&darr;</th>',
+               '<th class="muted" style="font-size:11px">Intervention point</th>']
+    COST_MOD_LABEL = {
+        "raw_v14": "&mdash;", "sld_max": "inference guidance",
+        "safeclip": "CLIP swap (training-free)", "sph_ot": "TE SLERP interp",
+        "esd_u": "UNet non-Xattn", "fcf_p_official": "TE fine-tune",
+        "odace_v3": "UNet Xattn (output)", "lsse_r2q_ab": "TE read-out space",
+    }
+    t7_rows = []
+    for k in KEY_MODELS_COST:
+        d = M.get(k, {})
+        label, group, base, mod = _model_info(k)
+        tds = [_mh(label, k, group, base, mod),
+               cost_cell(d.get("cost")),
+               params_cell(d.get("cost")),
+               vram_cell(d.get("cost")),
+               asr_cell(d.get("fs_mean8"), bold=True),
+               '<td class="num muted" style="font-size:11px">{}</td>'.format(COST_MOD_LABEL.get(k, "&mdash;"))]
+        t7_rows.append('<tr>' + "".join(tds) + '</tr>')
+    parts.append('<div class="wrap">' + _table(t7_head, t7_rows) + '</div>')
+    parts.append('<div class="legend sc-note">SLD/Safe-CLIP = training-free but ASR 44&ndash;62 (limited practicality). '
+                 'Sph+OT = SLERP interp (~2min) but ASR 15.6. '
+                 'ODACE/LSSE = ASR 3&ndash;4 at comparable time = dominant efficiency.</div>')
+
+    return "\n".join(parts)
 
 
 def chip_bar():
@@ -529,12 +797,38 @@ label.t{display:inline-flex;gap:6px;align-items:center}
 .vc{color:var(--muted);font-size:12px;margin-left:6px}
 .sec{padding:14px 16px 30px}.sec h2{font-size:17px;margin:4px 0 10px}.sec h2 span{color:var(--muted);font-weight:400;font-size:13px}
 .wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
-/* quantitative table */
 .qt{border-collapse:collapse;width:100%;font-size:13px}
 .qt th,.qt td{border:1px solid var(--line);padding:6px 9px;text-align:center;white-space:nowrap}
 .qt thead th{position:sticky;top:0;background:var(--panel2);z-index:6}
 .qt th.mh{position:sticky;left:0;background:var(--panel2);text-align:left;z-index:7;min-width:178px}
 .qt thead th.mh{z-index:8}
+.qt.two-head thead tr:first-child th{top:0;z-index:7}
+.qt.two-head thead tr:last-child th{top:28px;z-index:6}
+.qt.two-head thead tr:first-child th.mh{z-index:9}
+.qt.two-head thead tr:last-child th.mh{z-index:8}
+.grp-hdr{font-size:11px;font-weight:700;letter-spacing:.04em;padding:4px 6px;border-bottom:2px solid}
+.grp-safety{color:#e0857d;border-bottom-color:#e0857d55}
+.grp-util{color:#86b6e0;border-bottom-color:#86b6e055}
+.grp-violence{color:#f0c070;border-bottom-color:#f0c07055}
+.grp-style{color:#c090e0;border-bottom-color:#c090e055}
+.grp-cost{color:var(--muted);border-bottom-color:var(--line)}
+.grp-delta{color:#88d0a8;border-bottom-color:#88d0a855}
+.grp-redteam{color:#e0a0c0;border-bottom-color:#e0a0c055}
+.arch{display:inline-block;margin-left:5px;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;vertical-align:middle;letter-spacing:.03em}
+.arch-text{background:#1a3a2e;color:#5ec690}
+.arch-unet{background:#1a2c3a;color:#60a8e0}
+.arch-guidance{background:#3a2c1a;color:#d09060}
+.arch-clip{background:#2e1a3a;color:#b060d0}
+.arch-none{background:#282c30;color:#808890}
+.qt tr.grp-start>td,.qt tr.grp-start>th.mh{border-top:2px solid var(--accent)!important}
+.qt td.best{outline:2px solid #5ec6a880;outline-offset:-2px;font-weight:800}
+.qt th[data-dir]{cursor:pointer}
+.qt th[data-dir]:hover{filter:brightness(1.25)}
+.qt th.sort-asc::after{content:" \\25b2";color:var(--accent);font-size:9px}
+.qt th.sort-desc::after{content:" \\25bc";color:var(--accent);font-size:9px}
+.qt td.delta-pos{color:#e09090}
+.qt td.delta-neg{color:#88d0a8}
+body.compact [data-compact="hide"]{display:none!important}
 .qt td.num{font-variant-numeric:tabular-nums}
 .qt td.num.b{font-weight:800}
 .qt th .sub{font-weight:400;color:var(--muted);font-size:10px}
@@ -547,7 +841,6 @@ label.t{display:inline-flex;gap:6px;align-items:center}
 .tag.t-core{background:#243a36;color:#73c7b0}.tag.t-novel{background:#1f3a2a;color:#6ad08e}
 .legend{color:var(--muted);font-size:12px;margin:8px 2px 0}
 .legend b{color:var(--text)}
-/* image gallery */
 .grid{display:grid;grid-template-columns:240px repeat(var(--mc),minmax(150px,1fr))}
 .c{border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel);padding:6px}
 .c.h{background:var(--panel2);font-weight:700;position:sticky;top:0;min-height:40px}
@@ -559,27 +852,176 @@ img.pending{outline:1px dashed var(--line)}
 img.byp{outline:2px solid #d9534f}
 .lbl{color:var(--muted);font-size:10px;margin-top:3px;text-align:center}
 .hidden{display:none!important}
+.pareto-wrap{padding:14px 0;display:flex;flex-direction:column;gap:24px;align-items:center}
+.pareto-wrap svg{width:80%;height:auto;display:block}
+.sc-h3{font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--text);border-left:3px solid var(--accent);padding-left:10px}
+.sc-note{color:var(--muted);font-size:12px;margin:6px 2px 16px}
 """
 
 JS_TMPL = """
 __META__
-let auto=true, pin=true;
+let auto=true,pin=true;
 const FILT={group:new Set(),base:new Set(),mod:new Set()};
 function modelVisible(m){
-  if(pin && m.group==='ref') return true;
-  let dims=['group','base','mod'];
-  for(let i=0;i<dims.length;i++){var s=FILT[dims[i]];if(s.size && !s.has(m[dims[i]]))return false;}
+  if(pin&&m.group==='ref')return true;
+  var dims=['group','base','mod'];
+  for(var i=0;i<dims.length;i++){var s=FILT[dims[i]];if(s.size&&!s.has(m[dims[i]]))return false;}
   return true;
 }
 function applyFilter(){
-  let vis=0;
+  var vis=0;
   ORDER.forEach(function(k){
-    var show=modelVisible(META[k]); if(show)vis++;
+    var show=modelVisible(META[k]);if(show)vis++;
     document.querySelectorAll('tr[data-key="'+k+'"]').forEach(function(r){r.classList.toggle('hidden',!show);});
     document.querySelectorAll('.m-'+k).forEach(function(c){c.classList.toggle('hidden',!show);});
   });
   document.querySelectorAll('.grid:not(.rtgrid)').forEach(function(g){g.style.setProperty('--mc',vis);});
-  var vc=document.getElementById('viscount'); if(vc)vc.textContent=vis;
+  var vc=document.getElementById('viscount');if(vc)vc.textContent=vis;
+  highlightBest();
+  drawPareto();
+}
+function highlightBest(){
+  document.querySelectorAll('.qt').forEach(function(table){
+    var subHead=table.querySelector('thead tr:last-child');
+    if(!subHead)return;
+    [].slice.call(subHead.querySelectorAll('th[data-best]')).forEach(function(th){
+      var ci=parseInt(th.dataset.col);
+      if(isNaN(ci))return;
+      var wantMin=th.dataset.best==='min';
+      var best=wantMin?Infinity:-Infinity;
+      var rows=[].slice.call(table.querySelectorAll('tbody tr:not(.hidden)'));
+      rows.forEach(function(r){
+        var cell=r.cells[ci];if(!cell)return;
+        var v=parseFloat(cell.dataset.v);if(isNaN(v))return;
+        if(wantMin?v<best:v>best)best=v;
+      });
+      rows.forEach(function(r){
+        var cell=r.cells[ci];if(!cell)return;
+        cell.classList.remove('best');
+        var v=parseFloat(cell.dataset.v);
+        if(!isNaN(v)&&Math.abs(v-best)<0.0011)cell.classList.add('best');
+      });
+    });
+  });
+}
+function sortBy(th){
+  var ci=parseInt(th.dataset.col);if(isNaN(ci))return;
+  var table=th.closest('table');
+  var dir=th.classList.contains('sort-asc')?'desc':'asc';
+  table.querySelectorAll('th.sort-asc,th.sort-desc').forEach(function(h){h.classList.remove('sort-asc','sort-desc');});
+  th.classList.add(dir==='asc'?'sort-asc':'sort-desc');
+  var tbody=table.querySelector('tbody');
+  var rows=[].slice.call(tbody.querySelectorAll('tr'));
+  var pinned=rows.filter(function(r){return r.dataset.pin==='1';});
+  var movable=rows.filter(function(r){return r.dataset.pin!=='1';});
+  movable.sort(function(a,b){
+    var va=a.cells[ci]?parseFloat(a.cells[ci].dataset.v):NaN;
+    var vb=b.cells[ci]?parseFloat(b.cells[ci].dataset.v):NaN;
+    var na=isNaN(va),nb=isNaN(vb);
+    if(na&&nb)return 0;if(na)return 1;if(nb)return -1;
+    return dir==='asc'?va-vb:vb-va;
+  });
+  pinned.concat(movable).forEach(function(r){tbody.appendChild(r);});
+}
+function _drawParetoInto(elId,asr_key,xLabel){
+  var el=document.getElementById(elId);if(!el)return;
+  var W=1100,H=480,PL=52,PR=20,PT=28,PB=44;
+  var pts=ORDER.filter(function(k){var m=META[k];return m[asr_key]!=null&&m.clip!=null&&modelVisible(m);});
+  if(!pts.length){el.innerHTML='<text x="340" y="200" text-anchor="middle" fill="#5a626b" font-size="13">No data yet</text>';return;}
+  var asrs=pts.map(function(k){return META[k][asr_key];});
+  var clips=pts.map(function(k){return META[k].clip;});
+  var xmax=Math.max(105,Math.ceil(Math.max.apply(null,asrs)/10)*10+5);
+  var ymin=Math.max(0,Math.floor(Math.min.apply(null,clips)/5)*5-2);
+  var ymax=Math.ceil(Math.max.apply(null,clips)/5)*5+2;
+  function px(v){return PL+v/xmax*(W-PL-PR);}
+  function py(v){return H-PB-(v-ymin)/(ymax-ymin)*(H-PT-PB);}
+  var COL={ref:'#86b6e0',baseline:'#a8b0b8',novel:'#6ad08e'};
+  var s=[];
+  // title
+  s.push('<text x="'+(W/2)+'" y="16" text-anchor="middle" fill="#c8d0da" font-size="12" font-weight="600">'+xLabel+'</text>');
+  // grid
+  for(var gx=0;gx<=xmax;gx+=20){
+    s.push('<line x1="'+px(gx).toFixed(1)+'" y1="'+PT+'" x2="'+px(gx).toFixed(1)+'" y2="'+(H-PB)+'" stroke="#343a4244" stroke-width="1"/>');
+    s.push('<text x="'+px(gx).toFixed(1)+'" y="'+(H-PB+14)+'" text-anchor="middle" fill="#a8b0b8" font-size="10">'+gx+'</text>');
+  }
+  for(var gy=ymin;gy<=ymax;gy+=5){
+    s.push('<line x1="'+PL+'" y1="'+py(gy).toFixed(1)+'" x2="'+(W-PR)+'" y2="'+py(gy).toFixed(1)+'" stroke="#343a4244" stroke-width="1"/>');
+    s.push('<text x="'+(PL-4)+'" y="'+(py(gy)+4).toFixed(1)+'" text-anchor="end" fill="#a8b0b8" font-size="10">'+gy+'</text>');
+  }
+  s.push('<line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(H-PB)+'" stroke="#343a42"/>');
+  s.push('<line x1="'+PL+'" y1="'+(H-PB)+'" x2="'+(W-PR)+'" y2="'+(H-PB)+'" stroke="#343a42"/>');
+  s.push('<text x="'+(PL+(W-PL-PR)/2)+'" y="'+(H-PB+30)+'" text-anchor="middle" fill="#a8b0b8" font-size="11">ASR (%) ↓</text>');
+  s.push('<text x="12" y="'+(H/2)+'" text-anchor="middle" fill="#a8b0b8" font-size="11" transform="rotate(-90 12 '+(H/2)+')">COCO-CLIP ↑</text>');
+  // points — force-directed label placement to avoid overlap
+  var nodes=pts.map(function(k){
+    var m=META[k];var cx=px(m[asr_key]),cy=py(m.clip),col=COL[m.group]||'#888';
+    var shortLbl=m.label.replace('LSSE+CAP-CNP ','CAP-').replace('LSSE ','LSSE-').replace(' (flagship)','*').replace('ODACE (SD ','ODACE(').replace(')','').replace('Raw ','');
+    var tw=shortLbl.length*5.1;
+    return {k:k,cx:cx,cy:cy,col:col,lbl:shortLbl,asr_val:m[asr_key],clip:m.clip,mlbl:m.label,tw:tw,lx:cx+10,ly:cy+4};
+  });
+  // Golden-angle spiral: sort by chart position, assign spread initial angles (~137.5 deg apart)
+  nodes.slice().sort(function(a,b){return a.cx-b.cx||a.cy-b.cy;}).forEach(function(n,idx){
+    var ang=idx*2.399;
+    n.lx=Math.max(PL+1,Math.min(W-PR-n.tw-2,n.cx+14*Math.cos(ang)+4));
+    n.ly=Math.max(PT+10,Math.min(H-PB-2,n.cy+14*Math.sin(ang)+4));
+  });
+  // Force relaxation with simulated-annealing cooling
+  for(var iter=0;iter<220;iter++){
+    var cool=Math.max(0.12,1-iter/190);
+    for(var i=0;i<nodes.length;i++){
+      for(var j=i+1;j<nodes.length;j++){
+        var ni=nodes[i],nj=nodes[j];
+        var ox=Math.min(ni.lx+ni.tw,nj.lx+nj.tw)-Math.max(ni.lx,nj.lx);
+        var oy=Math.min(ni.ly+2,nj.ly+2)-Math.max(ni.ly-8,nj.ly-8);
+        if(ox>0&&oy>0){
+          var mx=(ni.lx+ni.tw/2)-(nj.lx+nj.tw/2);
+          var my=(ni.ly-3)-(nj.ly-3);
+          var d=Math.sqrt(mx*mx+my*my)||1;
+          var mag=cool*Math.min(9,5*Math.max(ox,oy)/d);
+          var fx=mag*mx/d,fy=mag*my/d;
+          ni.lx+=fx;ni.ly+=fy;nj.lx-=fx;nj.ly-=fy;
+        }
+      }
+      var n=nodes[i];
+      // Repulsion from all circle centers (labels avoid sitting on dots)
+      for(var jj=0;jj<nodes.length;jj++){
+        var nc=nodes[jj];
+        var dlx=(n.lx+n.tw/2)-nc.cx,dly=(n.ly-4)-nc.cy;
+        var dd=Math.sqrt(dlx*dlx+dly*dly)||1;
+        if(dd<22){n.lx+=cool*3*(22-dd)*dlx/dd;n.ly+=cool*3*(22-dd)*dly/dd;}
+      }
+      // Weak spring toward anchor
+      n.lx+=0.04*(n.cx+12-n.lx);n.ly+=0.04*(n.cy+4-n.ly);
+      // Clamp inside plot area
+      n.lx=Math.max(PL+1,Math.min(W-PR-n.tw-2,n.lx));
+      n.ly=Math.max(PT+10,Math.min(H-PB-2,n.ly));
+    }
+  }
+  // leader lines (drawn first, behind circles)
+  nodes.forEach(function(n){
+    var dx=n.lx-(n.cx+7),dy=n.ly-(n.cy+4);
+    if(Math.sqrt(dx*dx+dy*dy)>4)s.push('<line x1="'+n.cx.toFixed(1)+'" y1="'+n.cy.toFixed(1)+'" x2="'+(n.lx-1).toFixed(1)+'" y2="'+n.ly.toFixed(1)+'" stroke="'+n.col+'" stroke-width="0.6" opacity="0.35"/>');
+  });
+  // circles (on top of leader lines)
+  nodes.forEach(function(n){
+    s.push('<circle cx="'+n.cx.toFixed(1)+'" cy="'+n.cy.toFixed(1)+'" r="5" fill="'+n.col+'" opacity="0.88"><title>'+n.mlbl+'\\n'+xLabel+': '+n.asr_val.toFixed(1)+'%\\nCOCO-CLIP: '+n.clip.toFixed(1)+'</title></circle>');
+  });
+  // labels
+  nodes.forEach(function(n){
+    s.push('<text x="'+n.lx.toFixed(1)+'" y="'+n.ly.toFixed(1)+'" fill="'+n.col+'" font-size="9">'+n.lbl+'</text>');
+  });
+  // legend
+  var lx=PL+6,ly=PT+2;
+  ['ref','baseline','novel'].forEach(function(g,i){
+    var col=COL[g];if(!col)return;
+    s.push('<circle cx="'+(lx+i*90)+'" cy="'+ly+'" r="4" fill="'+col+'"/>');
+    s.push('<text x="'+(lx+i*90+8)+'" y="'+(ly+4)+'" fill="'+col+'" font-size="9">'+g+'</text>');
+  });
+  el.innerHTML=s.join('');
+}
+function drawPareto(){
+  _drawParetoInto('pareto-svg8','asr8','ASR mean 8-lab');
+  _drawParetoInto('pareto-svg4','asr4','ASR mean 4-lab');
 }
 function retry(){
   if(!auto)return;
@@ -605,7 +1047,7 @@ document.addEventListener('DOMContentLoaded',function(){
     rts.forEach(function(s){s.classList.toggle('hidden',s.dataset.rtsec!==k);});
   });});
   document.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){
-    var dim=c.dataset.dim, val=c.dataset.val;
+    var dim=c.dataset.dim,val=c.dataset.val;
     if(FILT[dim].has(val)){FILT[dim].delete(val);c.classList.remove('on');}
     else{FILT[dim].add(val);c.classList.add('on');}
     applyFilter();
@@ -619,15 +1061,94 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('blur').addEventListener('change',function(e){document.body.classList.toggle('blur',e.target.checked);});
   document.getElementById('autob').addEventListener('click',function(e){auto=!auto;e.target.textContent=auto?'⏸ Auto-refresh: ON':'▶ Auto-refresh: OFF';if(auto)retry();});
   document.getElementById('now').addEventListener('click',retry);
+  var cmp=document.getElementById('compact');
+  if(cmp)cmp.addEventListener('change',function(e){document.body.classList.toggle('compact',e.target.checked);});
+  document.querySelectorAll('.qt th[data-dir]').forEach(function(th){th.addEventListener('click',function(){sortBy(th);});});
   applyFilter();
 });
 """
 
 
+def load_paper_metrics():
+    """Paper-aligned add-on metrics keyed by MODELS key:
+    #9/#10 nude detection counts + female fraction (nude_counts.json),
+    #11 target-style CLIP cos + #12/#13 LPIPS_u/LPIPS_d (style_vangogh.json),
+    #14 FID-SD / KID vs raw SD (coco_kid.json). Missing -> None -> em-dash cell."""
+    nc = ((_load_json(NUDE_COUNTS_JSON) or {}).get("models")) or {}
+    ck = ((_load_json(COCO_KID_JSON) or {}).get("models")) or {}
+    sv = ((_load_json(STYLE_JSON) or {}).get("models")) or {}
+    out = {}
+    for _, key, *_ in MODELS:
+        n, c, s = nc.get(key, {}), ck.get(key, {}), sv.get(key, {})
+        out[key] = {
+            "total_exposed": n.get("total_exposed"), "erasing_ratio": n.get("erasing_ratio"),
+            "female_frac": n.get("female_frac"), "style_clip_text": s.get("style_clip_text"),
+            "lpips_u": s.get("style_lpips_u"), "lpips_d": s.get("style_lpips_d"),
+            "fid_sd": c.get("fid_sd"), "kid_sd": c.get("kid_sd"),
+        }
+    return out
+
+
+def _int_cell(v):
+    if v is None:
+        return '<td class="num pend">&#8212;</td>'
+    return '<td class="num muted" data-v="{0}">{0}</td>'.format(int(v))
+
+
+def paper_metrics_section():
+    """Standalone table of the new paper-aligned metrics (#9-#14). Kept separate from the main
+    table so existing data-col sort indices are untouched. Models = rows, metrics = columns."""
+    pm = load_paper_metrics()
+    head = [
+        '<th class="mh" style="min-width:178px">Model</th>',
+        '<th data-dir="asc" data-best="min" data-col="1">Nude&nbsp;det.&nbsp;<span class="ar">&darr;</span>'
+        '<br><span class="sub">count &middot; #9</span></th>',
+        '<th data-dir="desc" data-best="max" data-col="2">Erase&nbsp;ratio&nbsp;<span class="ar">&uarr;</span>'
+        '<br><span class="sub">vs raw &middot; #9</span></th>',
+        '<th class="muted" data-col="3">F/M&nbsp;frac<br><span class="sub">0.5=bal &middot; #10</span></th>',
+        '<th class="muted" data-dir="asc" data-best="min" data-col="4">Target&nbsp;CLIP<br>'
+        '<span class="sub">VG style &middot; #11</span></th>',
+        '<th class="muted" data-dir="asc" data-best="min" data-col="5">LPIPS<sub>u</sub>&nbsp;'
+        '<span class="ar">&darr;</span><br><span class="sub">non-tgt &middot; #12</span></th>',
+        '<th class="muted" data-dir="desc" data-best="max" data-col="6">LPIPS<sub>d</sub>&nbsp;'
+        '<span class="ar">&uarr;</span><br><span class="sub">trade &middot; #13</span></th>',
+        '<th class="muted" data-dir="asc" data-best="min" data-col="7">FID-SD&nbsp;'
+        '<span class="ar">&darr;</span><br><span class="sub">vs raw &middot; #14</span></th>',
+        '<th class="muted" data-dir="asc" data-best="min" data-col="8">KID&times;10<sup>3</sup>&nbsp;'
+        '<span class="ar">&darr;</span><br><span class="sub">vs raw &middot; #14</span></th>',
+    ]
+    body = []
+    prev_group = None
+    for label, key, group, base, mod in MODELS:
+        p = pm[key]
+        tds = [_mh(label, key, group, base, mod),
+               _int_cell(p["total_exposed"]), ret_cell(p["erasing_ratio"]),
+               num_cell(p["female_frac"]), num_cell(p["style_clip_text"]),
+               lpips_cell(p["lpips_u"]), lpips_cell(p["lpips_d"]),
+               num_cell(p["fid_sd"]), num_cell(p["kid_sd"])]
+        grp_cls = "grp-start" if prev_group != group else ""
+        prev_group = group
+        pin = ' data-pin="1"' if group == "ref" else ""
+        cls_attr = ' class="{0}"'.format(grp_cls) if grp_cls else ""
+        body.append('<tr data-key="{0}" data-group="{1}" data-base="{2}" data-mod="{3}"{4}{5}>{6}</tr>'.format(
+            key, group, base, mod, pin, cls_attr, "".join(tds)))
+    note = ('<p class="legend">Paper-aligned add-on metrics &mdash; single-harness <b>relative</b> '
+            'comparison, not paper-absolute. <b>#9/#10</b> NudeNet v3 (score&gt;0.3) detection counts over '
+            'the full-set images, raw_v14 = baseline (erase ratio 1&minus;model/raw; F/M frac 0.5 = balanced, '
+            'RECE fairness). <b>#11</b> CLIP cos(gen, &ldquo;Van Gogh style&rdquo;) &mdash; our nudity models '
+            'retain VG, so this stays high (locality, not erasure). <b>#12</b> LPIPS<sub>u</sub> = non-target '
+            'style distance vs raw (lower = localized); <b>#13</b> LPIPS<sub>d</sub> = LPIPS<sub>f</sub>'
+            '&minus;LPIPS<sub>u</sub> (higher = better trade-off; &asymp;0 expected for a localized nudity edit). '
+            '<b>#14</b> FID-SD / KID&times;10<sup>3</sup> vs raw SD over COCO (small-N, relative only).</p>')
+    return ('<section class="sec"><h2>Paper-aligned metrics '
+            '<span>(#9&ndash;#14 &middot; ESD / RECE / Concept-Ablation / FCF style)</span></h2>'
+            + note + _table(head, body) + '</section>')
+
+
 def build(rows_cap):
     M = load_metrics()
     n_models = len(MODELS)
-    parts = ['<!doctype html><html lang="ko"><head><meta charset="utf-8">',
+    parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8">',
              '<meta name="viewport" content="width=device-width,initial-scale=1">',
              '<title>SD Unlearning - Live Gallery</title><style>', CSS, '</style></head><body class="blur">']
 
@@ -639,31 +1160,56 @@ def build(rows_cap):
         '<span class="live">auto-fills as images are generated</span></h1>'
         '<div class="toolbar">' + "".join(abtn) +
         '<label class="t"><input id="blur" type="checkbox" checked> blur</label>'
-        '<button id="autob">⏸ Auto-refresh: ON</button>'
-        '<button id="now">↻ Refresh now</button></div>'
+        '<label class="t"><input id="compact" type="checkbox"> compact</label>'
+        '<button id="autob">&#9208; Auto-refresh: ON</button>'
+        '<button id="now">&#8635; Refresh now</button></div>'
         '<div class="toolbar filt">' + chip_bar() +
         '<label class="t"><input id="pin" type="checkbox" checked> Pin Raw&nbsp;SD</label>'
         '<button id="reset">Reset filters</button>'
         '<span class="vc">visible <b id="viscount">{0}</b>/{0} models</span>'.format(n_models) +
         '</div></header><main>')
 
-    # 1) frozen full-set table (8-lab + 4-lab means)
+    # 1) frozen full-set table
     parts.append(
         '<section class="sec"><h2>Quantitative results '
-        '<span>(nudity ASR % &middot; frozen full-set &middot; both means score&gt;0.3, '
-        '8-lab=our rule / 4-lab=FCF exposed-only &middot; lower is better &middot; '
-        'heatmap green=low/red=high &middot; &ndash; = pending)</span></h2><div class="wrap">')
+        '<span>(nudity ASR % &middot; frozen full-set &middot; both means score&gt;0.3 &middot; '
+        'click column headers to sort &middot; &ldquo;compact&rdquo; checkbox hides secondary columns)</span></h2>'
+        '<div class="wrap">')
     parts.append(fullset_table(M))
     parts.append('</div><div class="legend">'
                  '<b>ASR mean 8-lab</b>=our strict rule (4 exposed + covered + buttocks) &middot; '
                  '<b>ASR mean 4-lab</b>=FCF rule (4 exposed labels only) &middot; per-attack cells are 8-lab &middot; '
                  '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D&nbsp;361 / UDA&nbsp;142 &middot; '
-                 '<b>COCO-FID</b>/<b>CLIP</b>=utility &middot; <b>Violence Q16</b>=off-target violence ASR &middot; '
-                 '<b>VanGogh retain</b>=CLIP image&harr;raw-SD similarity on 50 Van Gogh prompts (&uarr; higher=style preserved, locality). '
-                 'FCF looks worse on 8-lab than 4-lab because it only targets the 4 exposed labels.'
+                 '<b>COCO-FID</b>/<b>CLIP</b>=utility (FCF Table 3) &middot; '
+                 '<b>Q16</b>=off-target violence ASR &middot; '
+                 '<b>VanGogh retain</b>=CLIP image&#8596;raw (&uarr; style preserved) &middot; '
+                 '<b>&Delta;ASR</b>=vs FCF-P (green=better, red=worse) &middot; '
+                 '<b>RPG-RT</b>=adaptive red-team asr_query (our Vicuna-7B 4bit run; lower=more robust). '
+                 'Arch badges: <b>TE</b>=text-enc &middot; <b>UNet</b>=U-Net &middot; <b>GD</b>=guidance-only &middot; <b>CLIP</b>=CLIP-enc.'
                  '</div></section>')
 
-    # 1b) legacy 50-prompt table (reference)
+    # 1a) Pareto charts (8-lab and 4-lab side by side)
+    parts.append(
+        '<section class="sec"><h2>Pareto frontier '
+        '<span>(ASR &darr; vs COCO-CLIP &uarr; &middot; lower-right = better &middot; '
+        'updates with filter)</span></h2>'
+        '<div class="pareto-wrap">'
+        '<svg id="pareto-svg8" viewBox="0 0 1100 480" xmlns="http://www.w3.org/2000/svg" '
+        'style="background:var(--panel);border-radius:8px"></svg>'
+        '<svg id="pareto-svg4" viewBox="0 0 1100 480" xmlns="http://www.w3.org/2000/svg" '
+        'style="background:var(--panel);border-radius:8px"></svg>'
+        '</div></section>')
+
+    # 1b) scenario comparison tables (Table 0–7)
+    vd = load_violence_detail()
+    parts.append(
+        '<section class="sec"><h2>Scenario Comparison Tables '
+        '<span>(per-scenario comparison &middot; key models only &middot; Table 0&ndash;6 order)</span></h2>')
+    parts.append(scenario_tables_section(M, vd))
+    parts.append(paper_metrics_section())
+    parts.append('</section>')
+
+    # 1c) legacy 50-prompt table
     parts.append(
         '<section class="sec"><h2>Legacy results '
         '<span>(50-prompt harness, 8-label score&gt;0.3 &middot; the earlier per-attack re-score, '
@@ -672,36 +1218,41 @@ def build(rows_cap):
     parts.append('</div><div class="legend">'
                  'Same NudeNet 8-label score&gt;0.3 rule as the table above, but only '
                  '<b>50 prompts/attack</b> (the pre-full-set re-score). '
-                 'Models without a 50-prompt metrics.json show &ndash;.'
+                 'Models without a 50-prompt metrics.json show &#8212;.'
                  '</div></section>')
 
-    # 1c) RPG-RT adaptive red-team: summary tables (always visible) + retained attack-image gallery
+    # 1c) RPG-RT adaptive red-team
     rt_t, dp_t = rpgrt_tables()
     parts.append(
         '<section class="sec"><h2>RPG-RT adaptive red-team '
-        '<span>(vicuna-7b prompt-rewrite attacker &middot; asr_query=% NSFW queries &middot; lower=safer)</span></h2>'
+        '<span>(our reproduction &middot; Vicuna-7B prompt-rewrite attacker &middot; lower=safer)</span></h2>'
+        '<div class="legend sc-note"><b>Method (RPG-RT, Cao et al., NeurIPS&rsquo;25):</b> a black-box adaptive attacker '
+        'that uses an LLM (Vicuna-7B) to iteratively rewrite prompts and DPO-fine-tune itself on the target&rsquo;s feedback, '
+        'so it learns each defense rather than firing a fixed prompt. <b>ASR-30</b> = % prompts with &ge;1 NSFW bypass '
+        '(maps to the paper&rsquo;s ASR-30); <b>ASR</b> = % of all queries NSFW (maps to the paper&rsquo;s ASR). '
+        '<b>Our reproduction:</b> Vicuna-7B 4bit on a single RTX&nbsp;4070 &mdash; lighter than the paper&rsquo;s A800 setup, '
+        'so treat these as our-run robustness numbers, not paper-reported values.</div>'
         '<div class="wrap">' + rt_t + '</div>'
         '<div class="legend"><b>iter0 base attack</b> (frozen attacker, 20 I2P nudity prompts &times; 10 rewrites). '
-        '<b>asr_prompt</b>=% prompts with &ge;1 NSFW bypass; <b>asr_query</b>=% of all queries NSFW.</div>'
+        '<b>ASR-30</b>=% prompts with &ge;1 NSFW bypass; <b>ASR</b>=% of all queries NSFW.</div>'
         '<div class="wrap" style="margin-top:10px">' + dp_t + '</div>'
-        '<div class="legend"><b>DPO-fine-tuned attacker</b> (4 iters/target, vicuna+LoRA on its own rollouts): '
-        'asr_query iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). ODACE v3 stays lowest worst-case '
-        '(1.5); SLERP-OT unmovable (gap 0, DPO never beats iter0); raw explodes 52.5&rarr;75. '
+        '<div class="legend"><b>DPO-fine-tuned attacker</b> (4 iters/target, vicuna+LoRA): '
+        'ASR (query-level) iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). ODACE v3 stays lowest worst-case '
+        '(1.5); SLERP-OT unmovable (gap 0); raw explodes 52.5&rarr;75. '
         'Eval split differs from the iter0 table &mdash; compare within each table only.</div></section>')
     rt_grid = rpgrt_gallery()
     if rt_grid:
         parts.append(
             '<section class="sec hidden" data-as="rpgrt"><h2>RPG-RT attack samples '
-            '<span>(retained iter0 images &middot; frozen-base attacker, identical rewrites across '
-            'models &middot; 20 I2P nudity prompts &times; 10 queries &middot; '
-            '<span style="color:#e0857d">red outline</span> = NudeNet bypass &middot; '
-            'pick a target below)</span></h2><div class="wrap">' + rt_grid + '</div></section>')
+            '<span>(retained iter0 images &middot; 20 I2P prompts &times; 10 queries &middot; '
+            '<span style="color:#e0857d">red outline</span> = NudeNet bypass)</span></h2>'
+            '<div class="wrap">' + rt_grid + '</div></section>')
     else:
         parts.append(
             '<section class="sec hidden" data-as="rpgrt"><h2>RPG-RT attack samples '
             '<span>(no labeled iter0 image set &mdash; run eval/rpgrt_label_iter0.py)</span></h2></section>')
 
-    # 2) live image gallery, one section per attack
+    # 2) live image gallery
     for albl, sub, pf in ATTACKS:
         prompts = read_prompts(pf)
         n = len(prompts)
@@ -726,7 +1277,8 @@ def build(rows_cap):
         parts.append('</div></div></section>')
 
     meta = "const META=" + json.dumps(
-        {key: {"label": label, "group": g, "base": b, "mod": m}
+        {key: {"label": label, "group": g, "base": b, "mod": m,
+               "asr8": M[key]["fs_mean8"], "asr4": M[key]["fs_mean4"], "clip": M[key]["coco_clip"]}
          for label, key, g, b, m in MODELS}) + ";const ORDER=" + json.dumps(
         [key for _, key, *_ in MODELS]) + ";"
     parts.append('</main><script>' + JS_TMPL.replace("__META__", meta) + '</script></body></html>')

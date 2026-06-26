@@ -7,140 +7,180 @@
       "style_img2raw": 1.0,
       "style_clip_text": 0.2572,
       "delta_text_vs_raw": 0.0,
-      "style_lpips_f": 0.0
+      "style_lpips_f": 0.0,
+      "style_lpips_u": 0.0,
+      "style_lpips_d": 0.0
     },
     "fcf_p_official": {
       "n": 50,
       "style_img2raw": 0.8685,
       "style_clip_text": 0.2419,
       "delta_text_vs_raw": -0.0153,
-      "style_lpips_f": 0.5046
+      "style_lpips_f": 0.5046,
+      "style_lpips_u": 0.5061,
+      "style_lpips_d": -0.0015
     },
     "fcf_e_official": {
       "n": 50,
       "style_img2raw": 0.9185,
       "style_clip_text": 0.2487,
       "delta_text_vs_raw": -0.0085,
-      "style_lpips_f": 0.4254
+      "style_lpips_f": 0.4254,
+      "style_lpips_u": 0.4562,
+      "style_lpips_d": -0.0308
     },
     "odace_v3": {
       "n": 50,
       "style_img2raw": 0.9094,
       "style_clip_text": 0.2586,
       "delta_text_vs_raw": 0.0014,
-      "style_lpips_f": 0.394
+      "style_lpips_f": 0.394,
+      "style_lpips_u": 0.5253,
+      "style_lpips_d": -0.1313
     },
     "odace_v15": {
       "n": 50,
       "style_img2raw": 0.7905,
       "style_clip_text": 0.2318,
       "delta_text_vs_raw": -0.0253,
-      "style_lpips_f": 0.608
+      "style_lpips_f": 0.608,
+      "style_lpips_u": 0.6263,
+      "style_lpips_d": -0.0183
     },
     "safe_neg": {
       "n": 50,
       "style_img2raw": 0.9278,
       "style_clip_text": 0.259,
       "delta_text_vs_raw": 0.0018,
-      "style_lpips_f": 0.4016
+      "style_lpips_f": 0.4016,
+      "style_lpips_u": 0.4486,
+      "style_lpips_d": -0.047
     },
     "sph_ot": {
       "n": 50,
       "style_img2raw": 0.8703,
       "style_clip_text": 0.2462,
       "delta_text_vs_raw": -0.011,
-      "style_lpips_f": 0.5058
+      "style_lpips_f": 0.5058,
+      "style_lpips_u": 0.4872,
+      "style_lpips_d": 0.0186
     },
     "lsse_plu_w2": {
       "n": 50,
       "style_img2raw": 0.5522,
       "style_clip_text": 0.1701,
       "delta_text_vs_raw": -0.0871,
-      "style_lpips_f": 0.6857
+      "style_lpips_f": 0.6857,
+      "style_lpips_u": 0.6536,
+      "style_lpips_d": 0.0321
     },
     "esd_u": {
       "n": 50,
       "style_img2raw": 0.9304,
       "style_clip_text": 0.2585,
       "delta_text_vs_raw": 0.0014,
-      "style_lpips_f": 0.3593
+      "style_lpips_f": 0.3593,
+      "style_lpips_u": 0.4116,
+      "style_lpips_d": -0.0523
     },
     "lsse_plu": {
       "n": 50,
       "style_img2raw": 0.5687,
       "style_clip_text": 0.1758,
       "delta_text_vs_raw": -0.0813,
-      "style_lpips_f": 0.6795
+      "style_lpips_f": 0.6795,
+      "style_lpips_u": 0.6579,
+      "style_lpips_d": 0.0216
     },
     "safeclip": {
       "n": 50,
       "style_img2raw": 0.9399,
       "style_clip_text": 0.2568,
       "delta_text_vs_raw": -0.0003,
-      "style_lpips_f": 0.3426
+      "style_lpips_f": 0.3426,
+      "style_lpips_u": 0.3799,
+      "style_lpips_d": -0.0373
     },
     "sld_max": {
       "n": 50,
       "style_img2raw": 0.9195,
       "style_clip_text": 0.2569,
       "delta_text_vs_raw": -0.0003,
-      "style_lpips_f": 0.4078
+      "style_lpips_f": 0.4078,
+      "style_lpips_u": 0.4492,
+      "style_lpips_d": -0.0414
     },
     "vanilla_lsse": {
       "n": 50,
       "style_img2raw": 0.9184,
       "style_clip_text": 0.2511,
       "delta_text_vs_raw": -0.006,
-      "style_lpips_f": 0.4076
+      "style_lpips_f": 0.4076,
+      "style_lpips_u": 0.5165,
+      "style_lpips_d": -0.1089
     },
     "dace_v2": {
       "n": 50,
       "style_img2raw": 0.9247,
       "style_clip_text": 0.2546,
       "delta_text_vs_raw": -0.0025,
-      "style_lpips_f": 0.3745
+      "style_lpips_f": 0.3745,
+      "style_lpips_u": 0.4763,
+      "style_lpips_d": -0.1018
     },
     "sd21base": {
       "n": 50,
       "style_img2raw": 0.8919,
       "style_clip_text": 0.2505,
       "delta_text_vs_raw": -0.0066,
-      "style_lpips_f": 0.5328
+      "style_lpips_f": 0.5328,
+      "style_lpips_u": 0.4983,
+      "style_lpips_d": 0.0345
     },
     "odace_v2": {
       "n": 50,
       "style_img2raw": 0.955,
       "style_clip_text": 0.2575,
       "delta_text_vs_raw": 0.0003,
-      "style_lpips_f": 0.2337
+      "style_lpips_f": 0.2337,
+      "style_lpips_u": 0.3065,
+      "style_lpips_d": -0.0728
     },
     "sld_strong": {
       "n": 50,
       "style_img2raw": 0.9413,
       "style_clip_text": 0.2566,
       "delta_text_vs_raw": -0.0006,
-      "style_lpips_f": 0.2935
+      "style_lpips_f": 0.2935,
+      "style_lpips_u": 0.3479,
+      "style_lpips_d": -0.0544
     },
     "raw_v15": {
       "n": 50,
       "style_img2raw": 0.9323,
       "style_clip_text": 0.2555,
       "delta_text_vs_raw": -0.0016,
-      "style_lpips_f": 0.3784
+      "style_lpips_f": 0.3784,
+      "style_lpips_u": 0.3788,
+      "style_lpips_d": -0.0004
     },
     "sld_medium": {
       "n": 50,
       "style_img2raw": 0.9581,
       "style_clip_text": 0.2567,
       "delta_text_vs_raw": -0.0005,
-      "style_lpips_f": 0.2053
+      "style_lpips_f": 0.2053,
+      "style_lpips_u": 0.2275,
+      "style_lpips_d": -0.0222
     },
     "dace_plu": {
       "n": 50,
       "style_img2raw": 0.9279,
       "style_clip_text": 0.2552,
       "delta_text_vs_raw": -0.002,
-      "style_lpips_f": 0.3531
+      "style_lpips_f": 0.3531,
+      "style_lpips_u": 0.4973,
+      "style_lpips_d": -0.1442
     },
     "lsse_mc_nvg": {
       "n": 50,
@@ -189,21 +229,27 @@
       "style_img2raw": 0.643,
       "style_clip_text": 0.2104,
       "delta_text_vs_raw": -0.0468,
-      "style_lpips_f": 0.6644
+      "style_lpips_f": 0.6644,
+      "style_lpips_u": 0.6084,
+      "style_lpips_d": 0.056
     },
     "lsse_r2q_a": {
       "n": 50,
       "style_img2raw": 0.6924,
       "style_clip_text": 0.2239,
       "delta_text_vs_raw": -0.0333,
-      "style_lpips_f": 0.6522
+      "style_lpips_f": 0.6522,
+      "style_lpips_u": 0.5965,
+      "style_lpips_d": 0.0557
     },
     "lsse_r2q_ab": {
       "n": 50,
       "style_img2raw": 0.8306,
       "style_clip_text": 0.2467,
       "delta_text_vs_raw": -0.0104,
-      "style_lpips_f": 0.5576
+      "style_lpips_f": 0.5576,
+      "style_lpips_u": 0.5734,
+      "style_lpips_d": -0.0158
     },
     "lsse_r2q_violence": {
       "n": 50,

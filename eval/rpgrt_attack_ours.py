@@ -55,6 +55,12 @@ UNET_DIRS = {
 TE_DIRS = {
     "fcf_p_official": "models/fcf/official_fcf_p/final",
     "sph_ot":         "models/novel/outputs/fcf_p_v2_nudity_spherical_ot/final",
+    # RPG-RT fill (all SD1.4 TE-swap, so the SD14-base pipe above is faithful): our novel LSSE
+    # flagship/variants + FCF-E, missing from the original iter0 8-model roster.
+    "fcf_e_official":   "models/fcf/official_fcf_e/final",
+    "lsse_capcnp_zero": "models/lsse/outputs/lsse_capcnp_zero/final",
+    "lsse_r2q_a":       "models/lsse/outputs/lsse_r2q_a/final",
+    "lsse_r2q_ab":      "models/lsse/outputs/lsse_r2q_ab/final",
 }
 
 
