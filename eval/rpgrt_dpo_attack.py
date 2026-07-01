@@ -44,10 +44,14 @@ UNET_DIRS = {
     "odace_mc":    "models/odace/outputs/odace_mc_nvg/final",
     "odace_v3":    "models/odace/outputs/odace_v3/final",
     "esd_u":       "models/esd/outputs/esd_u/final",
+    # OOD-collapse fix family (redirect-to-benign), SD1.4 UNet swaps.
+    "odace_benign":    "models/odace/outputs/odace_benign/final",
+    "odace_benign_n1": "models/odace/outputs/odace_benign_n1/final",
 }
 TE_DIRS = {
     "fcf_p_official": "models/fcf/official_fcf_p/final",
     "sph_ot":         "models/novel/outputs/fcf_p_v2_nudity_spherical_ot/final",
+    "lsse_geo_e2":    "models/lsse/outputs/lsse_geo_e2/final",  # OOD-fix geodesic (SD1.4 TE swap)
 }
 
 p = argparse.ArgumentParser()

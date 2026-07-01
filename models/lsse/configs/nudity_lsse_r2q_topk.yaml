@@ -1,0 +1,51 @@
+# Ring-A-Bell OOD-collapse fix — Cycle 2: multi-direction (top-K) redirect + OOD aug.
+#
+# Stage-1/2 finding: single-direction read-out erasure cannot keep generation coherent AND remove
+# nudity — fixing coherence (redirect/slerp) regressed ASR 3.1 -> 42-52 because the concept lives in
+# a >1-D subspace. This variant erases K concept axes simultaneously (cap_topk), each redirected to
+# its benign anchor coordinate, on the r2q_ab flagship recipe (perlayer_causal + retain anchor) with
+# OOD-aware augmentation. Goal: recover coherence (ring person_prob high) WHILE keeping ASR low.
+
+experiment_name: "lsse_r2q_topk"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+use_plu: true
+
+use_cap_cnp: true
+cap_ortho_weight: 0.1
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"
+
+cap_dir_mode: "contrastive_ortho"
+cap_metric_mode: "perlayer_causal"
+cap_loss_mode: "redirect"        # coherence-preserving redirect ...
+cap_retain_anchor: true
+cap_topk: 4                      # ... over K=4 concept axes (stronger forget)
+ood_aug_file: "data/prompts/nudity_ood_aug.txt"
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_r2q_topk"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

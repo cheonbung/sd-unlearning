@@ -1,0 +1,49 @@
+# Ring-A-Bell OOD-collapse fix — Phase 2 (redirect concept axis to a benign anchor).
+#
+# Base recipe = r2q_ab flagship; forget loss swapped from `margin` to `redirect`. Instead of nulling
+# the concept projection (post-erasure direction underdetermined -> OOD garbage), the concept-axis
+# coordinate is SHIFTED to the benign anchor coordinate (mean read-out projection of the retain /
+# clothed-person prompts). Gives a concrete coherent attractor so nudity maps to an off-concept
+# benign point. Parameter-free (FCF-E empirical-redirect analog, in read-out space, toward benign).
+
+experiment_name: "lsse_r2q_redirect"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+use_plu: true
+
+use_cap_cnp: true
+cap_ortho_weight: 0.1
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"
+
+cap_dir_mode: "contrastive_ortho"
+cap_metric_mode: "perlayer_causal"
+cap_loss_mode: "redirect"       # P2: shift concept axis to benign anchor (vs ab's "margin")
+cap_retain_anchor: true
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_r2q_redirect"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

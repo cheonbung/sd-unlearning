@@ -249,6 +249,76 @@ def cnp_loss_margin(
     return loss_proj + ortho_weight * loss_orth
 
 
+def cnp_loss_slerp(
+    z_current: torch.Tensor,
+    z_frozen: torch.Tensor,
+    concept_dir: torch.Tensor,
+) -> torch.Tensor:
+    """Ring-A-Bell OOD-collapse fix — Phase 1: norm-preserving (manifold) erasure.
+
+    Diagnosis: `margin` mode drives proj²→0 but leaves the read-out *magnitude* free, so on OOD
+    high-norm gibberish tokens the conditioning rotates into a degenerate low/zero-energy direction
+    and the UNet decodes garbage (no human). sph_ot (SLERP, on-sphere) never collapses → the clue.
+    Fix: target = frozen read-out with the concept component removed, then RENORMALIZED back to the
+    frozen per-sample read-out norm. Erases the concept DIRECTION while pinning the read-out energy
+    ‖R‖²=cᵀMc to its frozen value (stay on the same sphere radius) → no magnitude collapse.
+
+    Args:
+        z_current: (B, L, D) current encoder read-out embeddings (caller already applied M^½).
+        z_frozen:  (B, L, D) frozen encoder read-out embeddings (no_grad).
+        concept_dir: (L, D) unit-normalized read-out concept direction. Fixed.
+    Returns:
+        scalar MSE loss to the norm-preserved concept-removed target.
+    """
+    B = z_current.shape[0]
+    c = concept_dir.detach().reshape(-1)
+    c = c / (c.norm() + 1e-12)
+    zf = z_frozen.detach().reshape(B, -1)                 # (B, L*D)
+    proj_f = zf @ c                                        # (B,)
+    tgt = zf - proj_f.unsqueeze(1) * c.unsqueeze(0)        # concept removed
+    tgt = tgt * (zf.norm(dim=1, keepdim=True) / (tgt.norm(dim=1, keepdim=True) + 1e-12))
+    zc = z_current.reshape(B, -1)
+    return F.mse_loss(zc, tgt)
+
+
+def cnp_loss_redirect(
+    z_current: torch.Tensor,
+    z_frozen: torch.Tensor,
+    concept_dir: torch.Tensor,
+    anchor_coord: float,
+    strength: float = 1.0,
+) -> torch.Tensor:
+    """Ring-A-Bell OOD-collapse fix — Phase 2/3: redirect concept axis to a benign anchor.
+
+    Diagnosis: erasing "to 0" leaves the post-erasure direction underdetermined; on OOD tokens the
+    model picks a degenerate (non-human) direction. Fix: instead of nulling the concept projection,
+    SHIFT the concept-axis coordinate from its current value to the benign anchor's coordinate
+    (mean read-out projection of safe/clothed-person prompts), leaving every off-concept component
+    at its frozen value:  target = z_frozen + (anchor_coord − proj_f)·ĉ. This gives a concrete
+    benign attractor, so nudity (and OOD gibberish, when fed through this loss) maps to a coherent
+    off-concept point rather than collapsing. Parameter-free (FCF-E empirical-redirect analog in
+    read-out space, toward a benign concept instead of noise).
+
+    Args:
+        z_current: (B, L, D) current read-out embeddings (caller applied M^½).
+        z_frozen:  (B, L, D) frozen read-out embeddings (no_grad).
+        concept_dir: (L, D) unit-normalized read-out concept direction. Fixed.
+        anchor_coord: benign target coordinate along ĉ (precomputed scalar). Fixed.
+    Returns:
+        scalar MSE loss to the redirected target.
+    """
+    B = z_current.shape[0]
+    c = concept_dir.detach().reshape(-1)
+    c = c / (c.norm() + 1e-12)
+    zf = z_frozen.detach().reshape(B, -1)                 # (B, L*D)
+    proj_f = zf @ c                                        # (B,)
+    # strength>1 = OVERSHOOT past the benign anchor toward the anti-concept side (FCF-P-style strong
+    # projection): land at proj_f + strength*(anchor-proj_f). strength=1 -> benign mean (under-erases).
+    target = zf + strength * (anchor_coord - proj_f).unsqueeze(1) * c.unsqueeze(0)
+    zc = z_current.reshape(B, -1)
+    return F.mse_loss(zc, target)
+
+
 # --- Parameter-free concept-discriminative directions (S1/S2/S3) ----------------------------------
 # These make erasure concept-SPECIFIC (forget-vs-retain) instead of max-variance, expanding the
 # Pareto frontier (lower ASR at same utility) WITHOUT any tunable λ/β knob. Caller passes embeddings
@@ -326,3 +396,144 @@ def compute_concept_direction_whitened(
     cdir = delta @ Sinv                                       # (L,D)@(D,D); Sinv symmetric
     flat = cdir.reshape(-1)
     return (flat / (flat.norm() + 1e-12)).reshape(L, D)
+
+
+@torch.no_grad()
+def _geodesic_away(z_flat: torch.Tensor, c_unit: torch.Tensor, eta: float,
+                   eps: float = 1e-6) -> torch.Tensor:
+    """Rotate each row of z_flat AWAY from the concept point c_unit along the sphere geodesic.
+
+    Manifold-preserving erasure (the sph_ot ingredient the linear redirect/overshoot lacked):
+    treat each embedding as a point on the sphere of its own radius, log-map toward the concept
+    point, step −eta along that tangent (away from concept), exp-map back, rescale to original norm.
+    Stays ON the manifold (no off-cone collapse) while reducing concept alignment. Batched.
+
+    Args:
+        z_flat: (B, N) embeddings (flattened L*D), any radius.
+        c_unit: (N,) UNIT concept point on the sphere.
+        eta:    geodesic step size (fraction of the log-map magnitude; >1 rotates further away).
+    Returns:
+        (B, N) rotated embeddings at the original per-row norm.
+    """
+    znorm = z_flat.norm(dim=1, keepdim=True)                       # (B,1)
+    u = z_flat / (znorm + eps)                                     # (B,N) unit
+    cos = (u @ c_unit).clamp(-1.0 + eps, 1.0 - eps)               # (B,)
+    theta = torch.acos(cos)                                        # (B,)
+    sin = torch.sin(theta)
+    log_uc = (c_unit.unsqueeze(0) - cos.unsqueeze(1) * u) * (theta / (sin + eps)).unsqueeze(1)
+    step = -eta * log_uc                                           # away from concept
+    sn = step.norm(dim=1, keepdim=True)                            # (B,1)
+    new_u = torch.cos(sn) * u + torch.sin(sn) * (step / (sn + eps))
+    out = new_u * znorm
+    degenerate = (sin.unsqueeze(1) < eps) | (sn < eps)            # leave untouched if ill-defined
+    return torch.where(degenerate, z_flat, out)
+
+
+def cnp_loss_geodesic(
+    z_current: torch.Tensor,
+    z_frozen: torch.Tensor,
+    concept_dir: torch.Tensor,
+    eta: float = 1.0,
+) -> torch.Tensor:
+    """Manifold-preserving (geodesic) erasure loss — the sph_ot mechanism inside LSSE.
+
+    Target = frozen embedding rotated AWAY from the concept direction along the sphere geodesic by
+    step eta (norm preserved). MSE the current embedding toward it. Unlike linear redirect/overshoot
+    (which leaves the cone and collapses generation), the geodesic stays on-manifold → erase without
+    collapse. Caller may pass read-out (M^½) or raw embeddings; concept_dir lives in the same space.
+
+    Args:
+        z_current: (B, L, D) current embeddings (grad).
+        z_frozen:  (B, L, D) frozen embeddings (no_grad).
+        concept_dir: (L, D) unit concept direction (same space). Used as the sphere point to rotate from.
+        eta: geodesic step size.
+    Returns:
+        scalar MSE to the geodesic-cleaned target.
+    """
+    B = z_current.shape[0]
+    c = concept_dir.detach().reshape(-1)
+    c = c / (c.norm() + 1e-12)
+    zf = z_frozen.detach().reshape(B, -1)
+    target = _geodesic_away(zf, c, eta)
+    return F.mse_loss(z_current.reshape(B, -1), target)
+
+
+def cnp_loss_geodesic_multi(
+    z_current: torch.Tensor,
+    z_frozen: torch.Tensor,
+    concept_points: torch.Tensor,
+    eta: float = 1.0,
+) -> torch.Tensor:
+    """Multi-direction geodesic erasure: sequentially rotate the frozen embedding AWAY from each of
+    K concept points on the sphere, then MSE the current embedding toward the result.
+
+    The concept lives in a >1-D subspace; rotating away from K axes (not just the mean) removes more
+    of it per unit coherence loss, aiming to push the geodesic Pareto curve PAST sph_ot. Each step is
+    on-manifold (norm preserved), so the composition stays coherent (no collapse).
+
+    Args:
+        z_current: (B, L, D) current embeddings (grad).
+        z_frozen:  (B, L, D) frozen embeddings (no_grad).
+        concept_points: (K, L, D) concept directions/means (same space).
+        eta: per-axis geodesic step.
+    Returns:
+        scalar MSE to the K-times geodesic-cleaned target.
+    """
+    B = z_current.shape[0]
+    with torch.no_grad():
+        target = z_frozen.detach().reshape(B, -1)
+        for k in range(concept_points.shape[0]):
+            c = concept_points[k].detach().reshape(-1)
+            c = c / (c.norm() + 1e-12)
+            target = _geodesic_away(target, c, eta)
+    return F.mse_loss(z_current.reshape(B, -1), target)
+
+
+@torch.no_grad()
+def compute_concept_directions_contrastive_ortho(
+    explicit: torch.Tensor, retain: torch.Tensor, top_k: int
+) -> torch.Tensor:
+    """Top-K concept-specific directions in the given (read-out) space — multi-direction erasure.
+
+    Single-direction read-out erasure cannot remove nudity while keeping generation coherent (the
+    concept lives in a >1-D subspace; nulling one axis leaves the rest, so coherent nudity returns).
+    This returns K mutually-orthonormal, retain-orthogonal concept axes:
+      dir 0     = contrastive mean (mean_explicit − mean_retain), orthogonalized to retain span
+                  (the dominant forget axis; retain projects low, explicit high).
+      dir 1..K-1 = top right-singular vectors of the centered explicit residual AFTER removing the
+                  retain span and the already-chosen dirs (extra concept-variance axes). Each unit
+                  norm and Gram-Schmidt-orthogonalized against the prior dirs. Parameter-free besides K.
+
+    Args:
+        explicit: (Ne, L, D) frozen explicit read-out embeddings (already M^½-transformed by caller).
+        retain:   (Nr, L, D) frozen retain read-out embeddings (same space).
+        top_k:    number of concept directions to return (>=1).
+    Returns:
+        dirs: (K, L, D) with K = min(top_k, available); orthonormal in the flattened L*D space.
+    """
+    L, D = explicit.shape[1], explicit.shape[2]
+    d0 = orthogonalize_direction(
+        compute_concept_direction_contrastive(explicit, retain), retain)   # (L, D)
+    dirs = [d0.reshape(-1)]
+    if top_k > 1:
+        E = explicit.reshape(explicit.shape[0], -1)
+        E = E - E.mean(dim=0, keepdim=True)
+        R = retain.reshape(retain.shape[0], -1)
+        R = R - R.mean(dim=0, keepdim=True)
+        _, S, Vt = torch.linalg.svd(R, full_matrices=False)
+        if S.numel() > 0:
+            B = Vt[S > (S.max() * 1e-5)]                                    # retain orthonormal basis
+            if B.shape[0] > 0:
+                E = E - (E @ B.t()) @ B                                     # remove retain span
+        for d in dirs:                                                      # remove dir0 component
+            E = E - (E @ d).unsqueeze(1) * d.unsqueeze(0)
+        _, _, Vt2 = torch.linalg.svd(E, full_matrices=False)
+        for i in range(min(top_k - 1, Vt2.shape[0])):
+            v = Vt2[i]
+            for d in dirs:                                                  # Gram-Schmidt vs prior
+                v = v - (v @ d) * d
+            n = v.norm()
+            if n < 1e-8:
+                continue
+            dirs.append(v / n)
+    return torch.stack([d.reshape(L, D) for d in dirs], dim=0)             # (K, L, D)

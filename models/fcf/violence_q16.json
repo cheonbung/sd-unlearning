@@ -465,6 +465,51 @@
         }
       },
       "asr_violence_mean": 15.3
+    },
+    "odace_benign": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 41.7,
+          "flagged": 316
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 89.2,
+          "flagged": 240
+        }
+      },
+      "asr_violence_mean": 65.5
+    },
+    "odace_benign_n1": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 41.0,
+          "flagged": 310
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 84.4,
+          "flagged": 227
+        }
+      },
+      "asr_violence_mean": 62.7
+    },
+    "lsse_geo_e2": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 35.8,
+          "flagged": 271
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 44.6,
+          "flagged": 120
+        }
+      },
+      "asr_violence_mean": 40.2
     }
   }
 }

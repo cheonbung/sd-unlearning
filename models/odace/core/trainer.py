@@ -29,7 +29,9 @@ class ODACETrainer:
     def __init__(self, sd_model_id: str, device, learning_rate: float = 1e-5,
                  alpha: float = 1.0, beta: float = 1.0, eta: float = 1.0,
                  ddim_steps: int = 30, sample_guidance: float = 3.0,
-                 xattn_full: bool = False,
+                 xattn_full: bool = False, erase_mode: str = "negguide",
+                 benign_prompt: str = "a fully clothed person, photograph",
+                 benign_neg_lambda: float = 1.0,
                  batch_size: int = 1, max_length: int = 77, seed: int = 42, **_ignore):
         from diffusers import UNet2DConditionModel, DDIMScheduler
         from transformers import CLIPTextModel, CLIPTokenizer
@@ -39,6 +41,13 @@ class ODACETrainer:
         self.ddim_steps = ddim_steps
         self.sample_guidance = sample_guidance
         self.max_length = max_length
+        # erase target: "negguide" = ESD e_0-eta*(e_p-e_0) (push AWAY from concept; collapses on OOD);
+        # "benign_anchor" = redirect concept output toward a COHERENT benign prompt's output (sph_ot-style
+        # redirect-to-benign instead of push-away -> avoids OOD collapse). _c_benign encoded lazily.
+        self.erase_mode = erase_mode
+        self.benign_prompt = benign_prompt
+        self.benign_neg_lambda = benign_neg_lambda
+        self._c_benign = None
         random.seed(seed); torch.manual_seed(seed)
 
         self.tokenizer = CLIPTokenizer.from_pretrained(sd_model_id, subfolder="tokenizer")
@@ -77,6 +86,12 @@ class ODACETrainer:
         return self._uncond
 
     @torch.no_grad()
+    def _benign_emb(self):
+        if self._c_benign is None:
+            self._c_benign = self._encode([self.benign_prompt])
+        return self._c_benign
+
+    @torch.no_grad()
     def _sample_until(self, c_forget, t_enc_idx):
         """DDIM-denoise from noise with frozen UNET + forget prompt (CFG) for t_enc_idx steps.
         Returns (z_fp16, t_current) on the concept trajectory where text conditioning matters."""
@@ -108,7 +123,20 @@ class ODACETrainer:
             e_0 = self.unet_frozen(z, t_cur, encoder_hidden_states=c_un.half()).sample.float()
             e_p = self.unet_frozen(z, t_cur, encoder_hidden_states=c_f.half()).sample.float()
             e_r_fz = self.unet_frozen(z, t_cur, encoder_hidden_states=c_r.half()).sample.float()
-        target = (e_0 - self.eta * (e_p - e_0)).detach()  # negative-guidance: erase concept
+            if self.erase_mode in ("benign_anchor", "benign_neg"):
+                c_b = self._benign_emb()
+                e_b = self.unet_frozen(z, t_cur, encoder_hidden_states=c_b.half()).sample.float()
+        if self.erase_mode == "benign_anchor":
+            # redirect-to-benign: push the concept-prompt output toward a COHERENT clothed-person output
+            # (on the SAME concept-trajectory latent) instead of away from the concept -> no OOD collapse.
+            target = e_b.detach()
+        elif self.erase_mode == "benign_neg":
+            # hybrid: anchor to benign AND push lambda further from the concept-vs-benign direction.
+            # benign anchor keeps OOD coherent (no collapse); the extra term increases erasure. Trades
+            # benign_anchor's large coherence headroom (ring 0.99>>0.79) for lower 4-lab ASR.
+            target = (e_b - self.benign_neg_lambda * (e_p - e_b)).detach()
+        else:
+            target = (e_0 - self.eta * (e_p - e_0)).detach()  # negative-guidance: erase concept
 
         zf = z.float()
         self.optimizer.zero_grad()

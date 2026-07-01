@@ -42,12 +42,17 @@ from .cnp import (
     compute_concept_direction_token_selective,
     compute_concept_directions,
     compute_concept_direction_contrastive,
+    compute_concept_directions_contrastive_ortho,
     compute_concept_direction_whitened,
     orthogonalize_direction,
     cnp_loss,
     cnp_loss_ddf,
     cnp_loss_margin,
     cnp_loss_multi,
+    cnp_loss_slerp,
+    cnp_loss_redirect,
+    cnp_loss_geodesic,
+    cnp_loss_geodesic_multi,
 )
 from .csr import (
     csr_loss,
@@ -115,6 +120,8 @@ class LSSETrainer:
         cap_metric_mode: str = "kv",
         cap_loss_mode: str = "margin",
         cap_retain_anchor: bool = False,
+        cap_topk: int = 1,
+        cap_redirect_strength: float = 1.0,
     ):
         """
         Args:
@@ -169,6 +176,20 @@ class LSSETrainer:
         self.cap_loss_mode = cap_loss_mode      # margin (proj²+ortho anchor) | project (exact projection target, no overshoot)
         self.cap_retain_anchor = cap_retain_anchor  # A: pin retain embeddings in the SAME read-out metric
         self.cap_layer_weights: Optional[List[float]] = None  # B: per-layer concept-causality weights (parameter-free)
+        # OOD-collapse fix (cap_loss_mode="redirect"): benign anchor coordinate(s) along c_dir,
+        # precomputed from retain prompts. Scalar for single-metric, list[float] per-layer.
+        self.redirect_coord: Optional[float] = None
+        self.redirect_coords: Optional[List[float]] = None
+        # Multi-direction (top-K) read-out erasure: per-layer (K,L,D) dirs + per-layer K anchor coords.
+        # Active only when cap_topk>1 with perlayer metric (built in precompute_concept_direction).
+        self.cap_topk = max(1, int(cap_topk))
+        self.concept_dirs_list: Optional[List[torch.Tensor]] = None
+        self.redirect_coords_list: Optional[List[List[float]]] = None
+        # geodesic mode: per-layer explicit concept MEAN (read-out) = the sphere point to rotate away from.
+        self.concept_mean_list: Optional[List[torch.Tensor]] = None
+        # raw-space projection mechanism: cap_metric_mode="raw" sets M^1/2=I (erase in raw
+        # last_hidden_state, FCF-P space); cap_redirect_strength>1 OVERSHOOTS past the benign anchor.
+        self.cap_redirect_strength = float(cap_redirect_strength)
         self._clm_top_k = clm_top_k          # W5 동적 재랭킹용 보존
         # CAP-CNP: 동결 UNet cross-attn 읽기-공간 메트릭 M^{1/2} (1회 로드 후 UNet 폐기).
         # 개념 방향/erasure를 R = C·M^{1/2} 위에서 계산 → UNet이 보는 개념만 제거.
@@ -177,7 +198,13 @@ class LSSETrainer:
         self.M_sqrt_list: Optional[List[torch.Tensor]] = None
         self.concept_dir_list: Optional[List[torch.Tensor]] = None
         is_perlayer = cap_metric_mode in ("perlayer", "perlayer_causal", "perlayer_topk")
-        if use_cap_cnp:
+        if use_cap_cnp and cap_metric_mode == "raw":
+            # raw-space projection: M^1/2 = I → erase directly in raw last_hidden_state (FCF-P space),
+            # not the UNet read-out space. No UNet load needed.
+            D = text_encoder.config.hidden_size
+            self.M_sqrt = torch.eye(D, device=device, dtype=torch.float32)
+            logger.info(f"[CAP-CNP] raw-space mode: M^1/2 = I_{D} (erase in raw last_hidden_state)")
+        elif use_cap_cnp:
             # perlayer 계열은 동일한 레이어별 M^{1/2} 추출을 공유(가중만 다름) → "perlayer" 캐시 통일.
             cache_p = self._mode_cache_path(
                 cap_cache_path, "perlayer" if is_perlayer else cap_metric_mode
@@ -236,16 +263,29 @@ class LSSETrainer:
         raise ValueError(f"알 수 없는 cap_dir_mode: {mode}")
 
     def _cap_loss_one(self, z_cur_R: torch.Tensor, z_frozen_R: torch.Tensor,
-                      cdir: torch.Tensor) -> torch.Tensor:
+                      cdir: torch.Tensor, anchor_coord: Optional[float] = None) -> torch.Tensor:
         """단일 읽기-공간 erasure 손실.
 
         cap_loss_mode:
-          margin  — proj²→0 + 약한 직교 앵커 (W2). 경계 너머로 계속 미는 오버슈팅 가능.
-          project — 정확 사영 목표 P=I−ĉĉᵀ (cnp_loss_ddf). 직교 보완을 frozen에 고정,
-                    과회전 불가 → 일반 콘텐츠 보존(D3 해결).
+          margin   — proj²→0 + 약한 직교 앵커 (W2). 경계 너머로 계속 미는 오버슈팅 가능.
+          project  — 정확 사영 목표 P=I−ĉĉᵀ (cnp_loss_ddf). 직교 보완을 frozen에 고정,
+                     과회전 불가 → 일반 콘텐츠 보존(D3 해결).
+          slerp    — Ring-A-Bell OOD-collapse 수정 P1: 개념 제거 후 frozen 노름으로 재정규화
+                     (읽기-공간 에너지 보존 → OOD에서 방향 퇴화/garbage 방지).
+          redirect — OOD-collapse 수정 P2/3: 개념 축 좌표를 benign 앵커 좌표로 이동
+                     (0으로 소거 대신 구체적 benign 끌개 부여). anchor_coord 필요.
         """
         if self.cap_loss_mode == "project":
             return cnp_loss_ddf(z_cur_R, z_frozen_R, cdir)
+        if self.cap_loss_mode == "slerp":
+            return cnp_loss_slerp(z_cur_R, z_frozen_R, cdir)
+        if self.cap_loss_mode == "geodesic":   # manifold-preserving sphere rotation away from concept
+            return cnp_loss_geodesic(z_cur_R, z_frozen_R, cdir, self.cap_redirect_strength)
+        if self.cap_loss_mode == "redirect":
+            if anchor_coord is None:
+                raise ValueError("cap_loss_mode='redirect' requires a precomputed anchor_coord")
+            return cnp_loss_redirect(z_cur_R, z_frozen_R, cdir, anchor_coord,
+                                     self.cap_redirect_strength)
         return cnp_loss_margin(z_cur_R, z_frozen_R, cdir, self.cap_ortho_weight)
 
     def _cap_margin_loss(self, z_cur: torch.Tensor, z_frozen: torch.Tensor) -> torch.Tensor:
@@ -260,16 +300,35 @@ class LSSETrainer:
         if self.M_sqrt_list is not None:
             w = self.cap_layer_weights
             terms = []
-            for i, (Mh, cdir) in enumerate(zip(self.M_sqrt_list, self.concept_dir_list)):
+            for i, Mh in enumerate(self.M_sqrt_list):
                 wi = 1.0 if w is None else float(w[i])
                 if wi <= 0.0:
                     continue
-                terms.append(wi * self._cap_loss_one(z_cur @ Mh, z_frozen @ Mh, cdir))
+                z_cR, z_fR = z_cur @ Mh, z_frozen @ Mh
+                if self.concept_dirs_list is not None:      # top-K: erasure over K dirs/layer
+                    dirs = self.concept_dirs_list[i]
+                    if self.cap_loss_mode == "geodesic":    # sequential geodesic rotation away from K axes
+                        terms.append(wi * cnp_loss_geodesic_multi(
+                            z_cR, z_fR, dirs, self.cap_redirect_strength))
+                    else:
+                        coords = (self.redirect_coords_list[i]
+                                  if self.redirect_coords_list is not None
+                                  else [None] * dirs.shape[0])
+                        sub = sum(self._cap_loss_one(z_cR, z_fR, dirs[j], coords[j])
+                                  for j in range(dirs.shape[0]))
+                        terms.append(wi * sub)
+                elif self.cap_loss_mode == "geodesic":     # rotate away from per-layer concept MEAN
+                    terms.append(wi * self._cap_loss_one(z_cR, z_fR, self.concept_mean_list[i]))
+                else:
+                    cdir = self.concept_dir_list[i]
+                    coord = None if self.redirect_coords is None else self.redirect_coords[i]
+                    terms.append(wi * self._cap_loss_one(z_cR, z_fR, cdir, coord))
             if not terms:
                 return torch.tensor(0.0, device=z_cur.device)
             denom = float(len(terms)) if w is None else 1.0  # causal/topk weights already sum to 1
             return sum(terms) / denom
-        return self._cap_loss_one(z_cur @ self.M_sqrt, z_frozen @ self.M_sqrt, self.concept_dir)
+        return self._cap_loss_one(z_cur @ self.M_sqrt, z_frozen @ self.M_sqrt,
+                                  self.concept_dir, self.redirect_coord)
 
     def _cap_retain_anchor_loss(self, z_ret_cur: torch.Tensor,
                                 z_ret_frozen: torch.Tensor) -> torch.Tensor:
@@ -315,6 +374,41 @@ class LSSETrainer:
         logger.info(f"  [CAP-CNP] layer weights ({self.cap_metric_mode}): "
                     f"{nz}/{len(w)} active, top3={sorted(w, reverse=True)[:3]}")
         return w
+
+    @torch.no_grad()
+    def _compute_redirect_coords(self, ret_raw: Optional[torch.Tensor]) -> None:
+        """OOD-collapse fix P2/3: benign anchor coordinate(s) along c_dir from retain prompts.
+
+        anchor_coord = mean over retain prompts of ⟨retain read-out, ĉ⟩. The redirect loss shifts
+        each forget/implicit/OOD read-out's concept-axis coordinate to this benign value instead of
+        nulling it → a concrete coherent attractor (prevents OOD direction degeneration). Sets
+        self.redirect_coords (perlayer list) or self.redirect_coord (single).
+        """
+        if ret_raw is None:
+            raise ValueError("redirect mode needs retain prompts to set the benign anchor coord")
+
+        def _coord(R: torch.Tensor, cdir: torch.Tensor) -> float:
+            a = R.reshape(R.shape[0], -1)
+            cf = cdir.reshape(-1)
+            cf = cf / (cf.norm() + 1e-12)
+            return float((a @ cf).mean())
+
+        if self.concept_dirs_list is not None:           # top-K multi-direction per layer
+            self.redirect_coords_list = [
+                [_coord(ret_raw @ Mh, dirs[j]) for j in range(dirs.shape[0])]
+                for Mh, dirs in zip(self.M_sqrt_list, self.concept_dirs_list)
+            ]
+            logger.info(f"  [CAP-CNP] top-K redirect coords: {self.cap_topk}/layer")
+            return
+
+        if self.M_sqrt_list is not None:
+            self.redirect_coords = [_coord(ret_raw @ Mh, cdir)
+                                    for Mh, cdir in zip(self.M_sqrt_list, self.concept_dir_list)]
+            mean_c = sum(self.redirect_coords) / max(len(self.redirect_coords), 1)
+            logger.info(f"  [CAP-CNP] redirect anchor coords (perlayer): mean={mean_c:.4f}")
+        else:
+            self.redirect_coord = _coord(ret_raw @ self.M_sqrt, self.concept_dir)
+            logger.info(f"  [CAP-CNP] redirect anchor coord={self.redirect_coord:.4f}")
 
     def _setup_layer_masking(self, cap_json_path: Optional[str], top_k: int):
         if cap_json_path and Path(cap_json_path).exists():
@@ -394,9 +488,9 @@ class LSSETrainer:
         if self.use_cap_cnp:
             # 읽기-공간 R = C·M^{1/2} 에서 개념 방향 추출 (UNet이 보는 개념 축).
             ret_raw = None
-            if self.cap_dir_mode != "svd":
+            if self.cap_dir_mode != "svd" or self.cap_loss_mode == "redirect":
                 if not retain_prompts:
-                    raise ValueError("CAP-CNP dir_mode!=svd 에는 retain_prompts 필요")
+                    raise ValueError("CAP-CNP dir_mode!=svd / redirect 에는 retain_prompts 필요")
                 rz = [self._encode_frozen(retain_prompts[i:i + self.batch_size])
                       for i in range(0, len(retain_prompts), self.batch_size)]
                 ret_raw = torch.cat(rz, dim=0)
@@ -412,11 +506,27 @@ class LSSETrainer:
                 logger.info(f"  [CAP-CNP] per-layer 개념 방향 {len(self.concept_dir_list)}개 "
                             f"(dir_mode={self.cap_dir_mode}, metric={self.cap_metric_mode}, "
                             f"layer_w={'uniform' if self.cap_layer_weights is None else 'causal'})")
+                if self.cap_topk > 1:                       # multi-direction (top-K) read-out erasure
+                    if ret_raw is None:
+                        raise ValueError("cap_topk>1 (multi-direction) requires retain prompts")
+                    self.concept_dirs_list = [
+                        compute_concept_directions_contrastive_ortho(
+                            all_z_cat @ Mh, ret_raw @ Mh, self.cap_topk)
+                        for Mh in self.M_sqrt_list
+                    ]
+                    logger.info(f"  [CAP-CNP] top-K multi-dir: K={self.concept_dirs_list[0].shape[0]} "
+                                f"per layer x {len(self.concept_dirs_list)} layers")
+                if self.cap_loss_mode == "geodesic":        # per-layer explicit MEAN as geodesic anchor
+                    self.concept_mean_list = [(all_z_cat @ Mh).mean(dim=0) for Mh in self.M_sqrt_list]
+                    logger.info(f"  [CAP-CNP] geodesic mode: per-layer concept means x "
+                                f"{len(self.concept_mean_list)} (eta={self.cap_redirect_strength})")
             else:
                 ret_R = (ret_raw @ self.M_sqrt) if ret_raw is not None else None
                 self.concept_dir = self._cap_direction(all_z_cat @ self.M_sqrt, ret_R)
                 logger.info(f"  [CAP-CNP] R=C·M^1/2 개념 방향 "
                             f"(dir_mode={self.cap_dir_mode}, metric_mode={self.cap_metric_mode})")
+            if self.cap_loss_mode == "redirect":
+                self._compute_redirect_coords(ret_raw)
         elif self.use_multi_cnp:
             self.concept_dirs = compute_concept_directions(all_z_cat, self.num_concept_dirs)
             self.concept_dir = self.concept_dirs[0].clone()

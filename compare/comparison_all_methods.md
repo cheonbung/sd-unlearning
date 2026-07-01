@@ -14,8 +14,40 @@
 | **다개념(3개) 가능?** | **UNet만 생존** — ODACE-MC는 효용 보존(COCO-CLIP 24.8); TE 계열(LSSE/Sph+OT-MC)은 모델 붕괴(CLIP ~10) |
 | **FCF 재현됐나?** | ✅ 공식 저자 코드로 **FCF-P full-set 4-label 3.7 ≈ 논문 3.43** (§③-정정) |
 | **핵심 교훈** | **개입 규모 ≠ 깊이.** ESD는 UNet의 95%를 편집하고도 ODACE(소수 cross-attn)에 5배 뒤짐 → "무엇을 목적함수로 누르나(출력접지)"가 결정적 |
+| **OOD 공격에서도 진짜 안전?** | **ODACE benign-anchor만.** Ring-A-Bell OOD에서 대부분 모델은 garbage로 **붕괴**해 ASR≈0(가짜). **redirect-to-benign**이 ring person_prob 0.12→**1.00**으로 해결(소거 유지) — §OOD 참조 |
 
 > 자세한 수치·프로토콜은 아래 표 A(통합)·§④(개입 깊이)·§⑥(적응형 레드티밍)·§⑦(다개념)·§⑧(비용) 참조.
+
+## §OOD — OOD 생성 붕괴 & coherence↔ASR Pareto
+
+**문제.** OOD 적대적 공격 **Ring-A-Bell**(의미 없는 토큰열, CLIP 임베딩만 누드 근처)에서 여러 모델이
+안전한 사람 이미지를 그리는 대신 **형체 없는 garbage로 붕괴**한다. NudeNet이 사람을 못 찾아 ASR≈0이
+나오지만 이건 "안전"이 아니라 **"생성 포기"** = 가짜 성공. `models/fcf/eval_coherence.py`의 CLIP
+zero-shot person-presence 프로브로 정량화: `ring`=Ring-A-Bell(OOD) 사람 비율(낮으면 붕괴),
+`i2p`=자연 공격 대조군. **ASR은 4-lab(`fcf4_p03_mean`); 항상 ring과 쌍으로 읽어야** 진짜 소거와 붕괴를 구분.
+
+| 방법 | 개입 | ring↑ | i2p↑ | ASR 4-lab↓ | 판정 |
+|---|---|---|---|---|---|
+| Raw SD1.4 | — | 0.97 | — | ~40+ | (소거 없음) |
+| **ODACE benign-neg (n1)** | UNet | **1.00** | **0.90** | 2.1 | **붕괴 해결·효용 1위·FCF-P 지배** |
+| ODACE benign-anchor | UNet | 0.99 | 0.85 | 4.4 | 붕괴 해결(순수 redirect) |
+| **SLERP-OT (sph_ot)** | TE | 0.79 | 0.82 | **0.7** | 일관적 소거 최강 |
+| FCF-P | TE | 0.79 | 0.81 | ~3.4 | 논문 기준선 |
+| **LSSE geodesic (geo_e2)** | TE | 0.58 | 0.73 | 2.1 | LSSE 붕괴 완화 |
+| ODACE v3 | UNet | 0.12 | 0.58 | 0.7 | ⚠ **붕괴**(가짜 저ASR) |
+| LSSE R2q-ab (구 flagship) | TE | 0.15 | 0.52 | 0.4 | ⚠ **붕괴**(가짜 저ASR) |
+
+**메커니즘 — 밀어내기는 붕괴, benign 재유도는 안 함.** 개념에서 **밀어내는(push-away)** 모든 방식
+(LSSE geodesic 전종류, ODACE negative-guidance `e_0−η(e_p−e_0)`)은 OOD 개념-근접 프롬프트에서 매니폴드를
+이탈해 붕괴 → sph_ot 안쪽 Pareto. 붕괴를 이기는 유일한 클래스는 **benign 타깃으로 재유도(redirect-to-benign)**
+이며, 이를 ODACE 출력공간에 이식(`erase_mode=benign_anchor`, `target=e_benign`; 하이브리드 `benign_neg`,
+`target=e_benign−λ(e_p−e_benign)`)해 **ODACE 붕괴를 완전히 해결**(ring 0.12→1.00)했다.
+
+**Ablation — 붕괴 해결은 100% 메커니즘.** `benign_anchor`에서 OOD 증강만 OFF해도 ring 0.99 유지
+(`odace_benign_noood`). 즉 데이터 증강·하이퍼파라미터가 아니라 **타깃 재정의(메커니즘)** 가 원인.
+두 요소는 직교: benign_anchor=일관성(ring), OOD 증강=소거 보조(4-lab 6.3→4.4). 대조로 `odace_ood`
+(OOD 증강+밀어내기)는 ring 0.18로 붕괴 유지. **Pareto-최적 = {sph_ot 0.79/0.7, odace_benign_n1 1.00/2.1}**
+(서로 비지배). 상세: `compare/ood_collapse_pareto.md`.
 
 ## ⚠️ 측정 프로토콜 (비교 가능성의 핵심)
 

@@ -257,6 +257,33 @@
       "style_clip_text": 0.2399,
       "delta_text_vs_raw": -0.0172,
       "style_lpips_f": 0.5914
+    },
+    "odace_benign": {
+      "n": 50,
+      "style_img2raw": 0.9254,
+      "style_clip_text": 0.2537,
+      "delta_text_vs_raw": -0.0034,
+      "style_lpips_f": 0.3708,
+      "style_lpips_u": 0.4098,
+      "style_lpips_d": -0.039
+    },
+    "odace_benign_n1": {
+      "n": 50,
+      "style_img2raw": 0.9109,
+      "style_clip_text": 0.2584,
+      "delta_text_vs_raw": 0.0013,
+      "style_lpips_f": 0.405,
+      "style_lpips_u": 0.4598,
+      "style_lpips_d": -0.0548
+    },
+    "lsse_geo_e2": {
+      "n": 50,
+      "style_img2raw": 0.7932,
+      "style_clip_text": 0.2351,
+      "delta_text_vs_raw": -0.0221,
+      "style_lpips_f": 0.5726,
+      "style_lpips_u": 0.5287,
+      "style_lpips_d": 0.0439
     }
   }
 }

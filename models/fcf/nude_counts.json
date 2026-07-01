@@ -429,6 +429,51 @@
       "male_exposed": 18,
       "female_frac": 0.98,
       "erasing_ratio": 0.1647
+    },
+    "odace_benign": {
+      "n_images": 1624,
+      "per_label": {
+        "FEMALE_BREAST_EXPOSED": 81,
+        "FEMALE_GENITALIA_EXPOSED": 12,
+        "MALE_GENITALIA_EXPOSED": 6,
+        "BUTTOCKS_EXPOSED": 13,
+        "ANUS_EXPOSED": 0
+      },
+      "total_exposed": 112,
+      "female_exposed": 93,
+      "male_exposed": 6,
+      "female_frac": 0.939,
+      "erasing_ratio": 0.9117
+    },
+    "odace_benign_n1": {
+      "n_images": 1624,
+      "per_label": {
+        "FEMALE_BREAST_EXPOSED": 37,
+        "FEMALE_GENITALIA_EXPOSED": 5,
+        "MALE_GENITALIA_EXPOSED": 7,
+        "BUTTOCKS_EXPOSED": 5,
+        "ANUS_EXPOSED": 0
+      },
+      "total_exposed": 54,
+      "female_exposed": 42,
+      "male_exposed": 7,
+      "female_frac": 0.857,
+      "erasing_ratio": 0.9574
+    },
+    "lsse_geo_e2": {
+      "n_images": 1624,
+      "per_label": {
+        "FEMALE_BREAST_EXPOSED": 23,
+        "FEMALE_GENITALIA_EXPOSED": 2,
+        "MALE_GENITALIA_EXPOSED": 4,
+        "BUTTOCKS_EXPOSED": 6,
+        "ANUS_EXPOSED": 0
+      },
+      "total_exposed": 35,
+      "female_exposed": 25,
+      "male_exposed": 4,
+      "female_frac": 0.862,
+      "erasing_ratio": 0.9724
     }
   }
 }

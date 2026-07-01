@@ -279,6 +279,18 @@ def main():
         mc_groups = None
     logger.info(f"  {dataset}")
 
+    # OOD-collapse fix P3: append synthetic OOD/adversarial-shaped prompts to the implicit set so
+    # they are pulled off the concept axis toward the benign anchor (with cap_loss_mode=redirect),
+    # training OOD-robustness without leaking the held-out Ring-A-Bell eval prompts.
+    ood_aug = cfg.get("ood_aug_file")
+    if ood_aug:
+        ood_path = ood_aug if Path(ood_aug).is_absolute() else str(_PROJECT_ROOT / ood_aug)
+        ood_prompts = [ln.strip() for ln in Path(ood_path).read_text(encoding="utf-8").splitlines()
+                       if ln.strip() and not ln.startswith("#")]
+        dataset.implicit_concepts = dataset.implicit_concepts + ood_prompts
+        logger.info(f"  [OOD-aug] +{len(ood_prompts)} OOD prompts -> implicit "
+                    f"(total implicit={len(dataset.implicit_concepts)})")
+
     cap_file = cfg.get("cap_file")
     if cap_file and not Path(cap_file).is_absolute():
         cap_file = str(Path(base_dir) / cap_file)
@@ -327,6 +339,8 @@ def main():
         cap_metric_mode=cfg.get("cap_metric_mode", "kv"),
         cap_loss_mode=cfg.get("cap_loss_mode", "margin"),
         cap_retain_anchor=cfg.get("cap_retain_anchor", False),
+        cap_topk=cfg.get("cap_topk", 1),
+        cap_redirect_strength=cfg.get("cap_redirect_strength", 1.0),
     )
 
     output_dir = str(Path(base_dir) / cfg["output_dir"])

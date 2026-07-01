@@ -91,6 +91,20 @@ REGISTRY = {
         "Manojb/stable-diffusion-2-1-base",
         "sd2-community/stable-diffusion-2-1-base",
     ]},
+    # Cycle 5: ODACE OOD collapse-mitigation (forget-set OOD augmentation; eval/run_ood_fix6.sh).
+    "odace_ood": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                  "unet_dir": "models/odace/outputs/odace_ood/final"},
+    # Cycle 8: BENIGN-ANCHOR redirect (sph_ot-style fix in ODACE UNet space, eval/run_ood_fix9.sh).
+    "odace_benign": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                     "unet_dir": "models/odace/outputs/odace_benign/final"},
+    # Clean ablation: benign-anchor with OOD-aug OFF (attribute the fix to the mechanism, run_ood_fix11.sh).
+    "odace_benign_noood": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                           "unet_dir": "models/odace/outputs/odace_benign_noood/final"},
+    # Cycle 9: BENIGN-NEG hybrid (anchor + push) to dominate sph_ot (eval/run_ood_fix10.sh).
+    "odace_benign_n05": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                         "unet_dir": "models/odace/outputs/odace_benign_n05/final"},
+    "odace_benign_n1": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                        "unet_dir": "models/odace/outputs/odace_benign_n1/final"},
     "odace_v15": {"kind": "odace", "unet_dir": "models/odace/outputs/odace_v15/final", "base": [
         "stable-diffusion-v1-5/stable-diffusion-v1-5",
         "sd-legacy/stable-diffusion-v1-5", "runwayml/stable-diffusion-v1-5"]},
@@ -138,6 +152,47 @@ REGISTRY = {
                      "te_dir": "models/lsse/outputs/lsse_r2q_ab/final"},
     "lsse_r2q_abc": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/lsse/outputs/lsse_r2q_abc/final"},
+    # Ring-A-Bell OOD-collapse fixes on the r2q_ab recipe (eval/run_ood_fix.sh):
+    #   slerp    = P1 norm-preserving erasure; redirect = P2 benign-anchor redirect;
+    #   ood      = P3 redirect + synthetic OOD-aware implicit augmentation.
+    "lsse_r2q_slerp":    {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                          "te_dir": "models/lsse/outputs/lsse_r2q_slerp/final"},
+    "lsse_r2q_redirect": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                          "te_dir": "models/lsse/outputs/lsse_r2q_redirect/final"},
+    "lsse_r2q_ood":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                          "te_dir": "models/lsse/outputs/lsse_r2q_ood/final"},
+    # Same OOD fix (redirect + OOD aug) applied to the broadly-damaged recipes (eval/run_ood_fix2.sh):
+    #   capcnp_zero_ood = perlayer, NO anchor; r2q_a_ood = perlayer + anchor.
+    "lsse_capcnp_zero_ood": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_capcnp_zero_ood/final"},
+    "lsse_r2q_a_ood":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_r2q_a_ood/final"},
+    # Cycle 2: multi-direction (top-K=4) redirect+OOD on r2q_ab recipe (eval/run_ood_fix3.sh) —
+    # aims to recover coherence WHILE keeping ASR low (single-dir fixes lost ASR 3.1->42-52).
+    "lsse_r2q_topk":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_r2q_topk/final"},
+    # Cycle 3: RAW-space projection (M^1/2=I) with OVERSHOOT strength sweep (eval/run_ood_fix4.sh) —
+    # erase in raw last_hidden_state (FCF-P space), push concept coord PAST benign (s=2 / s=4).
+    "lsse_raw_proj_s2":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_raw_proj_s2/final"},
+    "lsse_raw_proj_s4":     {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_raw_proj_s4/final"},
+    # Cycle 4: MANIFOLD-PRESERVING geodesic erasure (sph_ot's sphere rotation inside LSSE read-out
+    # space) — eta sweep e1/e2 (eval/run_ood_fix5.sh). Aims to reach the coherent-erasure frontier.
+    "lsse_geo_e1":          {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_e1/final"},
+    "lsse_geo_e2":          {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_e2/final"},
+    # Cycle 6: MULTI-DIRECTION geodesic (K=4) to push past sph_ot (eval/run_ood_fix7.sh).
+    "lsse_geo_tk05":        {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_tk05/final"},
+    "lsse_geo_tk1":         {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_tk1/final"},
+    # Cycle 7: GEODESIC in RAW space (M^1/2=I, sph_ot geometry) to BEAT sph_ot (eval/run_ood_fix8.sh).
+    "lsse_geo_raw_e2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_raw_e2/final"},
+    "lsse_geo_raw_e3":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_raw_e3/final"},
     # R2q-ab recipe transferred to VIOLENCE (eval via models/fcf/eval_violence_q16.py).
     "lsse_r2q_violence": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                           "te_dir": "models/lsse/outputs/lsse_r2q_violence/final"},

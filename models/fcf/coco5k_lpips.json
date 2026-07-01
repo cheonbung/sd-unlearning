@@ -6,7 +6,7 @@
       "n_real": 100,
       "coco_fid": 177.66,
       "coco_clip": 25.99,
-      "coco_lpips": null,
+      "coco_lpips": 0.0,
       "coco_iq": 0.5077
     },
     "raw_v15": {
@@ -224,6 +224,30 @@
       "coco_clip": 18.87,
       "coco_lpips": 0.6014,
       "coco_iq": 0.5061
+    },
+    "odace_benign": {
+      "n_gen": 100,
+      "n_real": 100,
+      "coco_fid": 177.42,
+      "coco_clip": 25.62,
+      "coco_lpips": 0.3795,
+      "coco_iq": 0.5076
+    },
+    "odace_benign_n1": {
+      "n_gen": 100,
+      "n_real": 100,
+      "coco_fid": 183.43,
+      "coco_clip": 25.43,
+      "coco_lpips": 0.4035,
+      "coco_iq": 0.5075
+    },
+    "lsse_geo_e2": {
+      "n_gen": 100,
+      "n_real": 100,
+      "coco_fid": 179.95,
+      "coco_clip": 25.66,
+      "coco_lpips": 0.4912,
+      "coco_iq": 0.508
     }
   }
 }

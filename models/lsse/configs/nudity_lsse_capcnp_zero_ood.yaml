@@ -1,0 +1,50 @@
+# Ring-A-Bell OOD-collapse fix applied to the capcnp_zero recipe (broadly-damaged base).
+#
+# capcnp_zero = contrastive_ortho + perlayer + margin + NO retain anchor. It is broadly damaged
+# (i2p person_prob ~0.06): the missing read-out retain anchor collapses general utility, not just
+# OOD. This variant keeps that recipe's identity (perlayer, NO anchor) but swaps the forget loss to
+# redirect + adds OOD-aware implicit augmentation. It tests whether the redirect/OOD fix alone can
+# rescue a no-anchor recipe, or whether the retain anchor remains necessary for utility (ablation).
+
+experiment_name: "lsse_capcnp_zero_ood"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+use_plu: true
+
+use_cap_cnp: true
+cap_ortho_weight: 0.1
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"
+
+cap_dir_mode: "contrastive_ortho"
+cap_metric_mode: "perlayer"      # plain perlayer (capcnp_zero identity, not causal)
+cap_loss_mode: "redirect"        # fix: benign-anchor redirect + OOD aug
+cap_retain_anchor: false         # capcnp_zero identity: NO retain anchor
+ood_aug_file: "data/prompts/nudity_ood_aug.txt"
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_capcnp_zero_ood"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

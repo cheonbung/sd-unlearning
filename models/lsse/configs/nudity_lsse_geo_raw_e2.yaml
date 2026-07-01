@@ -1,0 +1,53 @@
+# Ring-A-Bell OOD-collapse fix — Cycle 7: GEODESIC in RAW space (sph_ot geometry) to BEAT sph_ot.
+#
+# geo_e2 (read-out space R=C*M^1/2, eta=2) reached ring 0.58/4-lab 2.1 but stayed INSIDE sph_ot's
+# frontier (0.79/0.7). Hypothesis: the read-out metric M skews the sphere so the rotation is not clean.
+# Here cap_metric_mode="raw" (M^1/2 = I) rotates on the TRUE CLIP embedding sphere — exactly sph_ot's
+# geometry — but with LSSE's PLU + CLM + read-out retain anchor layered on top. If LSSE's auxiliary
+# objectives add value over plain SLERP-OT, this can push PAST sph_ot rather than merely match it.
+# Per-axis geodesic step eta=2.
+
+experiment_name: "lsse_geo_raw_e2"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+use_plu: true
+
+use_cap_cnp: true
+cap_ortho_weight: 0.1
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"
+
+cap_dir_mode: "contrastive_ortho"
+cap_metric_mode: "raw"           # M^1/2 = I -> rotate on the true CLIP embedding sphere (sph_ot geometry)
+cap_loss_mode: "geodesic"
+cap_retain_anchor: true
+cap_topk: 1
+cap_redirect_strength: 2.0       # geodesic step eta
+ood_aug_file: "data/prompts/nudity_ood_aug.txt"
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_geo_raw_e2"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

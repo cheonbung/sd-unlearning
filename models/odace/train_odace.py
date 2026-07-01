@@ -45,6 +45,17 @@ def main():
         seed=int(cfg.get("seed", 42)))
     logger.info(repr(dataset))
 
+    # Collapse-mitigation: append synthetic OOD/adversarial-shaped prompts to the FORGET set so the
+    # (inherently coherent) negative-guidance erase target e_0-eta*(e_p-e_0) is applied to OOD-shaped
+    # prompts too -> they decode to coherent-generic instead of collapsing. Disjoint from eval set.
+    ood_aug = cfg.get("ood_aug_file")
+    if ood_aug:
+        ood_path = Path(ood_aug) if Path(ood_aug).is_absolute() else (base / ood_aug)
+        ood = [ln.strip() for ln in ood_path.read_text(encoding="utf-8").splitlines()
+               if ln.strip() and not ln.startswith("#")]
+        dataset.forget_prompts = dataset.forget_prompts + ood
+        logger.info(f"[OOD-aug] +{len(ood)} OOD prompts -> forget (total {len(dataset.forget_prompts)})")
+
     trainer = ODACETrainer(
         sd_model_id=cfg["sd_model_id"], device=device,
         learning_rate=float(cfg.get("learning_rate", 1e-5)),
@@ -52,6 +63,9 @@ def main():
         ddim_steps=int(cfg.get("ddim_steps", 30)),
         sample_guidance=float(cfg.get("sample_guidance", 3.0)),
         xattn_full=bool(cfg.get("xattn_full", False)),
+        erase_mode=str(cfg.get("erase_mode", "negguide")),
+        benign_prompt=str(cfg.get("benign_prompt", "a fully clothed person, photograph")),
+        benign_neg_lambda=float(cfg.get("benign_neg_lambda", 1.0)),
         batch_size=int(cfg.get("batch_size", 4)), seed=int(cfg.get("seed", 42)))
 
     out_dir = base / cfg.get("output_dir", "outputs/odace_nudity")

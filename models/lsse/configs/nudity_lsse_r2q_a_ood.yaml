@@ -1,0 +1,50 @@
+# Ring-A-Bell OOD-collapse fix applied to the r2q_a recipe (max-forget, broadly-damaged base).
+#
+# r2q_a = contrastive_ortho + perlayer (plain, NOT causal) + margin + retain anchor. It is the
+# max-forget point (full-set nudity ASR 1.3) but broadly damaged on coherence (ring 0.01 / i2p 0.07).
+# This variant keeps that recipe's identity (perlayer + anchor) and swaps the forget loss to redirect
+# + OOD-aware implicit augmentation, testing whether the fix recovers coherence while preserving the
+# strong forgetting (vs r2q_ab's perlayer_causal layer weighting).
+
+experiment_name: "lsse_r2q_a_ood"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+use_plu: true
+
+use_cap_cnp: true
+cap_ortho_weight: 0.1
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"
+
+cap_dir_mode: "contrastive_ortho"
+cap_metric_mode: "perlayer"      # plain perlayer (r2q_a identity, not causal)
+cap_loss_mode: "redirect"        # fix: benign-anchor redirect + OOD aug
+cap_retain_anchor: true          # r2q_a identity: read-out retain anchor on
+ood_aug_file: "data/prompts/nudity_ood_aug.txt"
+
+explicit_prompts_file:  "data/prompts/nudity_explicit.txt"
+retain_prompts_file:    "data/prompts/nudity_maintain.txt"
+implicit_concepts_file: "data/prompts/nudity_implicit.txt"
+
+output_dir: "outputs/lsse_r2q_a_ood"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null
