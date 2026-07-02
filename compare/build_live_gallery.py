@@ -28,6 +28,8 @@ import json
 import os
 from pathlib import Path
 
+import gallery_sections as S  # narrative sections (headline / OOD strip / taxonomy / RPG-RT curve / transfer)
+
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "compare" / "comparison_gallery_live.html"
 FS_ROOT = REPO / "eval" / "outputs"
@@ -902,6 +904,7 @@ function applyFilter(){
   var vc=document.getElementById('viscount');if(vc)vc.textContent=vis;
   highlightBest();
   drawPareto();
+  drawCollapse();
 }
 function highlightBest(){
   document.querySelectorAll('.qt').forEach(function(table){
@@ -1039,6 +1042,91 @@ function _drawParetoInto(elId,asr_key,xLabel){
     var col=COL[g];if(!col)return;
     s.push('<circle cx="'+(lx+i*90)+'" cy="'+ly+'" r="4" fill="'+col+'"/>');
     s.push('<text x="'+(lx+i*90+8)+'" y="'+(ly+4)+'" fill="'+col+'" font-size="9">'+g+'</text>');
+  });
+  el.innerHTML=s.join('');
+}
+function drawCollapse(){
+  var el=document.getElementById('collapse-svg');if(!el)return;
+  var W=1100,H=470,PL=54,PR=20,PT=30,PB=48;
+  var pts=ORDER.filter(function(k){var m=META[k];return m.cohr!=null&&m.asr4!=null&&modelVisible(m);});
+  if(!pts.length){el.innerHTML='<text x="550" y="230" text-anchor="middle" fill="#5a626b" font-size="13">No coherence data</text>';return;}
+  var asrs=pts.map(function(k){return META[k].asr4;});
+  var ymax=Math.max(10,Math.ceil(Math.max.apply(null,asrs)/5)*5+2);
+  function px(v){return PL+v/100*(W-PL-PR);}
+  function py(v){return H-PB-v/ymax*(H-PT-PB);}
+  var COL={ref:'#86b6e0',baseline:'#a8b0b8',novel:'#6ad08e'};
+  var s=[];
+  s.push('<text x="'+(W/2)+'" y="16" text-anchor="middle" fill="#c8d0da" font-size="12" font-weight="600">OOD coherence vs nudity ASR — bottom-right is honest erasure</text>');
+  // collapse zone (ring < 40%)
+  s.push('<rect x="'+px(0).toFixed(1)+'" y="'+PT+'" width="'+(px(40)-px(0)).toFixed(1)+'" height="'+(H-PB-PT)+'" fill="#e0555514"/>');
+  s.push('<text x="'+px(20).toFixed(1)+'" y="'+(PT+26)+'" text-anchor="middle" fill="#e0857d" font-size="10">collapse zone — low ASR is fake</text>');
+  for(var gx=0;gx<=100;gx+=20){
+    s.push('<line x1="'+px(gx).toFixed(1)+'" y1="'+PT+'" x2="'+px(gx).toFixed(1)+'" y2="'+(H-PB)+'" stroke="#343a4244"/>');
+    s.push('<text x="'+px(gx).toFixed(1)+'" y="'+(H-PB+14)+'" text-anchor="middle" fill="#a8b0b8" font-size="10">'+gx+'</text>');
+  }
+  for(var gy=0;gy<=ymax;gy+=5){
+    s.push('<line x1="'+PL+'" y1="'+py(gy).toFixed(1)+'" x2="'+(W-PR)+'" y2="'+py(gy).toFixed(1)+'" stroke="#343a4244"/>');
+    s.push('<text x="'+(PL-5)+'" y="'+(py(gy)+4).toFixed(1)+'" text-anchor="end" fill="#a8b0b8" font-size="10">'+gy+'</text>');
+  }
+  s.push('<line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(H-PB)+'" stroke="#343a42"/>');
+  s.push('<line x1="'+PL+'" y1="'+(H-PB)+'" x2="'+(W-PR)+'" y2="'+(H-PB)+'" stroke="#343a42"/>');
+  s.push('<text x="'+(PL+(W-PL-PR)/2)+'" y="'+(H-PB+32)+'" text-anchor="middle" fill="#a8b0b8" font-size="11">Ring-A-Bell person coherence (%) → higher = on-manifold</text>');
+  s.push('<text x="14" y="'+(H/2)+'" text-anchor="middle" fill="#a8b0b8" font-size="11" transform="rotate(-90 14 '+(H/2)+')">ASR 4-lab (%) ↓</text>');
+  s.push('<text x="'+(W-PR-4)+'" y="'+(H-PB-6)+'" text-anchor="end" fill="#6ad08e" font-size="10">✓ honest low-ASR erasure</text>');
+  var nodes=pts.map(function(k){
+    var m=META[k];var cx=px(m.cohr),cy=py(m.asr4),col=COL[m.group]||'#888';
+    var shortLbl=m.label.replace('LSSE+CAP-CNP ','CAP-').replace('LSSE ','LSSE-').replace(' (flagship)','*').replace('ODACE (SD ','ODACE(').replace(')','').replace('Raw ','');
+    var tw=shortLbl.length*5.1;
+    return {k:k,cx:cx,cy:cy,col:col,lbl:shortLbl,cohr:m.cohr,asr4:m.asr4,mlbl:m.label,tw:tw,lx:cx+10,ly:cy+4};
+  });
+  nodes.slice().sort(function(a,b){return a.cx-b.cx||a.cy-b.cy;}).forEach(function(n,idx){
+    var ang=idx*2.399;
+    n.lx=Math.max(PL+1,Math.min(W-PR-n.tw-2,n.cx+14*Math.cos(ang)+4));
+    n.ly=Math.max(PT+10,Math.min(H-PB-2,n.cy+14*Math.sin(ang)+4));
+  });
+  for(var it=0;it<200;it++){
+    var cool=Math.max(0.12,1-it/170);
+    for(var i=0;i<nodes.length;i++){
+      for(var j=i+1;j<nodes.length;j++){
+        var ni=nodes[i],nj=nodes[j];
+        var ox=Math.min(ni.lx+ni.tw,nj.lx+nj.tw)-Math.max(ni.lx,nj.lx);
+        var oy=Math.min(ni.ly+2,nj.ly+2)-Math.max(ni.ly-8,nj.ly-8);
+        if(ox>0&&oy>0){
+          var mx=(ni.lx+ni.tw/2)-(nj.lx+nj.tw/2);
+          var my=(ni.ly-3)-(nj.ly-3);
+          var d=Math.sqrt(mx*mx+my*my)||1;
+          var mag=cool*Math.min(9,5*Math.max(ox,oy)/d);
+          var fx=mag*mx/d,fy=mag*my/d;
+          ni.lx+=fx;ni.ly+=fy;nj.lx-=fx;nj.ly-=fy;
+        }
+      }
+      var n=nodes[i];
+      for(var jj=0;jj<nodes.length;jj++){
+        var nc=nodes[jj];
+        var dlx=(n.lx+n.tw/2)-nc.cx,dly=(n.ly-4)-nc.cy;
+        var dd=Math.sqrt(dlx*dlx+dly*dly)||1;
+        if(dd<22){n.lx+=cool*3*(22-dd)*dlx/dd;n.ly+=cool*3*(22-dd)*dly/dd;}
+      }
+      n.lx+=0.04*(n.cx+12-n.lx);n.ly+=0.04*(n.cy+4-n.ly);
+      n.lx=Math.max(PL+1,Math.min(W-PR-n.tw-2,n.lx));
+      n.ly=Math.max(PT+10,Math.min(H-PB-2,n.ly));
+    }
+  }
+  nodes.forEach(function(n){
+    var dx=n.lx-(n.cx+7),dy=n.ly-(n.cy+4);
+    if(Math.sqrt(dx*dx+dy*dy)>4)s.push('<line x1="'+n.cx.toFixed(1)+'" y1="'+n.cy.toFixed(1)+'" x2="'+(n.lx-1).toFixed(1)+'" y2="'+n.ly.toFixed(1)+'" stroke="'+n.col+'" stroke-width="0.6" opacity="0.35"/>');
+  });
+  nodes.forEach(function(n){
+    s.push('<circle cx="'+n.cx.toFixed(1)+'" cy="'+n.cy.toFixed(1)+'" r="5" fill="'+n.col+'" opacity="0.88"><title>'+n.mlbl+'\\nring coherence: '+n.cohr.toFixed(0)+'%\\nASR 4-lab: '+n.asr4.toFixed(1)+'%</title></circle>');
+  });
+  nodes.forEach(function(n){
+    s.push('<text x="'+n.lx.toFixed(1)+'" y="'+n.ly.toFixed(1)+'" fill="'+n.col+'" font-size="9">'+n.lbl+'</text>');
+  });
+  var lgx=PL+6,lgy=PT+2;
+  ['ref','baseline','novel'].forEach(function(g,i){
+    var col=COL[g];if(!col)return;
+    s.push('<circle cx="'+(lgx+i*90)+'" cy="'+lgy+'" r="4" fill="'+col+'"/>');
+    s.push('<text x="'+(lgx+i*90+8)+'" y="'+(lgy+4)+'" fill="'+col+'" font-size="9">'+g+'</text>');
   });
   el.innerHTML=s.join('');
 }
@@ -1211,10 +1299,13 @@ def coherence_section(M):
 
 def build(rows_cap):
     M = load_metrics()
+    ctx = S.Ctx(rel=rel, fs_root=FS_ROOT, html=html, table=_table, mh=_mh,
+                asr_cell=asr_cell, ret_cell=ret_cell, num_cell=num_cell,
+                model_info=_model_info, labels=_LABEL_BY_KEY)
     n_models = len(MODELS)
     parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8">',
              '<meta name="viewport" content="width=device-width,initial-scale=1">',
-             '<title>SD Unlearning - Live Gallery</title><style>', CSS, '</style></head><body class="blur">']
+             '<title>SD Unlearning - Live Gallery</title><style>', CSS, S.EXTRA_CSS, '</style></head><body class="blur">']
 
     abtn = ['<button class="active" data-ab="all">All</button>']
     abtn += ['<button data-ab="{0}">{0}</button>'.format(html.escape(a)) for a, _, _ in ATTACKS]
@@ -1232,6 +1323,9 @@ def build(rows_cap):
         '<button id="reset">Reset filters</button>'
         '<span class="vc">visible <b id="viscount">{0}</b>/{0} models</span>'.format(n_models) +
         '</div></header><main>')
+
+    # 0) headline "key findings" hero cards
+    parts.append(S.headline_section(ctx, M))
 
     # 1) frozen full-set table
     parts.append(
@@ -1267,6 +1361,23 @@ def build(rows_cap):
     # 1a2) OOD generation coherence (Ring-A-Bell collapse probe)
     parts.append(coherence_section(M))
 
+    # 1a3) OOD collapse scatter (coherence x ASR, filter-reactive)
+    parts.append(
+        '<section class="sec"><h2>OOD collapse scatter '
+        '<span>(coherence &rarr; vs ASR &darr; &middot; bottom-right = honest erasure &middot; '
+        'updates with filter)</span></h2>'
+        '<div class="pareto-wrap">'
+        '<svg id="collapse-svg" viewBox="0 0 1100 470" xmlns="http://www.w3.org/2000/svg" '
+        'style="background:var(--panel);border-radius:8px"></svg></div>'
+        '<div class="legend"><b>The honesty check for erasure.</b> A truly safe model sits '
+        'bottom-right: low ASR <b>and</b> high Ring-A-Bell coherence. Points in the shaded '
+        'collapse zone reach low ASR only by rendering garbage on OOD inputs. See the visual proof '
+        'and taxonomy below.</div></section>')
+
+    # 1a4) OOD collapse — visual proof (image strip) + method taxonomy
+    parts.append(S.ood_image_strip(ctx, M))
+    parts.append(S.taxonomy_section(ctx, M))
+
     # 1b) scenario comparison tables (Table 0–7)
     vd = load_violence_detail()
     parts.append(
@@ -1275,6 +1386,9 @@ def build(rows_cap):
     parts.append(scenario_tables_section(M, vd))
     parts.append(paper_metrics_section())
     parts.append('</section>')
+
+    # 1b2) cross-concept transfer heatmap (nudity <-> violence concept-locality)
+    parts.append(S.transfer_heatmap_section(ctx, M, vd))
 
     # 1c) legacy 50-prompt table
     parts.append(
@@ -1307,6 +1421,9 @@ def build(rows_cap):
         'ASR (query-level) iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). ODACE v3 stays lowest worst-case '
         '(1.5); SLERP-OT unmovable (gap 0); raw explodes 52.5&rarr;75. '
         'Eval split differs from the iter0 table &mdash; compare within each table only.</div></section>')
+
+    # 1c2) RPG-RT DPO adaptation curve (asr_query per iteration)
+    parts.append(S.rpgrt_curve_section(ctx, _load_json(RPGRT_DPO) or {}))
     rt_grid = rpgrt_gallery()
     if rt_grid:
         parts.append(
@@ -1345,7 +1462,8 @@ def build(rows_cap):
 
     meta = "const META=" + json.dumps(
         {key: {"label": label, "group": g, "base": b, "mod": m,
-               "asr8": M[key]["fs_mean8"], "asr4": M[key]["fs_mean4"], "clip": M[key]["coco_clip"]}
+               "asr8": M[key]["fs_mean8"], "asr4": M[key]["fs_mean4"], "clip": M[key]["coco_clip"],
+               "cohr": (M[key]["coh_ring"] * 100 if M[key]["coh_ring"] is not None else None)}
          for label, key, g, b, m in MODELS}) + ";const ORDER=" + json.dumps(
         [key for _, key, *_ in MODELS]) + ";"
     parts.append('</main><script>' + JS_TMPL.replace("__META__", meta) + '</script></body></html>')
