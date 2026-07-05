@@ -313,6 +313,74 @@ def transfer_heatmap_section(ctx: Ctx, M: dict, vd: dict) -> str:
             '<div class="wrap">' + ctx.table(head, body) + '</div>' + note + '</section>')
 
 
+# -------------------------------------------------- V. validation (triangulation + 8-lab decomp)
+_VAL_KEYS = ["raw_v14", "fcf_p_official", "sph_ot", "odace_benign_n1", "odace_benign",
+             "lsse_geo_e2", "odace_v3", "lsse_r2q_ab"]
+_SURPLUS_SHORT = {"FEMALE_BREAST_COVERED": "breast-covered", "BUTTOCKS_COVERED": "buttocks-covered",
+                  "FEMALE_GENITALIA_COVERED": "genitalia-covered", "BUTTOCKS_EXPOSED": "buttocks-EXPOSED"}
+
+
+def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict) -> str:
+    """Two evidence tables that de-risk the coherence story: (1) a CLIP-independent detector
+    corroborates the collapse probe; (2) the strict 8-lab surplus of coherent models is clothed."""
+    esc = ctx.html.escape
+    # --- Table 1: triangulation (CLIP ring vs independent Haar face_rate) ---
+    h1 = ['<th class="mh">Model</th>',
+          '<th>CLIP&nbsp;ring&nbsp;<span class="ar">&uarr;</span><br><span class="sub">person_prob</span></th>',
+          '<th>face&nbsp;ring&nbsp;<span class="ar">&uarr;</span><br><span class="sub">Haar, CLIP-free</span></th>',
+          '<th class="muted">face&nbsp;i2p<br><span class="sub">control</span></th>',
+          '<th class="muted">agree?</th>']
+    b1 = []
+    for k in _VAL_KEYS:
+        t = coh_tri.get(k)
+        if not t:
+            continue
+        clip = (M.get(k, {}) or {}).get("coh_ring")
+        fr = (t.get("ring_a_bell") or {}).get("face_rate")
+        fi = (t.get("i2p") or {}).get("face_rate")
+        if clip is None or fr is None:
+            agree = "&#8212;"
+        elif (clip < 0.4) == (fr < 0.3):
+            agree = ('<span style="color:#6c6">yes &middot; coherent</span>' if clip >= 0.4
+                     else '<span style="color:#e66">yes &middot; collapse</span>')
+        else:
+            agree = 'partial'
+        b1.append('<tr><th class="mh">{0}</th>{1}{2}{3}<td class="num muted">{4}</td></tr>'.format(
+            esc(ctx.labels.get(k, k)), ctx.ret_cell(clip), ctx.ret_cell(fr), ctx.ret_cell(fi), agree))
+    # --- Table 2: 8-lab decomposition (exposed vs covered surplus) ---
+    h2 = ['<th class="mh">Model</th>',
+          '<th>ASR&nbsp;4-lab&nbsp;<span class="ar">&darr;</span><br><span class="sub">exposed</span></th>',
+          '<th class="muted">ASR&nbsp;8-lab<br><span class="sub">strict</span></th>',
+          '<th>8&minus;4&nbsp;surplus<br><span class="sub">covered-only</span></th>',
+          '<th class="muted">dominant surplus label</th>']
+    b2 = []
+    for k in _VAL_KEYS:
+        d = decomp.get(k)
+        if not d or not d.get("n"):
+            continue
+        pl = d.get("per_label_rate", {})
+        surplus = {lab: pl.get(lab, 0) for lab in _SURPLUS_SHORT}
+        top = sorted(surplus.items(), key=lambda x: -x[1])
+        tops = ", ".join("{0}&nbsp;{1:.0f}".format(_SURPLUS_SHORT[l], v) for l, v in top[:2] if v > 0) or "&#8212;"
+        b2.append('<tr><th class="mh">{0}</th>{1}{2}{3}<td class="num muted" style="font-size:11px">{4}</td></tr>'.format(
+            esc(ctx.labels.get(k, k)), ctx.asr_cell(d.get("asr_4lab"), bold=True),
+            ctx.asr_cell(d.get("asr_8lab")), ctx.asr_cell(d.get("asr_covered_only")), tops))
+    if not b1 and not b2:
+        return ""
+    note = ('<div class="legend"><b>Two independent de-risks of the coherence story.</b> '
+            '<b>(1)</b> A CLIP-independent Haar face detector agrees with the CLIP probe '
+            '(Pearson&nbsp;r&nbsp;=&nbsp;+0.68 over the curated set) &mdash; the collapse is not a CLIP '
+            'artifact. <b>(2)</b> The coherent redirect models&rsquo; higher strict-8-lab is almost '
+            'entirely <i>breast-covered</i> (clothed people), not exposed nudity: their 4-lab exposed '
+            'ASR stays 1&ndash;4, so the low ASR is honest. See <code>coherence_tri.json</code> / '
+            '<code>label_decomp.json</code>.</div>')
+    return ('<section class="sec"><h2>Coherence validation '
+            '<span>(independent corroboration &middot; 8-lab surplus decomposition)</span></h2>'
+            '<div class="wrap">' + ctx.table(h1, b1) + '</div>'
+            '<div class="wrap" style="margin-top:10px">' + ctx.table(h2, b2) + '</div>'
+            + note + '</section>')
+
+
 # --------------------------------------------------------------------- extra CSS
 EXTRA_CSS = """
 .hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:4px 0}
