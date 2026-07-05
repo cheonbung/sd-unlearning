@@ -320,7 +320,7 @@ _SURPLUS_SHORT = {"FEMALE_BREAST_COVERED": "breast-covered", "BUTTOCKS_COVERED":
                   "FEMALE_GENITALIA_COVERED": "genitalia-covered", "BUTTOCKS_EXPOSED": "buttocks-EXPOSED"}
 
 
-def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict) -> str:
+def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict, multiseed: dict) -> str:
     """Two evidence tables that de-risk the coherence story: (1) a CLIP-independent detector
     corroborates the collapse probe; (2) the strict 8-lab surplus of coherent models is clothed."""
     esc = ctx.html.escape
@@ -365,20 +365,42 @@ def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict) -> str:
         b2.append('<tr><th class="mh">{0}</th>{1}{2}{3}<td class="num muted" style="font-size:11px">{4}</td></tr>'.format(
             esc(ctx.labels.get(k, k)), ctx.asr_cell(d.get("asr_4lab"), bold=True),
             ctx.asr_cell(d.get("asr_8lab")), ctx.asr_cell(d.get("asr_covered_only")), tops))
-    if not b1 and not b2:
+    # --- Table 3: multi-seed error bars (Ring-A-Bell, 3 seeds) ---
+    h3 = ['<th class="mh">Model</th>',
+          '<th>ring&nbsp;ASR&nbsp;4-lab<br><span class="sub">mean&plusmn;std</span></th>',
+          '<th>ring&nbsp;coherence<br><span class="sub">mean&plusmn;std</span></th>',
+          '<th class="muted">seeds</th>']
+    b3 = []
+    for k in _VAL_KEYS:
+        r = multiseed.get(k)
+        if not r:
+            continue
+        a, p = r.get("asr4", {}), r.get("person", {})
+        if p.get("mean") is None:
+            continue
+        col = "#e08a8a" if p["mean"] < 0.4 else ("#7cd0a4" if p["mean"] >= 0.7 else "#d8c078")
+        b3.append('<tr><th class="mh">{0}</th><td class="num b">{1:.2f}&plusmn;{2:.2f}</td>'
+                  '<td class="num" style="color:{3}">{4:.3f}&plusmn;{5:.3f}</td>'
+                  '<td class="num muted">{6}</td></tr>'.format(
+                      esc(ctx.labels.get(k, k)), a["mean"], a.get("std") or 0, col,
+                      p["mean"], p.get("std") or 0, len(r.get("seeds", {}))))
+    if not b1 and not b2 and not b3:
         return ""
-    note = ('<div class="legend"><b>Two independent de-risks of the coherence story.</b> '
+    note = ('<div class="legend"><b>Three independent de-risks of the coherence story.</b> '
             '<b>(1)</b> A CLIP-independent Haar face detector agrees with the CLIP probe '
             '(Pearson&nbsp;r&nbsp;=&nbsp;+0.68 over the curated set) &mdash; the collapse is not a CLIP '
             'artifact. <b>(2)</b> The coherent redirect models&rsquo; higher strict-8-lab is almost '
             'entirely <i>breast-covered</i> (clothed people), not exposed nudity: their 4-lab exposed '
-            'ASR stays 1&ndash;4, so the low ASR is honest. See <code>coherence_tri.json</code> / '
-            '<code>label_decomp.json</code>.</div>')
+            'ASR stays 1&ndash;4, so the low ASR is honest. <b>(3)</b> Over 3 generation seeds the '
+            'collapse&harr;coherent gap (~0.13 vs ~0.8&ndash;0.99) has std ~0.02 (&gt;30&sigma;) &mdash; '
+            'not seed noise. See <code>coherence_tri.json</code> / <code>label_decomp.json</code> / '
+            '<code>multiseed.json</code>.</div>')
+    t3 = ('<div class="wrap" style="margin-top:10px">' + ctx.table(h3, b3) + '</div>') if b3 else ''
     return ('<section class="sec"><h2>Coherence validation '
-            '<span>(independent corroboration &middot; 8-lab surplus decomposition)</span></h2>'
+            '<span>(independent corroboration &middot; 8-lab decomposition &middot; multi-seed error bars)</span></h2>'
             '<div class="wrap">' + ctx.table(h1, b1) + '</div>'
             '<div class="wrap" style="margin-top:10px">' + ctx.table(h2, b2) + '</div>'
-            + note + '</section>')
+            + t3 + note + '</section>')
 
 
 # --------------------------------------------------------------------- extra CSS

@@ -1381,7 +1381,8 @@ def build(rows_cap):
     # 1a5) coherence validation (CLIP-independent detector + 8-lab decomposition)
     coh_tri = (_load_json(REPO / "models" / "fcf" / "coherence_tri.json") or {}).get("models", {})
     decomp = (_load_json(REPO / "models" / "fcf" / "label_decomp.json") or {}).get("models", {})
-    parts.append(S.validation_section(ctx, M, coh_tri, decomp))
+    multiseed = (_load_json(REPO / "models" / "fcf" / "multiseed.json") or {}).get("models", {})
+    parts.append(S.validation_section(ctx, M, coh_tri, decomp, multiseed))
 
     # 1b) scenario comparison tables (Table 0–7)
     vd = load_violence_detail()

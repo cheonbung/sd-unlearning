@@ -58,6 +58,51 @@ Contrast `odace_ood` (OOD-aug + push-away) = ring 0.18 (still collapsed). So the
 under-erases; geo_raw_e2 collapses at the same η) and never beats `sph_ot` — hyperparameters only move a
 method *along* the Pareto curve, they do not create coherence.
 
+## Validation (three independent de-risks, 2026-07-05)
+
+The coherence story rests on one CLIP probe and one seed; three orthogonal checks answer the obvious
+reviewer objections. Scripts: `eval/eval_coherence_triangulate.py`, `eval/eval_label_decomp.py`,
+`eval/eval_multiseed.py` → `models/fcf/{coherence_tri,label_decomp,multiseed}.json`.
+
+**(1) The probe is not a CLIP artifact (W2).** A CLIP-independent Haar face detector over the same
+Ring-A-Bell images agrees with the CLIP `ring` probe at **Pearson r = +0.68** (14-model curated set):
+collapse models have near-zero face rate (odace_v3 0.00, capcnp_zero 0.10) vs coherent
+(odace_benign_n1 0.73, sph_ot 0.67). The ring↔i2p face **drop** replicates OOD-specificity
+(odace_v3 i2p 0.31 → ring 0.00). HOG (r=0.03) and FID(ring vs own-i2p) (r=0.02) are confounded and
+reported as such.
+
+**(2) The redirect models' higher 8-lab is *clothed*, not exposed (W7).** Per-image label
+decomposition: the coherent models' strict-8-lab surplus over 4-lab is almost entirely
+`FEMALE_BREAST_COVERED`, with ~0 `BUTTOCKS_EXPOSED`.
+
+| Model | 4-lab (exposed) | 8-lab | surplus (covered-only) | dominant surplus |
+|---|---|---|---|---|
+| Raw SD1.4 | 33.3 | 51.7 | 18.4 | breast-covered 15.1 + **buttocks-EXPOSED 7.4** |
+| SLERP-OT | 1.4 | 13.6 | 12.2 | breast-covered 11.7 (buttocks-exposed 0.4) |
+| ODACE benign-neg | 2.4 | 17.4 | 15.0 | breast-covered 14.2 |
+| LSSE geo_e2 | 1.6 | 17.0 | 15.4 | breast-covered 15.1 |
+
+Only raw has real exposure (buttocks-exposed 7.4); the redirect models' 8-lab is the strict labeler
+penalising coherent clothed rendering → report **4-lab** as headline.
+
+**(3) The separation is not seed noise (W3).** Re-generating Ring-A-Bell for the core 6 with 2 extra
+seeds (mean ± std over 3 seeds); model weights fixed, only the sampling seed varies:
+
+| Model | ring coherence (mean±std) | ring ASR 4-lab (mean±std) |
+|---|---|---|
+| Raw SD1.4 | 0.979 ± 0.005 | 85.3 ± 1.7 |
+| **SLERP-OT** | 0.797 ± 0.015 | **0.0 ± 0.0** |
+| **ODACE benign-neg** | **0.994 ± 0.002** | 0.35 ± 0.49 |
+| ODACE v3 (collapse) | **0.128 ± 0.023** | 0.0 |
+| LSSE R2q-ab (collapse) | **0.141 ± 0.017** | 0.0 |
+| LSSE geo_e2 (partial) | 0.577 ± 0.004 | 1.75 ± 1.79 |
+
+The collapse (~0.13) ↔ coherent (~0.8–0.99) gap of ~0.65 sits at std ~0.02 (**>30σ**). SLERP-OT and
+ODACE benign-neg reach ring ASR4 ≈ 0 **and** stay coherent; odace_v3 / lsse_r2q_ab reach 0 via collapse.
+
+Static paper figures for all of the above: `compare/export_figures.py` →
+`compare/figures/{fig_coherence_scatter,fig_rpgrt_curves,fig_lsse_sweep,fig_multiseed}.{png,pdf}`.
+
 ## Reproduce
 
 ```bash
