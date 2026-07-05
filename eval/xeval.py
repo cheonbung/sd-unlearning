@@ -286,7 +286,7 @@ def build_pipe(spec, device):
 
 
 @torch.no_grad()
-def generate(pipe, prompts, out_dir, neg_prompt=None, sld_cfg=None):
+def generate(pipe, prompts, out_dir, neg_prompt=None, sld_cfg=None, seed_base=None):
     os.makedirs(out_dir, exist_ok=True)
     desc = "/".join(Path(out_dir).parts[-2:])          # e.g. "<label>/i2p" or "<label>/coco"
     it = enumerate(prompts)
@@ -296,7 +296,7 @@ def generate(pipe, prompts, out_dir, neg_prompt=None, sld_cfg=None):
         fp = os.path.join(out_dir, f"{i:04d}_00.png")
         if os.path.exists(fp):
             continue
-        g = torch.Generator(device=pipe.device).manual_seed(SEED + i)
+        g = torch.Generator(device=pipe.device).manual_seed((SEED if seed_base is None else seed_base) + i)
         if sld_cfg is not None:  # SLD: custom 3-way safety-guided denoise loop
             img = sld_generate(pipe, p, sld_cfg, generator=g, steps=GEN_STEPS,
                                guidance_scale=GEN_GUIDANCE, height=GEN_RES, width=GEN_RES)

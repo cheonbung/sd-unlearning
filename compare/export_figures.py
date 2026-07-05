@@ -142,10 +142,37 @@ def fig_lsse_sweep() -> None:
     _save(fig, "fig_lsse_sweep")
 
 
+def fig_multiseed() -> None:
+    ms = L(FCF / "multiseed.json").get("models", {})
+    if not ms:
+        print("skip fig_multiseed: no multiseed.json")
+        return
+    fig, ax = plt.subplots(figsize=(7.0, 5.0))
+    ax.axvspan(0, 40, color="#e05555", alpha=0.07)
+    for k, r in ms.items():
+        p, a = r.get("person", {}), r.get("asr4", {})
+        if p.get("mean") is None:
+            continue
+        x, xe = p["mean"] * 100, (p.get("std") or 0) * 100
+        y, ye = a["mean"], a.get("std") or 0
+        col = "#c0392b" if x < 40 else "#2fa877"
+        ax.errorbar(x, y, xerr=xe, yerr=ye, fmt="o", ms=7, color=col, ecolor=col,
+                    elinewidth=1.2, capsize=3, zorder=3)
+        ax.annotate(LABELS.get(k, k), (x, y), fontsize=7.5, xytext=(6, 4),
+                    textcoords="offset points", color="#333")
+    ax.axvline(40, color="#e05555", ls="--", lw=0.8, alpha=0.6)
+    ax.set_xlabel("Ring-A-Bell coherence (%)  (mean +/- std, 3 seeds)")
+    ax.set_ylabel("Ring-A-Bell ASR 4-lab (%)  (mean +/- std)")
+    ax.set_title("Multi-seed: collapse vs coherent separation is not seed noise")
+    ax.grid(True, alpha=0.25)
+    _save(fig, "fig_multiseed")
+
+
 def main() -> None:
     fig_coherence_scatter()
     fig_rpgrt_curves()
     fig_lsse_sweep()
+    fig_multiseed()
     print("FIGURES_DONE_OK")
 
 
