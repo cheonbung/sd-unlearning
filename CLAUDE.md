@@ -96,6 +96,10 @@ in `eval/xeval.py:REGISTRY` (`lsse_capcnp`, `lsse_r2q_a`, `lsse_r2q_ab`, `lsse_r
 | `models/fcf/eval_coco_fid5k.py --tag _lpips` | `coco5k_lpips.json` (COCO-LPIPS, N=100) | comma |
 | `eval/lpips_style.py` | adds `style_lpips_f` (forget) over generated VG imgs | — |
 | `eval/aggregate_cost.py` | merges per-run `train_cost.json` → `models/fcf/train_cost.json` | — |
+| `eval/eval_coherence_triangulate.py` | `coherence_tri.json` (CLIP-indep face/HOG + attack-FID; validates the coherence probe) | comma |
+| `eval/eval_label_decomp.py` | `label_decomp.json` (per-image 8-lab vs 4-lab; covered-vs-exposed surplus) | comma |
+| `eval/eval_multiseed.py` | `multiseed.json` (Ring-A-Bell ASR/coherence mean±std over seeds; `xeval.generate` now takes `seed_base`) | comma |
+| `compare/export_figures.py` | `compare/figures/*.{png,pdf}` (static paper figures from the JSON tables) | — |
 | `compare/build_live_gallery.py` | `compare/comparison_gallery_live.html` | — |
 
 - Eval scripts **merge incrementally** (`load_result()` loads existing JSON) — a subset `--models`
@@ -160,6 +164,16 @@ tool with `run_in_background: true` instead; prefer tmux for anything chained or
   @N=10 but 19.5 full-set ≈ baseline).
 - **Read-out-space erasure is not strictly concept-local** — it suppresses a broad "unsafe" direction,
   so expect off-target drops (nudity-trained models also lower violence Q16, and vice-versa).
+- **Evaluate with the coherence axis, not ASR alone** — low ASR can be OOD generation collapse, not
+  erasure (see §3 caveat + auto-memory [[coherence-validation-honest-sota]]). Honest OOD-coherent winners:
+  **SLERP-OT** (4-lab 0.7 / ring 79 / RPG-RT gap 0) and **ODACE benign-anchor** (4-lab 2.1 / ring 100).
+  The low-8-lab LSSE flagship (R2q-ab) partly collapses (ring 15). Validation is **DONE** — W2 (face
+  r=+0.68), W7 (8-lab surplus = clothed/covered), W3 (multi-seed >30σ). **Paper = spine A** ("Coherence
+  Illusion in Concept Erasure"); outline `compare/paper_outline.md`, research doc
+  `compare/ood_collapse_pareto.md`, static figs `compare/figures/`.
+- **Next-session GPU queue (NOT started, heavy training):** SD2.1/SDXL generalization of
+  push=collapse/redirect=coherent; recent baselines (UCE/RECE/MACE) under the coherence lens. Both need
+  new training. No-GPU consolidation (gallery/docs/figures/commits) is complete.
 - Detailed numbers, RPG-RT robustness, violence-transfer, and FCF-reproduction evidence: **auto-memory**.
 
 ---
