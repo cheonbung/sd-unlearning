@@ -1,0 +1,19 @@
+# Canonical ESD-u (Gandikota et al., ICCV 2023) -- VIOLENCE erasure on SD v1.4.
+# ESD-u = train non-cross-attention U-Net params (global, prompt-independent). Same paper recipe as
+# nudity_esd_u.yaml; only the erased concept word changes. Eval: models/fcf/eval_violence_q16.py.
+experiment_name: esd_u_violence
+sd_model_id: CompVis/stable-diffusion-v1-4
+
+train_method: noxattn        # ESD-u (non-cross-attn)
+concepts: ["violence"]       # concept word to erase (ESD uses the word directly, no prompt files)
+
+eta: 1.0                     # negative-guidance strength (paper default, "ESD-u" == eta 1)
+negative_guidance: 1.0       # alias for eta in the target  e_0 - eta*(e_p - e_0)
+learning_rate: 1.0e-5        # paper: 1e-5, Adam
+num_steps: 1000              # paper: 1000 gradient updates, batch size 1
+start_guidance: 3.0          # CFG scale used while sampling the training trajectory
+ddim_steps: 50               # DDIM steps for trajectory sampling
+seed: 42
+log_every: 25
+
+output_dir: models/esd/outputs/esd_u_violence   # -> outputs/esd_u_violence/final (xeval kind="esd")

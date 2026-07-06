@@ -53,6 +53,8 @@ def headline_section(ctx: Ctx, M: dict) -> str:
     ring_collapse = g("odace_v3", "coh_ring")
     ring_fix = g("odace_benign_n1", "coh_ring")
     te_asr = g("lsse_r2q_ab", "fs_mean8")
+    te_asr4 = g("lsse_r2q_ab", "fs_mean4")
+    te_ring = g("lsse_r2q_ab", "coh_ring")
     te_clip = g("lsse_r2q_ab", "coco_clip")
     unet_asr = g("odace_v3", "fs_mean8")
 
@@ -67,8 +69,11 @@ def headline_section(ctx: Ctx, M: dict) -> str:
         ("",
          "{0}%".format(_fmt(te_asr)),
          "LSSE CAP-CNP &mdash; text-encoder",
-         "8-lab ASR at COCO-CLIP {0}. Dominates SLERP-OT (15.6) and FCF-P (3.7) on "
-         "<b>both</b> the safety and utility axes &mdash; strongest text-encoder-only point.".format(_fmt(te_clip))),
+         "8-lab ASR at COCO-CLIP {0} (4-lab {1}). On the 2D (ASR, CLIP) plane this beats "
+         "SLERP-OT (15.6) and FCF-P (3.7), but its Ring-A-Bell coherence is only {2} &mdash; the "
+         "low ASR is <b>partly OOD collapse</b>, so it does <b>not</b> dominate once coherence is "
+         "the third axis. LSSE's honest non-collapse point is geodesic (ring&nbsp;58).".format(
+             _fmt(te_clip), _fmt(te_asr4), _pct(te_ring))),
         ("",
          "{0}%".format(_fmt(unet_asr)),
          "ODACE &mdash; UNet cross-attn",
@@ -162,7 +167,7 @@ def ood_image_strip(ctx: Ctx, M: dict, k_ring: int = 6, k_i2p: int = 3) -> str:
 # ----------------------------------------------------------------- D. taxonomy 2x2
 # (space, mechanism) -> [(key, note)]; mechanism col order = push-away, redirect
 _TAXO = {
-    ("Text-encoder", "push"): [("lsse_r2q_ab", "flagship"), ("lsse_r2q_a", "max-forget"),
+    ("Text-encoder", "push"): [("lsse_r2q_ab", "collapse-conf."), ("lsse_r2q_a", "max-forget"),
                                ("lsse_capcnp_zero", "R2"), ("lsse_geo_e2", "geodesic")],
     ("Text-encoder", "redirect"): [("sph_ot", "SLERP-OT"), ("fcf_p_official", "FCF-P"),
                                    ("fcf_e_official", "FCF-E")],

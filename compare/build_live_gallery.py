@@ -79,7 +79,7 @@ MODELS = [
     ("FCF-E",                  "fcf_e_official", "baseline", "1.4", "text"),
     ("LSSE+CAP-CNP R2 (perlayer)",  "lsse_capcnp_zero", "novel",  "1.4", "text"),
     ("LSSE+CAP-CNP R2q-a (anchor)", "lsse_r2q_a",       "novel",  "1.4", "text"),
-    ("LSSE+CAP-CNP R2q-ab (flagship)", "lsse_r2q_ab",   "novel",  "1.4", "text"),
+    ("LSSE+CAP-CNP R2q-ab",     "lsse_r2q_ab",    "novel",  "1.4", "text"),
     ("LSSE R2q (violence-trained)", "lsse_r2q_violence", "novel", "1.4", "text"),
     ("SLERP-OT",               "sph_ot",         "novel",    "1.4", "text"),
     ("ODACE (SD v1.4)",        "odace_v3",       "novel",    "1.4", "unet"),
@@ -709,7 +709,7 @@ def scenario_tables_section(M, vd):
         t3_rows.append('<tr>' + "".join(tds) + '</tr>')
     parts.append('<div class="wrap">' + _table(t3_head, t3_rows) + '</div>')
     parts.append('<div class="legend sc-note">FCF-P/ESD-u (nudity-trained) &rarr; off-target Q16 transfer. '
-                 'LSSE R2q violence = directly-trained flagship (16.7). '
+                 'LSSE R2q violence = directly-trained variant (16.7). '
                  'ODACE v3 (nudity-trained) = no violence transfer (~59). Prior FCF/ESD papers do not report this breakdown.</div>')
 
     # --- Table 4: Adaptive red-team ---
@@ -981,7 +981,7 @@ function _drawParetoInto(elId,asr_key,xLabel){
   // points — force-directed label placement to avoid overlap
   var nodes=pts.map(function(k){
     var m=META[k];var cx=px(m[asr_key]),cy=py(m.clip),col=COL[m.group]||'#888';
-    var shortLbl=m.label.replace('LSSE+CAP-CNP ','CAP-').replace('LSSE ','LSSE-').replace(' (flagship)','*').replace('ODACE (SD ','ODACE(').replace(')','').replace('Raw ','');
+    var shortLbl=m.label.replace('LSSE+CAP-CNP ','CAP-').replace('LSSE ','LSSE-').replace('ODACE (SD ','ODACE(').replace(')','').replace('Raw ','');
     var tw=shortLbl.length*5.1;
     return {k:k,cx:cx,cy:cy,col:col,lbl:shortLbl,asr_val:m[asr_key],clip:m.clip,mlbl:m.label,tw:tw,lx:cx+10,ly:cy+4};
   });
@@ -1075,7 +1075,7 @@ function drawCollapse(){
   s.push('<text x="'+(W-PR-4)+'" y="'+(H-PB-6)+'" text-anchor="end" fill="#6ad08e" font-size="10">✓ honest low-ASR erasure</text>');
   var nodes=pts.map(function(k){
     var m=META[k];var cx=px(m.cohr),cy=py(m.asr4),col=COL[m.group]||'#888';
-    var shortLbl=m.label.replace('LSSE+CAP-CNP ','CAP-').replace('LSSE ','LSSE-').replace(' (flagship)','*').replace('ODACE (SD ','ODACE(').replace(')','').replace('Raw ','');
+    var shortLbl=m.label.replace('LSSE+CAP-CNP ','CAP-').replace('LSSE ','LSSE-').replace('ODACE (SD ','ODACE(').replace(')','').replace('Raw ','');
     var tw=shortLbl.length*5.1;
     return {k:k,cx:cx,cy:cy,col:col,lbl:shortLbl,cohr:m.cohr,asr4:m.asr4,mlbl:m.label,tw:tw,lx:cx+10,ly:cy+4};
   });

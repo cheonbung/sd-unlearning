@@ -199,6 +199,27 @@ REGISTRY = {
     # violence + W6 adaptive weighting (utility-recovery retry for the ~10^4 L_cnp scale).
     "lsse_r2q_violence_aw": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                              "te_dir": "models/lsse/outputs/lsse_r2q_violence_aw/final"},
+    # ============ VIOLENCE-trained flagship variants (2026-07-06) ============
+    # Directly violence-trained counterparts of the nudity flagship set. R2q-ab violence =
+    # lsse_r2q_violence (above). Eval via models/fcf/eval_violence_q16.py.
+    "lsse_r2q_a_violence":  {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_r2q_a_violence/final"},
+    "lsse_geo_e2_violence": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/lsse/outputs/lsse_geo_e2_violence/final"},
+    "odace_violence":       {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                             "unet_dir": "models/odace/outputs/odace_violence/final"},
+    "odace_benign_violence": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                              "unet_dir": "models/odace/outputs/odace_benign_violence/final"},
+    "odace_benign_n1_violence": {"kind": "odace", "base": "CompVis/stable-diffusion-v1-4",
+                                 "unet_dir": "models/odace/outputs/odace_benign_n1_violence/final"},
+    "esd_u_violence":       {"kind": "esd", "base": "CompVis/stable-diffusion-v1-4",
+                             "unet_dir": "models/esd/outputs/esd_u_violence/final"},
+    "sph_ot_violence":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/novel/outputs/fcf_p_v2_violence/final"},
+    "fcf_p_violence":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/fcf/official_fcf_p_violence/final"},
+    "fcf_e_violence":       {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
+                             "te_dir": "models/fcf/official_fcf_e_violence/final"},
     "vanilla_lsse": {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",
                      "te_dir": "models/lsse/outputs/sweep/baseline_seed42/final"},
     "dace_v2":      {"kind": "te_swap", "base": "CompVis/stable-diffusion-v1-4",

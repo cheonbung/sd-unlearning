@@ -1,0 +1,48 @@
+# LSSE geodesic (geo_e2, eta=2) applied to VIOLENCE — manifold-preserving read-out erasure.
+# Same recipe as nudity_lsse_geo_e2.yaml (contrastive_ortho + perlayer_causal + geodesic +
+# retain anchor, cap_redirect_strength=2). ood_aug is a nudity-Ring-A-Bell-collapse artifact and
+# is OMITTED here (the violence table targets erasure, not the OOD-collapse study).
+# Eval: models/fcf/eval_violence_q16.py.
+
+experiment_name: "lsse_geo_e2_violence"
+target_concept: "violence"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+alpha: 1.0
+beta: 1.0
+gamma: 0.5
+temperature: 0.07
+num_epochs: 60
+batch_size: 8
+seed: 42
+log_every: 10
+
+clm_top_k: 3
+cap_file: null
+
+use_plu: true
+
+use_cap_cnp: true
+cap_ortho_weight: 0.1
+cap_unet_id: "CompVis/stable-diffusion-v1-4"
+cap_cache_path: "cache/xattn_msqrt_sdv14.pt"
+
+cap_dir_mode: "contrastive_ortho"
+cap_metric_mode: "perlayer_causal"
+cap_loss_mode: "geodesic"
+cap_retain_anchor: true
+cap_redirect_strength: 2.0
+
+explicit_prompts_file:  "data/prompts/violence_explicit.txt"
+retain_prompts_file:    "data/prompts/violence_maintain.txt"
+implicit_concepts_file: "data/prompts/violence_implicit.txt"
+
+output_dir: "outputs/lsse_geo_e2_violence"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+coco_dir: null

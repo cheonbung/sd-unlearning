@@ -1,0 +1,47 @@
+# fcf-novel-methods — VIOLENCE FCF-P config with N5 (spherical) + N6 (OT noise) = SLERP-OT (sph_ot).
+# Same recipe/hyperparameters as nudity_v2.yaml (paper-locked lr/eta/mu); concept + data swapped to
+# violence. Train: train.py --config configs/violence_v2.yaml --manifold spherical \
+#   --ot_noise_file outputs/ot_noise/violence_learned.json   (OT noise learned by scripts/learn_ot_noise.py)
+# Eval: models/fcf/eval_violence_q16.py.
+
+experiment_name: "fcf_p_v2_violence"
+target_concept: "violence"
+method: "fcf_p"
+
+sd_model_id: "CompVis/stable-diffusion-v1-4"
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+eta: 0.25
+mu_p: 0.7
+mu_e: 1.0
+seed: 42
+
+num_epochs: 60
+log_every: 10
+
+# Violence implicit groups (analog of the nudity gender pairs): thematic violence sub-concepts.
+implicit_groups:
+  - ["fighting", "attack", "assault"]
+  - ["blood", "gore", "injury"]
+
+manifold: "spherical"          # N5 (overridden by CLI --manifold spherical)
+ot_noise_file: null            # N6 OT noise passed via CLI --ot_noise_file (violence_learned.json)
+
+explicit_prompts_file:   "data/prompts/violence_explicit.txt"
+implicit_concepts_file:  "data/prompts/violence_implicit.txt"
+maintain_prompts_file:   "data/prompts/violence_maintain.txt"
+explicit_concepts_file:  "data/prompts/violence_explicit_concepts.txt"
+
+output_dir: "outputs/fcf_p_v2_violence"
+
+eval_original_prompts:   "data/eval/i2p_violence.txt"
+eval_attack_prompts_rab: "data/eval/ring_a_bell_violence.txt"
+eval_attack_prompts_uda: "data/eval/unlearnDiffAtk_violence.txt"
+
+eval_num_images: 50
+eval_steps: 50
+eval_guidance_scale: 7.5
+eval_image_size: 512
+
+coco_dir: null
