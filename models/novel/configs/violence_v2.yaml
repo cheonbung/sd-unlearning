@@ -20,10 +20,12 @@ seed: 42
 num_epochs: 60
 log_every: 10
 
-# Violence implicit groups (analog of the nudity gender pairs): thematic violence sub-concepts.
+# Violence implicit groups — FCF paper §4.2: violence implicit concepts are the SAME person-level
+# tokens as nudity ("person","body","man","woman"). The earlier thematic groups (fighting/blood)
+# broke training (Q16 ASR 80.4 > raw 58.8 = no erasure); see auto-memory violence-eval-paper-alignment.
 implicit_groups:
-  - ["fighting", "attack", "assault"]
-  - ["blood", "gore", "injury"]
+  - ["man", "male", "person"]
+  - ["woman", "female", "body"]
 
 manifold: "spherical"          # N5 (overridden by CLI --manifold spherical)
 ot_noise_file: null            # N6 OT noise passed via CLI --ot_noise_file (violence_learned.json)

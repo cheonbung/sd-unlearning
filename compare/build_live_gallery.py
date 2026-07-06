@@ -158,6 +158,7 @@ def load_violence_detail():
                 "mean": d.get("asr_violence_mean"),
                 "i2p": (atks.get("I2P") or {}).get("asr_violence"),
                 "rab": (atks.get("Ring-A-Bell") or {}).get("asr_violence"),
+                "uda": (atks.get("UnlearnDiffAtk") or {}).get("asr_violence"),
             }
     return out
 
@@ -708,7 +709,7 @@ def scenario_tables_section(M, vd):
                  'A low mean but high RaB = vulnerable to adversarial attacks.</div>')
 
     # --- Table 3: Violence scenario ---
-    parts.append('<h3 class="sc-h3">Table 3 &mdash; Violence scenario (Q16 classifier · I2P-viol 757 + RaB-viol 269)</h3>')
+    parts.append('<h3 class="sc-h3">Table 3 &mdash; Violence scenario (Q16 classifier · I2P 757 · RaB 249 · UDA 756)</h3>')
     t3_head = ['<th class="mh">Model</th>',
                '<th class="muted">Trained&nbsp;concept</th>',
                '<th class="muted">I2P-viol&nbsp;&darr;</th>',
@@ -737,6 +738,49 @@ def scenario_tables_section(M, vd):
                  'LSSE R2q violence = directly-trained variant (16.7). '
                  'ODACE benign-neg (nudity-trained) = minimal violence transfer (~63&ndash;66). '
                  'Prior FCF/ESD papers do not report this breakdown.</div>')
+
+    # --- Table 3b: paper-aligned per-attack violence (FCF Table-1 protocol, violence-trained) ---
+    parts.append('<h3 class="sc-h3">Table 3b &mdash; Violence erasure, paper-aligned per-attack '
+                 '(violence-trained models &middot; Q16 &middot; FCF Table-1 protocol)</h3>')
+    VIOL_PAPER_ROWS = [
+        ("raw_v14",                  "Raw SD v1.4 (un-erased)"),
+        ("fcf_p_violence",           "FCF-P (violence)"),
+        ("fcf_e_violence",           "FCF-E (violence)"),
+        ("sph_ot_violence",          "SLERP-OT (violence)"),
+        ("lsse_r2q_a_violence",      "LSSE R2q-a (violence)"),
+        ("lsse_geo_e2_violence",     "LSSE geodesic (violence)"),
+        ("odace_violence",           "ODACE neg-guide (violence)"),
+        ("odace_benign_violence",    "ODACE benign-anchor (violence)"),
+        ("odace_benign_n1_violence", "ODACE benign-neg (violence)"),
+        ("esd_u_violence",           "ESD-u (violence)"),
+    ]
+    t3b_head = ['<th class="mh">Model</th>',
+                '<th>I2P&nbsp;&darr;</th>', '<th>Ring-A-Bell&nbsp;&darr;</th>',
+                '<th>UnlearnDiffAtk&nbsp;&darr;</th>',
+                '<th class="muted">P4D</th>', '<th class="muted">RaB(Re)</th>',
+                '<th>Mean&nbsp;&darr;</th>']
+    t3b_rows = []
+    for k, lbl in VIOL_PAPER_ROWS:
+        vinfo = vd.get(k)
+        if not vinfo:
+            continue
+        na = '<td class="num pend">N/A</td>'
+        tds = ['<th class="mh">{}</th>'.format(lbl),
+               asr_cell(vinfo.get("i2p")), asr_cell(vinfo.get("rab")),
+               asr_cell(vinfo.get("uda")), na, na,
+               asr_cell(vinfo.get("mean"), bold=True)]
+        t3b_rows.append('<tr>' + "".join(tds) + '</tr>')
+    if t3b_rows:
+        parts.append('<div class="wrap">' + _table(t3b_head, t3b_rows) + '</div>')
+        parts.append('<div class="legend sc-note">FCF paper Table-1 protocol: per-attack Q16 ASR of '
+                     '<b>violence-trained</b> models (implicit person/body/man/woman, same as nudity). '
+                     '3/5 attack sets on disk (I2P 757 / Ring-A-Bell 249 / UnlearnDiffAtk 756); '
+                     '<b>P4D-violence and RaB(Re)-violence are N/A</b> &mdash; no public violence prompt '
+                     'set exists (P4D needs per-model optimization; RaB(Re) needs Ring-A-Bell re-run '
+                     'against each fine-tuned encoder). Paper reference (FCF-P violence): I2P 3.73 / '
+                     'RaB 0.80 / UDA 11.55; raw SD RaB 80.40. Push-away rows (LSSE R2q-a, ODACE '
+                     'neg-guide) are pending the violence coherence probe &mdash; a very low ASR may be '
+                     'OOD generation collapse, not erasure (see the nudity OOD-collapse diagnosis).</div>')
 
     # --- Table 4: Adaptive red-team ---
     parts.append('<h3 class="sc-h3">Table 4 &mdash; Adaptive red-team robustness (RPG-RT iter-0 · our Vicuna-7B 4bit run)</h3>')
