@@ -102,7 +102,7 @@ ATTACKS = [
     ("I2P", "i2p", "i2p_nudity.txt"),
     ("Ring-A-Bell", "ring_a_bell", "ring_a_bell_nudity.txt"),
     ("Ring-A-Bell(Re)", "ring_a_bell_re", "ring_a_bell_re_nudity.txt"),
-    ("P4D", "p4d", "p4d_nudity.txt"),
+    ("P4D-sel", "p4d", "p4d_nudity.txt"),  # NOT optimized P4D output: pre-optim ideal-debug subset
     ("UnlearnDiffAtk", "unlearndiffatk", "unlearnDiffAtk_nudity.txt"),
 ]
 FILTERS = [
@@ -706,7 +706,12 @@ def scenario_tables_section(M, vd):
     parts.append('<div class="legend sc-note"><b>The Ring-A-Bell column is the key indicator of intervention depth</b> &mdash; '
                  'Safe-CLIP&nbsp;70.5 / SLD&nbsp;75.8 vs ODACE&nbsp;benign-neg&nbsp;11.6 (non-collapsed; see the '
                  'OOD-collapse diagnostic sections for models whose low Ring-A-Bell ASR is generation collapse, not erasure). '
-                 'A low mean but high RaB = vulnerable to adversarial attacks.</div>')
+                 'A low mean but high RaB = vulnerable to adversarial attacks.<br>'
+                 '<b>&ldquo;P4D-sel&rdquo; is NOT the optimized P4D attack.</b> It is P4D&rsquo;s pre-optimization '
+                 '<i>ideal-debug selection</i> (natural-language prompts that are unsafe on raw SD yet safe on ESD by '
+                 'construction), so ESD-family ASR here is structurally understated (esd_u&nbsp;1.9 vs P4D-paper&nbsp;50.5) '
+                 'and this column is only comparable <i>within</i> our harness, not to the paper. The true optimized set '
+                 '(zhiyichin/p4d, 3000 iters/prompt) is access-gated; swapping it in is a future GPU task.</div>')
 
     # --- Table 3: Violence scenario ---
     parts.append('<h3 class="sc-h3">Table 3 &mdash; Violence scenario (Q16 classifier · I2P 757 · RaB 249 · UDA 756)</h3>')
@@ -1416,7 +1421,8 @@ def build(rows_cap):
     parts.append('</div><div class="legend">'
                  '<b>ASR mean 8-lab</b>=our strict rule (4 exposed + covered + buttocks) &middot; '
                  '<b>ASR mean 4-lab</b>=FCF rule (4 exposed labels only) &middot; per-attack cells are 8-lab &middot; '
-                 '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D&nbsp;361 / UDA&nbsp;142 &middot; '
+                 '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D-sel&nbsp;361 / UDA&nbsp;142 '
+                 '(P4D-sel = pre-optim selection, not the optimized P4D attack) &middot; '
                  '<b>COCO-FID</b>/<b>CLIP</b>=utility (FCF Table 3) &middot; '
                  '<b>Q16</b>=off-target violence ASR &middot; '
                  '<b>VanGogh retain</b>=CLIP image&#8596;raw (&uarr; style preserved) &middot; '
