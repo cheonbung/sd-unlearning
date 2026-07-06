@@ -46,44 +46,61 @@ def _pct(v) -> str:
     return "&#8212;" if v is None else "{0:.0f}%".format(float(v) * 100.0)
 
 
+def _best_key(M, keys, field, require_ring=None):
+    vals = []
+    for key in keys:
+        d = M.get(key, {}) or {}
+        v = d.get(field)
+        r = d.get("coh_ring")
+        if v is None:
+            continue
+        if require_ring is not None and (r is None or r < require_ring):
+            continue
+        vals.append((float(v), key))
+    return min(vals)[1] if vals else None
+
+
 # ---------------------------------------------------------------- E. headline card
 def headline_section(ctx: Ctx, M: dict) -> str:
     """Hero band: the four take-away claims with live flagship numbers pulled from M."""
     g = lambda k, f: (M.get(k, {}) or {}).get(f)
     ring_collapse = g("odace_v3", "coh_ring")
     ring_fix = g("odace_benign_n1", "coh_ring")
-    te_asr = g("lsse_r2q_ab", "fs_mean8")
-    te_asr4 = g("lsse_r2q_ab", "fs_mean4")
-    te_ring = g("lsse_r2q_ab", "coh_ring")
-    te_clip = g("lsse_r2q_ab", "coco_clip")
-    unet_asr = g("odace_v3", "fs_mean8")
+    te_key = _best_key(M, ["sph_ot", "lsse_geo_e2", "fcf_p_official"], "fs_mean8", require_ring=0.55)
+    te_asr = g(te_key, "fs_mean8") if te_key else None
+    te_asr4 = g(te_key, "fs_mean4") if te_key else None
+    te_ring = g(te_key, "coh_ring") if te_key else None
+    te_lbl = ctx.labels.get(te_key, te_key or "Text-encoder") if te_key else "Text-encoder"
+    unet_key = "odace_benign_n1"
+    unet_asr = g(unet_key, "fs_mean8")
+    unet_asr4 = g(unet_key, "fs_mean4")
+    unet_ring = g(unet_key, "coh_ring")
 
     cards = [
         ("accent",
          "{0} &rarr; {1}".format(_pct(ring_collapse), _pct(ring_fix)),
-         "OOD person-coherence (discovery)",
-         "On the Ring-A-Bell OOD attack, <b>push-away</b> erasure collapses to non-human "
-         "garbage (person_prob&rarr;0), so its low ASR is <b>collapse, not erasure</b>. "
-         "<b>Redirect-to-benign</b> restores coherence &mdash; a fix that is mechanism, not a "
-         "hyper-parameter (confirmed by the no-OOD-aug ablation)."),
+         "Collapse variants moved to diagnostics",
+         "The removed push-away variants are still useful as OOD-collapse controls: on Ring-A-Bell, "
+         "ODACE&nbsp;v3 has low person coherence, so its low ASR is <b>collapse, not erasure</b>. "
+         "The current no-collapse table keeps redirect/geodesic variants whose outputs stay on-manifold."),
         ("",
          "{0}%".format(_fmt(te_asr)),
-         "LSSE CAP-CNP &mdash; text-encoder",
-         "8-lab ASR at COCO-CLIP {0} (4-lab {1}). On the 2D (ASR, CLIP) plane this beats "
-         "SLERP-OT (15.6) and FCF-P (3.7), but its Ring-A-Bell coherence is only {2} &mdash; the "
-         "low ASR is <b>partly OOD collapse</b>, so it does <b>not</b> dominate once coherence is "
-         "the third axis. LSSE's honest non-collapse point is geodesic (ring&nbsp;58).".format(
-             _fmt(te_clip), _fmt(te_asr4), _pct(te_ring))),
+         "{0} &mdash; text-encoder".format(ctx.html.escape(te_lbl)),
+         "Best current text-encoder point after removing collapse-confounded variants: 8-lab ASR {0}%, "
+         "4-lab ASR {1}%, Ring-A-Bell coherence {2}. This is now a no-collapse comparison rather than "
+         "a low-ASR-by-garbage-output comparison.".format(_fmt(te_asr), _fmt(te_asr4), _pct(te_ring))),
         ("",
          "{0}%".format(_fmt(unet_asr)),
-         "ODACE &mdash; UNet cross-attn",
-         "Output-grounded editing; beats every baseline (ESD-u&nbsp;21.6 / Safe-CLIP&nbsp;44 / "
-         "SLD&nbsp;45&ndash;62). Its benign-anchor variant is OOD-coherent (ring&nbsp;1.00)."),
+         "ODACE benign-neg &mdash; UNet",
+         "The no-collapse UNet point keeps strong erasure while staying coherent: 8-lab ASR {0}%, "
+         "4-lab ASR {1}%, Ring-A-Bell coherence {2}. This replaces ODACE&nbsp;v3 in the main story.".format(
+             _fmt(unet_asr), _fmt(unet_asr4), _pct(unet_ring))),
         ("",
          "gap &asymp; 0",
          "Adaptive red-team (RPG-RT)",
-         "Against a DPO-fine-tuned Vicuna-7B attacker, redirect defenses (SLERP-OT, ODACE "
-         "benign) are <b>unmovable</b> (iter0&rarr;best gap&nbsp;0), while raw explodes 52.5&rarr;75."),
+         "Against a DPO-fine-tuned Vicuna-7B attacker, SLERP-OT is <b>unmovable</b> "
+         "(3.0&rarr;3.0 query ASR), ODACE benign-neg stays low (2.0&rarr;4.0), while raw explodes "
+         "52.5&rarr;75."),
     ]
     cells = []
     for cls, num, lbl, desc in cards:
@@ -215,7 +232,7 @@ def taxonomy_section(ctx: Ctx, M: dict) -> str:
 
 
 # ------------------------------------------------------------- C. RPG-RT curve SVG
-_CURVE_ORDER = ["raw", "esd_u", "fcf_p_official", "odace_v3",
+_CURVE_ORDER = ["raw", "esd_u", "fcf_p_official",
                 "lsse_geo_e2", "odace_benign", "odace_benign_n1", "sph_ot"]
 _CURVE_COL = {"raw": "#c0c6cc", "esd_u": "#a8b0b8", "fcf_p_official": "#86b6e0",
               "odace_v3": "#e0a060", "lsse_geo_e2": "#73c7b0", "odace_benign": "#6ad08e",

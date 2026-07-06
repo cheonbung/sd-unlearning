@@ -48,18 +48,21 @@ RPGRT_REDTEAM = REPO / "models" / "fcf" / "rpgrt_redteam.json"
 RPGRT_DPO = REPO / "models" / "fcf" / "rpgrt_dpo.json"
 RPGRT_OURS = REPO.parent / "RPG-RT" / "output" / "rpgrt_ours"
 RPGRT_DPO_DIR = REPO / "eval" / "outputs" / "rpgrt_dpo"
-RPGRT_DPO_TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u", "odace_v3"]
-RPGRT_SKIP = {"odace_mc", "odace_mc_v2"}  # multi-concept models removed from the gallery
+RPGRT_DPO_TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u"]
+RPGRT_SKIP = {"odace_mc", "odace_mc_v2",
+              # push-away variants that collapse on Ring-A-Bell (person_prob<0.4); removed from the
+              # main red-team tables 2026-07-06, kept only in the OOD-collapse diagnostic sections.
+              "lsse_capcnp_zero", "lsse_r2q_a", "lsse_r2q_ab", "odace_v3"}
 
 # Key model subsets for scenario comparison tables
 KEY_MODELS_MAIN     = ["raw_v14", "fcf_p_official", "esd_u", "safeclip", "sld_max",
-                        "sph_ot", "odace_v3", "lsse_r2q_ab"]
+                        "sph_ot", "odace_benign_n1", "lsse_geo_e2"]
 KEY_MODELS_VIOLENCE = ["raw_v14", "fcf_p_official", "fcf_e_official", "esd_u",
-                        "odace_v3", "lsse_r2q_violence"]
+                        "odace_benign_n1", "lsse_r2q_violence"]
 KEY_MODELS_COST     = ["raw_v14", "sld_max", "safeclip", "sph_ot", "esd_u",
-                        "fcf_p_official", "odace_v3", "lsse_r2q_ab"]
-KEY_MODELS_STYLE    = ["raw_v14", "fcf_p_official", "esd_u", "sph_ot", "odace_v3",
-                        "lsse_r2q_ab"]
+                        "fcf_p_official", "odace_benign_n1", "lsse_geo_e2"]
+KEY_MODELS_STYLE    = ["raw_v14", "fcf_p_official", "esd_u", "sph_ot", "odace_benign_n1",
+                        "lsse_geo_e2"]
 
 # Architecture badge labels for the "mod" dimension
 ARCH_LABEL = {"text": "TE", "unet": "UNet", "guidance": "GD", "clip": "CLIP", "none": "—"}
@@ -77,18 +80,24 @@ MODELS = [
     ("ESD-u",                  "esd_u",          "baseline", "1.4", "unet"),
     ("FCF-P",                  "fcf_p_official", "baseline", "1.4", "text"),
     ("FCF-E",                  "fcf_e_official", "baseline", "1.4", "text"),
-    ("LSSE+CAP-CNP R2 (perlayer)",  "lsse_capcnp_zero", "novel",  "1.4", "text"),
-    ("LSSE+CAP-CNP R2q-a (anchor)", "lsse_r2q_a",       "novel",  "1.4", "text"),
-    ("LSSE+CAP-CNP R2q-ab",     "lsse_r2q_ab",    "novel",  "1.4", "text"),
     ("LSSE R2q (violence-trained)", "lsse_r2q_violence", "novel", "1.4", "text"),
     ("SLERP-OT",               "sph_ot",         "novel",    "1.4", "text"),
-    ("ODACE (SD v1.4)",        "odace_v3",       "novel",    "1.4", "unet"),
-    ("ODACE (SD v1.5)",        "odace_v15",      "novel",    "1.5", "unet"),
     # OOD-collapse fix family (redirect-to-benign / geodesic): coherent on OOD Ring-A-Bell.
+    # (push-away variants lsse_capcnp_zero/lsse_r2q_a/lsse_r2q_ab/odace_v3/odace_v15 removed from
+    #  the main table 2026-07-06 -- they collapse on Ring-A-Bell (person_prob<0.4); kept only in the
+    #  OOD-collapse diagnostic sections (gallery_sections.py) as evidence of the collapse phenomenon.)
     ("ODACE benign-anchor",        "odace_benign",    "novel", "1.4", "unet"),
     ("ODACE benign-neg (no-collapse)", "odace_benign_n1", "novel", "1.4", "unet"),
     ("LSSE geodesic (no-collapse)",    "lsse_geo_e2",     "novel", "1.4", "text"),
 ]
+DIAGNOSTIC_LABELS = {
+    # Removed from the main comparison tables, but kept available for the OOD-collapse proof sections.
+    "lsse_capcnp_zero": "LSSE CAP-CNP R2 (collapse diagnostic)",
+    "lsse_r2q_a": "LSSE R2q-a (collapse diagnostic)",
+    "lsse_r2q_ab": "LSSE R2q-ab (collapse diagnostic)",
+    "odace_v3": "ODACE v3 (collapse diagnostic)",
+    "odace_v15": "ODACE v1.5 (collapse diagnostic)",
+}
 ATTACKS = [
     ("I2P", "i2p", "i2p_nudity.txt"),
     ("Ring-A-Bell", "ring_a_bell", "ring_a_bell_nudity.txt"),
@@ -111,7 +120,7 @@ def read_prompts(fname):
         return []
     out = []
     for ln in p.read_text(encoding="utf-8", errors="replace").splitlines():
-        t = ln.strip()
+        t = ln.replace("\x00", "").strip()
         if t and not t.startswith("#"):
             out.append(t)
     return out
@@ -209,16 +218,27 @@ def load_coco_lpips():
 
 def load_fullset():
     out = {}
+
+    def merge(k, a8, m8, m4):
+        cur = out.setdefault(k, {"a8": {}, "m8": None, "m4": None})
+        for a, v in (a8 or {}).items():
+            if v is not None:
+                cur["a8"][a] = v
+        if m8 is not None:
+            cur["m8"] = m8
+        if m4 is not None:
+            cur["m4"] = m4
+
     je = _load_json(FULLSET_EVAL) if FULLSET_EVAL.exists() else None
     for k, d in ((je or {}).get("models") or {}).items():
         a8 = {a: v.get("asr_ours8") for a, v in (d.get("attacks") or {}).items()}
-        out[k] = {"a8": a8, "m8": d.get("asr_ours8_mean"), "m4": d.get("asr_fcf4_mean")}
+        merge(k, a8, d.get("asr_ours8_mean"), d.get("asr_fcf4_mean"))
     ja = _load_json(FULLSET_ALL) if FULLSET_ALL.exists() else None
     for k, d in ((ja or {}).get("models") or {}).items():
         if "error" in d:
             continue
         a8 = {a: v.get("ours8_p03") for a, v in (d.get("attacks") or {}).items()}
-        out[k] = {"a8": a8, "m8": d.get("ours8_p03_mean"), "m4": d.get("fcf4_p03_mean")}
+        merge(k, a8, d.get("ours8_p03_mean"), d.get("fcf4_p03_mean"))
     return out
 
 
@@ -259,7 +279,9 @@ def load_metrics():
     fs = load_fullset()
     coh = load_coherence()
     data = {}
-    for _, key, *_ in MODELS:
+    metric_keys = [key for _, key, *_ in MODELS]
+    metric_keys += [key for key in DIAGNOSTIC_LABELS if key not in metric_keys]
+    for key in metric_keys:
         d = {"fs_asr": {}, "fs_mean8": None, "fs_mean4": None,
              "leg_asr": {}, "leg_mean": None,
              "fid": None, "coco_clip": None, "coco_lpips": clpips.get(key),
@@ -506,7 +528,9 @@ def legacy_table(M):
 
 RPGRT_NAMES = {"raw": "Raw SD v1.4", "sph_ot": "SLERP-OT", "fcf_p_official": "FCF-P",
                "odace_v3": "ODACE v3", "odace_mc": "ODACE-MC", "odace_mc_v2": "ODACE-MC v2",
-               "esd_u": "ESD-u", "safeclip": "Safe-CLIP", "sld_max": "SLD-Max"}
+               "esd_u": "ESD-u", "safeclip": "Safe-CLIP", "sld_max": "SLD-Max",
+               "odace_benign": "ODACE benign-anchor", "odace_benign_n1": "ODACE benign-neg",
+               "lsse_geo_e2": "LSSE geodesic"}
 
 
 def _rnm(k):
@@ -679,7 +703,8 @@ def scenario_tables_section(M, vd):
         t2_rows.append('<tr>' + "".join(tds) + '</tr>')
     parts.append('<div class="wrap">' + _table(t2_head, t2_rows) + '</div>')
     parts.append('<div class="legend sc-note"><b>The Ring-A-Bell column is the key indicator of intervention depth</b> &mdash; '
-                 'Safe-CLIP&nbsp;68 / SLD&nbsp;76 vs ODACE&nbsp;v3&nbsp;0. '
+                 'Safe-CLIP&nbsp;70.5 / SLD&nbsp;75.8 vs ODACE&nbsp;benign-neg&nbsp;11.6 (non-collapsed; see the '
+                 'OOD-collapse diagnostic sections for models whose low Ring-A-Bell ASR is generation collapse, not erasure). '
                  'A low mean but high RaB = vulnerable to adversarial attacks.</div>')
 
     # --- Table 3: Violence scenario ---
@@ -692,7 +717,7 @@ def scenario_tables_section(M, vd):
                '<th class="muted">COCO-CLIP&nbsp;&uarr;</th>']
     VIOL_CONCEPTS = {
         "raw_v14": "&mdash;", "fcf_p_official": "nudity", "fcf_e_official": "nudity",
-        "esd_u": "nudity", "odace_v3": "nudity", "lsse_r2q_violence": "violence",
+        "esd_u": "nudity", "odace_benign_n1": "nudity", "lsse_r2q_violence": "violence",
     }
     t3_rows = []
     for k in KEY_MODELS_VIOLENCE:
@@ -710,7 +735,8 @@ def scenario_tables_section(M, vd):
     parts.append('<div class="wrap">' + _table(t3_head, t3_rows) + '</div>')
     parts.append('<div class="legend sc-note">FCF-P/ESD-u (nudity-trained) &rarr; off-target Q16 transfer. '
                  'LSSE R2q violence = directly-trained variant (16.7). '
-                 'ODACE v3 (nudity-trained) = no violence transfer (~59). Prior FCF/ESD papers do not report this breakdown.</div>')
+                 'ODACE benign-neg (nudity-trained) = minimal violence transfer (~63&ndash;66). '
+                 'Prior FCF/ESD papers do not report this breakdown.</div>')
 
     # --- Table 4: Adaptive red-team ---
     parts.append('<h3 class="sc-h3">Table 4 &mdash; Adaptive red-team robustness (RPG-RT iter-0 · our Vicuna-7B 4bit run)</h3>')
@@ -721,9 +747,11 @@ def scenario_tables_section(M, vd):
                '<th class="muted">Note</th>']
     RPGRT_NOTE = {
         "raw": "baseline (un-erased)", "sph_ot": "strongest TE robustness",
-        "fcf_p_official": "&mdash;", "odace_v3": "strongest overall",
-        "odace_mc": "MC variant", "esd_u": "&mdash;",
+        "fcf_p_official": "&mdash;", "odace_mc": "MC variant", "esd_u": "&mdash;",
         "safeclip": "effectively bypassable", "sld_max": "&mdash;",
+        "odace_benign_n1": "strongest coherent UNet (redirect)",
+        "odace_benign": "adaptation-proof, most coherent",
+        "lsse_geo_e2": "coherent TE (geodesic)",
     }
     t4_rows = []
     for k, d in sorted(rt.items(), key=lambda kv: kv[1].get("asr_query", 1e9)):
@@ -771,7 +799,7 @@ def scenario_tables_section(M, vd):
         "raw_v14": "&mdash;", "sld_max": "inference guidance",
         "safeclip": "CLIP swap (training-free)", "sph_ot": "TE SLERP interp",
         "esd_u": "UNet non-Xattn", "fcf_p_official": "TE fine-tune",
-        "odace_v3": "UNet Xattn (output)", "lsse_r2q_ab": "TE read-out space",
+        "odace_benign_n1": "UNet Xattn (benign-neg)", "lsse_geo_e2": "TE geodesic",
     }
     t7_rows = []
     for k in KEY_MODELS_COST:
@@ -1134,8 +1162,8 @@ function drawPareto(){
   _drawParetoInto('pareto-svg8','asr8','ASR mean 8-lab');
   _drawParetoInto('pareto-svg4','asr4','ASR mean 4-lab');
 }
-function retry(){
-  if(!auto)return;
+function retry(force){
+  if(!auto&&!force)return;
   document.querySelectorAll('img[data-src]').forEach(function(im){
     if(im.naturalWidth===0){im.classList.add('pending');im.src=im.getAttribute('data-src')+'?t='+Date.now();}
     else{im.classList.remove('pending');}
@@ -1143,6 +1171,10 @@ function retry(){
 }
 setInterval(retry,25000);
 document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('img[data-src]').forEach(function(im){
+    im.addEventListener('load',function(){im.classList.remove('pending');});
+    im.addEventListener('error',function(){im.classList.add('pending');});
+  });
   var btns=[].slice.call(document.querySelectorAll('[data-ab]'));
   var secs=[].slice.call(document.querySelectorAll('[data-as]'));
   btns.forEach(function(b){b.addEventListener('click',function(){
@@ -1170,12 +1202,13 @@ document.addEventListener('DOMContentLoaded',function(){
     applyFilter();
   });
   document.getElementById('blur').addEventListener('change',function(e){document.body.classList.toggle('blur',e.target.checked);});
-  document.getElementById('autob').addEventListener('click',function(e){auto=!auto;e.target.textContent=auto?'⏸ Auto-refresh: ON':'▶ Auto-refresh: OFF';if(auto)retry();});
-  document.getElementById('now').addEventListener('click',retry);
+  document.getElementById('autob').addEventListener('click',function(e){auto=!auto;e.target.textContent=auto?'⏸ Auto-refresh: ON':'▶ Auto-refresh: OFF';if(auto)retry(true);});
+  document.getElementById('now').addEventListener('click',function(){retry(true);});
   var cmp=document.getElementById('compact');
   if(cmp)cmp.addEventListener('change',function(e){document.body.classList.toggle('compact',e.target.checked);});
   document.querySelectorAll('.qt th[data-dir]').forEach(function(th){th.addEventListener('click',function(){sortBy(th);});});
   applyFilter();
+  retry(true);
 });
 """
 
@@ -1259,6 +1292,7 @@ def paper_metrics_section():
 COHERENCE_KEYS = ["raw_v14", "odace_benign_n1", "odace_benign", "sph_ot", "fcf_p_official",
                   "lsse_geo_e2", "odace_v3", "lsse_r2q_ab"]
 _LABEL_BY_KEY = {key: label for label, key, *_ in MODELS}
+_LABEL_BY_KEY.update(DIAGNOSTIC_LABELS)
 
 
 def coherence_section(M):
@@ -1289,8 +1323,9 @@ def coherence_section(M):
     note = ('<div class="legend"><b>OOD generation collapse:</b> on the Ring-A-Bell OOD attack some models '
             'render non-human garbage (low <b>ring</b> person_prob) instead of a coherent safe image &mdash; '
             'their low ASR is <b>collapse, not erasure</b>. A trustworthy result needs low ASR <b>and</b> high '
-            'ring. <b>redirect-to-benign</b> (ODACE benign-anchor) fixes the collapse (ring&nbsp;0.12&rarr;1.00); '
-            'push-away methods (ODACE&nbsp;v3, LSSE&nbsp;R2q-ab) collapse on OOD. ring/i2p = P(person present) by '
+            'ring. <b>redirect-to-benign</b> (ODACE benign-neg) fixes the collapse (ring&nbsp;0.12&rarr;1.00); '
+            'push-away diagnostics (ODACE&nbsp;v3, LSSE&nbsp;R2q-ab) are kept out of the main table because '
+            'they collapse on OOD. ring/i2p = P(person present) by '
             'CLIP zero-shot. See <code>compare/ood_collapse_pareto.md</code>.</div>')
     return ('<section class="sec"><h2>OOD generation coherence '
             '<span>(Ring-A-Bell collapse probe &middot; low ASR is only real when ring stays high)</span></h2>'
@@ -1424,8 +1459,9 @@ def build(rows_cap):
         '<b>ASR-30</b>=% prompts with &ge;1 NSFW bypass; <b>ASR</b>=% of all queries NSFW.</div>'
         '<div class="wrap" style="margin-top:10px">' + dp_t + '</div>'
         '<div class="legend"><b>DPO-fine-tuned attacker</b> (4 iters/target, vicuna+LoRA): '
-        'ASR (query-level) iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). ODACE v3 stays lowest worst-case '
-        '(1.5); SLERP-OT unmovable (gap 0); raw explodes 52.5&rarr;75. '
+        'ASR (query-level) iter0&rarr;best; <b>gap</b>=adaptive erosion (lower=more robust). '
+        'Among no-collapse entries, SLERP-OT is unmovable (gap&nbsp;0), ODACE benign-neg stays low '
+        '(2.0&rarr;4.0), while raw explodes 52.5&rarr;75. '
         'Eval split differs from the iter0 table &mdash; compare within each table only.</div></section>')
 
     # 1c2) RPG-RT DPO adaptation curve (asr_query per iteration)
@@ -1482,7 +1518,8 @@ def main():
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
     out = Path(a.out)
-    out.write_text(build(a.rows), encoding="utf-8")
+    rendered = build(a.rows).replace("\x00", "")
+    out.write_text(rendered, encoding="utf-8")
     n_metrics = sum(1 for _, k, *_ in MODELS if (FS_ROOT / k / "metrics.json").exists())
     print("wrote {0} ({1} KB) | {2} models ({3} with metrics) x {4} rows x {5} attacks".format(
         out, out.stat().st_size // 1024, len(MODELS), n_metrics, a.rows or "all", len(ATTACKS)))
