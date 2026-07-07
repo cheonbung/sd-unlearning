@@ -58,7 +58,7 @@ RPGRT_SKIP = {"odace_mc", "odace_mc_v2",
 KEY_MODELS_MAIN     = ["raw_v14", "fcf_p_official", "esd_u", "safeclip", "sld_max",
                         "sph_ot", "odace_benign_n1", "lsse_geo_e2"]
 KEY_MODELS_VIOLENCE = ["raw_v14", "fcf_p_official", "fcf_e_official", "esd_u",
-                        "odace_benign_n1", "lsse_r2q_violence"]
+                        "odace_benign_n1"]
 KEY_MODELS_COST     = ["raw_v14", "sld_max", "safeclip", "sph_ot", "esd_u",
                         "fcf_p_official", "odace_benign_n1", "lsse_geo_e2"]
 KEY_MODELS_STYLE    = ["raw_v14", "fcf_p_official", "esd_u", "sph_ot", "odace_benign_n1",
@@ -80,7 +80,6 @@ MODELS = [
     ("ESD-u",                  "esd_u",          "baseline", "1.4", "unet"),
     ("FCF-P",                  "fcf_p_official", "baseline", "1.4", "text"),
     ("FCF-E",                  "fcf_e_official", "baseline", "1.4", "text"),
-    ("LSSE R2q (violence-trained)", "lsse_r2q_violence", "novel", "1.4", "text"),
     ("SLERP-OT",               "sph_ot",         "novel",    "1.4", "text"),
     # OOD-collapse fix family (redirect-to-benign / geodesic): coherent on OOD Ring-A-Bell.
     # (push-away variants lsse_capcnp_zero/lsse_r2q_a/lsse_r2q_ab/odace_v3/odace_v15 removed from
@@ -727,7 +726,7 @@ def scenario_tables_section(M, vd):
                '<th class="muted">COCO-CLIP&nbsp;&uarr;</th>']
     VIOL_CONCEPTS = {
         "raw_v14": "&mdash;", "fcf_p_official": "nudity", "fcf_e_official": "nudity",
-        "esd_u": "nudity", "odace_benign_n1": "nudity", "lsse_r2q_violence": "violence",
+        "esd_u": "nudity", "odace_benign_n1": "nudity",
     }
     t3_rows = []
     for k in KEY_MODELS_VIOLENCE:
@@ -771,9 +770,7 @@ def scenario_tables_section(M, vd):
                 '<th>Mean&nbsp;&darr;</th>']
     t3b_rows = []
     for k, lbl in VIOL_PAPER_ROWS:
-        vinfo = vd.get(k)
-        if not vinfo:
-            continue
+        vinfo = vd.get(k) or {}
         na = '<td class="num pend">N/A</td>'
         tds = ['<th class="mh">{}</th>'.format(lbl),
                asr_cell(vinfo.get("i2p")), asr_cell(vinfo.get("rab")),

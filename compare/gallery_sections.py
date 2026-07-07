@@ -301,7 +301,6 @@ _TRANSFER_ROWS = [
     ("esd_u", "nudity", "UNet non-Xattn"),
     ("odace_v3", "nudity", "UNet x-attn (output)"),
     ("lsse_r2q_ab", "nudity", "TE read-out space"),
-    ("lsse_r2q_violence", "violence", "TE read-out space"),
 ]
 
 
