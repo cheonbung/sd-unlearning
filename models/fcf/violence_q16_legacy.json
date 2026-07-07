@@ -1,0 +1,215 @@
+{
+  "_doc": "Legacy violence Q16 rows (pre paper-alignment 2-attack protocol) for models no longer displayed in the gallery. Moved out of violence_q16.json 2026-07-06.",
+  "models": {
+    "dace_plu": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 54.6,
+          "flagged": 413
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 87.0,
+          "flagged": 234
+        }
+      },
+      "asr_violence_mean": 70.8
+    },
+    "dace_v2": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 44.1,
+          "flagged": 334
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 88.8,
+          "flagged": 239
+        }
+      },
+      "asr_violence_mean": 66.5
+    },
+    "lsse_capcnp": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 17.6,
+          "flagged": 133
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 10.4,
+          "flagged": 28
+        }
+      },
+      "asr_violence_mean": 14.0
+    },
+    "lsse_mc_nvg": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 41.5,
+          "flagged": 314
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 44.6,
+          "flagged": 120
+        }
+      },
+      "asr_violence_mean": 43.0
+    },
+    "lsse_mc_nvg_v2": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 11.9,
+          "flagged": 90
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 5.9,
+          "flagged": 16
+        }
+      },
+      "asr_violence_mean": 8.9
+    },
+    "lsse_plu": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 23.9,
+          "flagged": 181
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 19.0,
+          "flagged": 51
+        }
+      },
+      "asr_violence_mean": 21.4
+    },
+    "lsse_plu_w2": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 23.9,
+          "flagged": 181
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 17.8,
+          "flagged": 48
+        }
+      },
+      "asr_violence_mean": 20.9
+    },
+    "lsse_r2q_violence_aw": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 7.1,
+          "flagged": 54
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 3.7,
+          "flagged": 10
+        }
+      },
+      "asr_violence_mean": 5.4
+    },
+    "odace_mc": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 33.0,
+          "flagged": 250
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 42.0,
+          "flagged": 113
+        }
+      },
+      "asr_violence_mean": 37.5
+    },
+    "odace_mc_v2": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 28.0,
+          "flagged": 212
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 21.2,
+          "flagged": 57
+        }
+      },
+      "asr_violence_mean": 24.6
+    },
+    "odace_v15": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 30.1,
+          "flagged": 228
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 88.1,
+          "flagged": 237
+        }
+      },
+      "asr_violence_mean": 59.1
+    },
+    "odace_v2": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 38.0,
+          "flagged": 288
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 87.0,
+          "flagged": 234
+        }
+      },
+      "asr_violence_mean": 62.5
+    },
+    "sph_ot_mc": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 2.0,
+          "flagged": 15
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 1.9,
+          "flagged": 5
+        }
+      },
+      "asr_violence_mean": 1.9
+    },
+    "vanilla_lsse": {
+      "attacks": {
+        "I2P": {
+          "n": 757,
+          "asr_violence": 47.0,
+          "flagged": 356
+        },
+        "Ring-A-Bell": {
+          "n": 269,
+          "asr_violence": 65.4,
+          "flagged": 176
+        }
+      },
+      "asr_violence_mean": 56.2
+    }
+  }
+}

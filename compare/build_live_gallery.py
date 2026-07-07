@@ -628,8 +628,9 @@ def _model_info(key):
 def scenario_tables_section(M, vd):
     parts = []
 
-    # --- Table 0: Protocol reference ---
-    parts.append('<h3 class="sc-h3">Table 0 &mdash; Evaluation Protocol Spec (do not cross-compare)</h3>')
+    # --- Table 1: Protocol reference ---
+    parts.append('<h3 class="sc-h3">Table 1 &mdash; Evaluation Protocol Spec (do not cross-compare)'
+                 '<span class="fcfref">methodology &middot; no FCF paper equivalent</span></h3>')
     p0_head = ['<th class="mh">Protocol</th>',
                '<th>N&nbsp;prompt</th>', '<th>N&nbsp;img/prompt</th>',
                '<th>Detector</th>', '<th>Label&nbsp;set</th>', '<th>Threshold</th>', '<th>Quality&nbsp;dataset</th>']
@@ -661,7 +662,8 @@ def scenario_tables_section(M, vd):
                  'Tables 1&ndash;7 below are all under OUR-FULL.</div>')
 
     # --- Table 1: Main nudity efficacy ---
-    parts.append('<h3 class="sc-h3">Table 1 &mdash; Single-concept nudity erasure &amp; utility (protocol: OUR-FULL)</h3>')
+    parts.append('<h3 class="sc-h3">Table 2 &mdash; Single-concept nudity erasure &amp; utility (protocol: OUR-FULL)'
+                 '<span class="fcfref">cf. FCF paper Table 1 (ASR) + Table 3 (FID/CLIP)</span></h3>')
     t1_head = ['<th class="mh">Model</th>',
                '<th>ASR&nbsp;8-lab&nbsp;&darr;</th>',
                '<th class="muted">ASR&nbsp;4-lab&nbsp;&darr;</th>',
@@ -686,7 +688,8 @@ def scenario_tables_section(M, vd):
                  'COCO-CLIP/FID over N=300. Red cells&darr;=unsafe, green&darr;=safe.</div>')
 
     # --- Table 2: Per-attack breakdown ---
-    parts.append('<h3 class="sc-h3">Table 2 &mdash; Per-attack ASR breakdown (OUR-FULL, 8-lab NudeNet v3)</h3>')
+    parts.append('<h3 class="sc-h3">Table 3 &mdash; Per-attack ASR breakdown (OUR-FULL, 8-lab NudeNet v3)'
+                 '<span class="fcfref">cf. FCF paper Table 1 (per-attack columns)</span></h3>')
     t2_head = ['<th class="mh">Model</th>']
     for a, _, _ in ATTACKS:
         t2_head.append('<th class="muted">{}&nbsp;&darr;</th>'.format(html.escape(a)))
@@ -714,7 +717,8 @@ def scenario_tables_section(M, vd):
                  '(zhiyichin/p4d, 3000 iters/prompt) is access-gated; swapping it in is a future GPU task.</div>')
 
     # --- Table 3: Violence scenario ---
-    parts.append('<h3 class="sc-h3">Table 3 &mdash; Violence scenario (Q16 classifier · I2P 757 · RaB 249 · UDA 756)</h3>')
+    parts.append('<h3 class="sc-h3">Table 4 &mdash; Violence scenario (Q16 classifier · I2P 757 · RaB 249 · UDA 756)'
+                 '<span class="fcfref">cf. FCF paper Table 1 (violence rows)</span></h3>')
     t3_head = ['<th class="mh">Model</th>',
                '<th class="muted">Trained&nbsp;concept</th>',
                '<th class="muted">I2P-viol&nbsp;&darr;</th>',
@@ -744,9 +748,10 @@ def scenario_tables_section(M, vd):
                  'ODACE benign-neg (nudity-trained) = minimal violence transfer (~63&ndash;66). '
                  'Prior FCF/ESD papers do not report this breakdown.</div>')
 
-    # --- Table 3b: paper-aligned per-attack violence (FCF Table-1 protocol, violence-trained) ---
-    parts.append('<h3 class="sc-h3">Table 3b &mdash; Violence erasure, paper-aligned per-attack '
-                 '(violence-trained models &middot; Q16 &middot; FCF Table-1 protocol)</h3>')
+    # --- Table 5: paper-aligned per-attack violence (FCF Table-1 protocol, violence-trained) ---
+    parts.append('<h3 class="sc-h3">Table 5 &mdash; Violence erasure, paper-aligned per-attack '
+                 '(violence-trained models &middot; Q16)'
+                 '<span class="fcfref">cf. FCF paper Table 1 (violence rows)</span></h3>')
     VIOL_PAPER_ROWS = [
         ("raw_v14",                  "Raw SD v1.4 (un-erased)"),
         ("fcf_p_violence",           "FCF-P (violence)"),
@@ -788,7 +793,8 @@ def scenario_tables_section(M, vd):
                      'OOD generation collapse, not erasure (see the nudity OOD-collapse diagnosis).</div>')
 
     # --- Table 4: Adaptive red-team ---
-    parts.append('<h3 class="sc-h3">Table 4 &mdash; Adaptive red-team robustness (RPG-RT iter-0 · our Vicuna-7B 4bit run)</h3>')
+    parts.append('<h3 class="sc-h3">Table 6 &mdash; Adaptive red-team robustness (RPG-RT iter-0 · our Vicuna-7B 4bit run)'
+                 '<span class="fcfref">novel axis &middot; no FCF paper equivalent</span></h3>')
     rt = {k: v for k, v in (((_load_json(RPGRT_REDTEAM) or {}).get("models")) or {}).items() if k not in RPGRT_SKIP}
     t4_head = ['<th class="mh">Target</th>',
                '<th class="muted">ASR-30&nbsp;&darr;<br><span class="sub">% prompts &ge;1 bypass</span></th>',
@@ -817,7 +823,8 @@ def scenario_tables_section(M, vd):
                  'attacks &mdash; this adaptive column is the key novelty axis.</div>')
 
     # --- Table 5: Art style retention ---
-    parts.append('<h3 class="sc-h3">Table 5 &mdash; Art-style retention (VanGogh retain · concept-specificity check)</h3>')
+    parts.append('<h3 class="sc-h3">Table 7 &mdash; Art-style retention (VanGogh retain · concept-specificity check)'
+                 '<span class="fcfref">cf. FCF paper Table 2 (LPIPS style forgetting)</span></h3>')
     t5_head = ['<th class="mh">Model</th>',
                '<th>VanGogh&nbsp;retain&nbsp;&uarr;<br>'
                '<span class="sub">CLIP img&harr;raw</span></th>',
@@ -837,7 +844,8 @@ def scenario_tables_section(M, vd):
                  'Both high = only the targeted style is selectively erased.</div>')
 
     # --- Table 6: Compute cost vs efficacy ---
-    parts.append('<h3 class="sc-h3">Table 6 &mdash; Compute cost &amp; efficiency</h3>')
+    parts.append('<h3 class="sc-h3">Table 8 &mdash; Compute cost &amp; efficiency'
+                 '<span class="fcfref">cf. FCF paper §4.2 (16.67 min / 8.4 GB on A6000)</span></h3>')
     t7_head = ['<th class="mh">Model</th>',
                '<th>Train&nbsp;&darr;</th>',
                '<th class="muted">Params M</th>',
@@ -957,6 +965,8 @@ img.byp{outline:2px solid #d9534f}
 .pareto-wrap{padding:14px 0;display:flex;flex-direction:column;gap:24px;align-items:center}
 .pareto-wrap svg{width:80%;height:auto;display:block}
 .sc-h3{font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--text);border-left:3px solid var(--accent);padding-left:10px}
+.fcfref{font-weight:400;color:var(--muted);font-size:12px;margin-left:8px}
+.fcfref::before{content:"\00b7 ";}
 .sc-note{color:var(--muted);font-size:12px;margin:6px 2px 16px}
 """
 
@@ -1333,8 +1343,8 @@ def paper_metrics_section():
             'style distance vs raw (lower = localized); <b>#13</b> LPIPS<sub>d</sub> = LPIPS<sub>f</sub>'
             '&minus;LPIPS<sub>u</sub> (higher = better trade-off; &asymp;0 expected for a localized nudity edit). '
             '<b>#14</b> FID-SD / KID&times;10<sup>3</sup> vs raw SD over COCO (small-N, relative only).</p>')
-    return ('<section class="sec"><h2>Paper-aligned metrics '
-            '<span>(#9&ndash;#14 &middot; ESD / RECE / Concept-Ablation / FCF style)</span></h2>'
+    return ('<section class="sec"><h3 class="sc-h3">Table 9 &mdash; Paper-aligned add-on metrics '
+            '(#9&ndash;#14)<span class="fcfref">cf. ESD / RECE / Concept-Ablation / FCF paper Table 2</span></h3>'
             + note + _table(head, body) + '</section>')
 
 
@@ -1469,11 +1479,12 @@ def build(rows_cap):
     multiseed = (_load_json(REPO / "models" / "fcf" / "multiseed.json") or {}).get("models", {})
     parts.append(S.validation_section(ctx, M, coh_tri, decomp, multiseed))
 
-    # 1b) scenario comparison tables (Table 0–7)
+    # 1b) scenario comparison tables (Tables 1–9)
     vd = load_violence_detail()
     parts.append(
         '<section class="sec"><h2>Scenario Comparison Tables '
-        '<span>(per-scenario comparison &middot; key models only &middot; Table 0&ndash;6 order)</span></h2>')
+        '<span>(per-scenario comparison &middot; key models only &middot; Tables 1&ndash;9 &middot; '
+        'FCF paper cross-refs noted per title)</span></h2>')
     parts.append(scenario_tables_section(M, vd))
     parts.append(paper_metrics_section())
     parts.append('</section>')
