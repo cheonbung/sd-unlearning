@@ -116,8 +116,6 @@ def headline_section(ctx: Ctx, M: dict) -> str:
 # ------------------------------------------------------------- A. OOD image strip
 _STRIP_KEYS = [
     ("raw_v14", "reference (un-erased)"),
-    ("lsse_r2q_ab", "push-away &middot; text-enc"),
-    ("odace_v3", "push-away &middot; UNet"),
     ("sph_ot", "redirect &middot; text-enc"),
     ("odace_benign_n1", "redirect &middot; UNet"),
 ]
@@ -169,11 +167,11 @@ def ood_image_strip(ctx: Ctx, M: dict, k_ring: int = 6, k_i2p: int = 3) -> str:
         return ""
     hd = ('<div class="oodhd"><div>Model</div>'
           '<div>Ring-A-Bell (OOD attack)</div><div>I2P (natural control)</div></div>')
-    note = ('<div class="legend"><b>Visual proof of collapse.</b> Read left&rarr;right: an un-erased '
-            'reference, two <b>push-away</b> models that render incoherent non-human output on the OOD '
-            'Ring-A-Bell attack (their ASR is near-zero for the <i>wrong</i> reason), then two '
-            '<b>redirect-to-benign</b> models that stay on-manifold and produce coherent <i>safe</i> '
-            'images. The I2P control shows all models render normally on in-distribution prompts. '
+    note = ('<div class="legend"><b>Redirect-to-benign stays on-manifold.</b> Read left&rarr;right: an '
+            'un-erased reference, then <b>redirect-to-benign</b> models that stay on-manifold and produce '
+            'coherent <i>safe</i> images even under the OOD Ring-A-Bell attack. The I2P control shows all '
+            'models render normally on in-distribution prompts. (Push-away variants that instead collapsed '
+            'into incoherent non-human output on this attack have been withdrawn from this comparison.) '
             'Images inherit the page-level blur toggle.</div>')
     return ('<section class="sec diag-sec"><h2>OOD collapse &mdash; visual proof '
             '<span class="diagtag">diagnostic evidence &middot; collapsed models excluded from result tables</span>'
@@ -185,11 +183,11 @@ def ood_image_strip(ctx: Ctx, M: dict, k_ring: int = 6, k_i2p: int = 3) -> str:
 # ----------------------------------------------------------------- D. taxonomy 2x2
 # (space, mechanism) -> [(key, note)]; mechanism col order = push-away, redirect
 _TAXO = {
-    ("Text-encoder", "push"): [("lsse_r2q_ab", "collapse-conf."), ("lsse_r2q_a", "max-forget"),
+    ("Text-encoder", "push"): [("lsse_r2q_a", "max-forget"),
                                ("lsse_capcnp_zero", "R2"), ("lsse_geo_e2", "geodesic")],
     ("Text-encoder", "redirect"): [("sph_ot", "SLERP-OT"), ("fcf_p_official", "FCF-P"),
                                    ("fcf_e_official", "FCF-E")],
-    ("UNet x-attn", "push"): [("odace_v3", "neg-guide"), ("esd_u", "ESD-u")],
+    ("UNet x-attn", "push"): [("esd_u", "ESD-u")],
     ("UNet x-attn", "redirect"): [("odace_benign_n1", "benign-neg"), ("odace_benign", "benign-anchor")],
 }
 
@@ -301,8 +299,6 @@ _TRANSFER_ROWS = [
     ("raw_v14", "&mdash;", "&mdash;"),
     ("fcf_p_official", "nudity", "TE fine-tune"),
     ("esd_u", "nudity", "UNet non-Xattn"),
-    ("odace_v3", "nudity", "UNet x-attn (output)"),
-    ("lsse_r2q_ab", "nudity", "TE read-out space"),
 ]
 
 
@@ -325,12 +321,12 @@ def transfer_heatmap_section(ctx: Ctx, M: dict, vd: dict) -> str:
                ctx.asr_cell(d.get("fs_mean4"), bold=True),
                ctx.asr_cell(viol)]
         body.append('<tr>' + "".join(tds) + '</tr>')
-    note = ('<div class="legend"><b>Erasure is not always concept-local.</b> Output-grounded UNet editing '
-            '(<b>ODACE</b>) erases nudity while leaving violence Q16 near the raw level (&asymp;59) &mdash; a '
-            'concept-<i>local</i> edit. Read-out-space text-encoder erasure (<b>LSSE</b>) suppresses a broad '
-            '&ldquo;unsafe&rdquo; direction, so a nudity-trained model also lowers violence, and the '
-            'violence-trained model (16.7 Q16) leaves nudity largely intact. Both columns are ASR (lower=safer, '
-            'heat-colored); prior FCF/ESD/SLD papers do not report this cross-concept breakdown.</div>')
+    note = ('<div class="legend"><b>Erasure is not always concept-local.</b> A nudity-only edit can still '
+            'move the violence rate (or vice versa) even though it was never trained on that concept. Both '
+            'columns are ASR (lower=safer, heat-colored); prior FCF/ESD/SLD papers do not report this '
+            'cross-concept breakdown. (The UNet output-grounded and TE read-out-space examples that most '
+            'clearly showed this cross-concept transfer were withdrawn along with the OOD-collapse models; '
+            'see `models/lsse/README.md` / `models/odace/README.md` for the named record.)</div>')
     return ('<section class="sec"><h2>Cross-concept transfer '
             '<span>(does erasing one concept move the other? &middot; concept-locality check)</span></h2>'
             '<div class="wrap">' + ctx.table(head, body) + '</div>' + note + '</section>')
@@ -338,7 +334,7 @@ def transfer_heatmap_section(ctx: Ctx, M: dict, vd: dict) -> str:
 
 # -------------------------------------------------- V. validation (triangulation + 8-lab decomp)
 _VAL_KEYS = ["raw_v14", "fcf_p_official", "sph_ot", "odace_benign_n1", "odace_benign",
-             "lsse_geo_e2", "odace_v3", "lsse_r2q_ab"]
+             "lsse_geo_e2"]
 _SURPLUS_SHORT = {"FEMALE_BREAST_COVERED": "breast-covered", "BUTTOCKS_COVERED": "buttocks-covered",
                   "FEMALE_GENITALIA_COVERED": "genitalia-covered", "BUTTOCKS_EXPOSED": "buttocks-EXPOSED"}
 

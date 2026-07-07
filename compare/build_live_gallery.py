@@ -95,12 +95,14 @@ MODELS = [
     ("LSSE geodesic (no-collapse)",    "lsse_geo_e2",     "novel", "1.4", "text"),
 ]
 DIAGNOSTIC_LABELS = {
-    # Removed from the main comparison tables, but kept available for the OOD-collapse proof sections.
-    "lsse_capcnp_zero": "LSSE CAP-CNP R2 (collapse diagnostic)",
-    "lsse_r2q_a": "LSSE R2q-a (collapse diagnostic)",
-    "lsse_r2q_ab": "LSSE R2q-ab (collapse diagnostic)",
-    "odace_v3": "ODACE v3 (collapse diagnostic)",
-    "odace_v15": "ODACE v1.5 (collapse diagnostic)",
+    # Removed from the main comparison tables, kept only as anonymized collapse examples in the
+    # OOD-collapse diagnostic sections (gallery_sections.py) -- model identity intentionally
+    # withheld here; see compare/comparison_all_methods.md for the named research record.
+    "lsse_capcnp_zero": "TE read-out, push-away R2 (collapse diagnostic)",
+    "lsse_r2q_a": "TE read-out, push-away max-forget (collapse diagnostic)",
+    "lsse_r2q_ab": "TE read-out, push-away (collapse diagnostic)",
+    "odace_v3": "UNet x-attn, push-away (collapse diagnostic)",
+    "odace_v15": "UNet x-attn, push-away SD1.5 (collapse diagnostic)",
 }
 ATTACKS = [
     ("I2P", "i2p", "i2p_nudity.txt"),
@@ -511,24 +513,6 @@ def fullset_table(M):
             key, group, base, mod, pin, cls_attr, "".join(tds)))
 
     return _table(head, body, top=top)
-
-
-def legacy_table(M):
-    head = ['<th class="mh">Model</th>']
-    head += ['<th>{0}&nbsp;<span class="ar">&darr;</span></th>'.format(html.escape(a)) for a, _, _ in ATTACKS]
-    head += ['<th>ASR&nbsp;mean&nbsp;<span class="ar">&darr;</span></th>',
-             '<th>Violence-50&nbsp;<span class="ar">&darr;</span></th>',
-             '<th>VanGogh&nbsp;<span class="ar">&uarr;</span><br><span class="sub">retain</span></th>']
-    body = []
-    for label, key, group, base, mod in MODELS:
-        d = M[key]
-        tds = [_mh(label, key, group, base, mod)]
-        tds += [asr_cell(d["leg_asr"].get(a)) for a, _, _ in ATTACKS]
-        tds.append(asr_cell(d["leg_mean"], bold=True))
-        tds.append(asr_cell(d["violence50"]))
-        tds.append(ret_cell(d["style"]))
-        body.append(_tr(key, group, base, mod, tds))
-    return _table(head, body)
 
 
 RPGRT_NAMES = {"raw": "Raw SD v1.4", "sph_ot": "SLERP-OT", "fcf_p_official": "FCF-P",
@@ -1353,7 +1337,7 @@ def paper_metrics_section():
 
 
 COHERENCE_KEYS = ["raw_v14", "odace_benign_n1", "odace_benign", "sph_ot", "fcf_p_official",
-                  "lsse_geo_e2", "odace_v3", "lsse_r2q_ab"]
+                  "lsse_geo_e2"]
 _LABEL_BY_KEY = {key: label for label, key, *_ in MODELS}
 _LABEL_BY_KEY.update(DIAGNOSTIC_LABELS)
 
@@ -1497,18 +1481,6 @@ def build(rows_cap):
 
     # 1b2) cross-concept transfer heatmap (nudity <-> violence concept-locality)
     parts.append(S.transfer_heatmap_section(ctx, M, vd))
-
-    # 1c) legacy 50-prompt table
-    parts.append(
-        '<section class="sec"><h2>Legacy results '
-        '<span>(50-prompt harness, 8-label score&gt;0.3 &middot; the earlier per-attack re-score, '
-        'kept for reference)</span></h2><div class="wrap">')
-    parts.append(legacy_table(M))
-    parts.append('</div><div class="legend">'
-                 'Same NudeNet 8-label score&gt;0.3 rule as the table above, but only '
-                 '<b>50 prompts/attack</b> (the pre-full-set re-score). '
-                 'Models without a 50-prompt metrics.json show &#8212;.'
-                 '</div></section>')
 
     # 1c) RPG-RT adaptive red-team
     rt_t, dp_t = rpgrt_tables()
