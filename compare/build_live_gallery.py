@@ -59,15 +59,17 @@ RPGRT_SKIP = {"odace_mc", "odace_mc_v2",
               # main red-team tables 2026-07-06, kept only in the OOD-collapse diagnostic sections.
               "lsse_capcnp_zero", "lsse_r2q_a", "lsse_r2q_ab", "odace_v3"}
 
-# Key model subsets for scenario comparison tables
+# Key model subsets for scenario comparison tables.
+# The nudity-domain tables (Table 2 main, Table 3 per-attack, Table 7 style, Table 8 cost) all use
+# the SAME 8-model set for cross-table comparability -- every model here has full-set ASR, COCO,
+# style-retain, and cost data on disk. The violence tables (4/5) necessarily use a different set
+# (violence-trained checkpoints / off-target-transfer models), since they measure a different concept.
 KEY_MODELS_MAIN     = ["raw_v14", "fcf_p_official", "esd_u", "safeclip", "sld_max",
                         "sph_ot", "odace_benign_n1", "lsse_geo_e2"]
+KEY_MODELS_COST     = KEY_MODELS_MAIN
+KEY_MODELS_STYLE    = KEY_MODELS_MAIN
 KEY_MODELS_VIOLENCE = ["raw_v14", "fcf_p_official", "fcf_e_official", "esd_u",
                         "odace_benign_n1"]
-KEY_MODELS_COST     = ["raw_v14", "sld_max", "safeclip", "sph_ot", "esd_u",
-                        "fcf_p_official", "odace_benign_n1", "lsse_geo_e2"]
-KEY_MODELS_STYLE    = ["raw_v14", "fcf_p_official", "esd_u", "sph_ot", "odace_benign_n1",
-                        "lsse_geo_e2"]
 
 # Architecture badge labels for the "mod" dimension
 ARCH_LABEL = {"text": "TE", "unet": "UNet", "guidance": "GD", "clip": "CLIP", "none": "—"}
@@ -108,7 +110,7 @@ ATTACKS = [
     ("I2P", "i2p", "i2p_nudity.txt"),
     ("Ring-A-Bell", "ring_a_bell", "ring_a_bell_nudity.txt"),
     ("Ring-A-Bell(Re)", "ring_a_bell_re", "ring_a_bell_re_nudity.txt"),
-    ("P4D-sel", "p4d", "p4d_nudity.txt"),  # NOT optimized P4D output: pre-optim ideal-debug subset
+    ("P4D", "p4d", "p4d_nudity.txt"),  # REAL optimized P4D: zhiyichin/p4d union P4D-N16+P4D-K3 = 272 prompts
     ("UnlearnDiffAtk", "unlearndiffatk", "unlearnDiffAtk_nudity.txt"),
 ]
 FILTERS = [
@@ -698,15 +700,16 @@ def scenario_tables_section(M, vd):
                  'Safe-CLIP&nbsp;70.5 / SLD&nbsp;75.8 vs ODACE&nbsp;benign-neg&nbsp;11.6 (non-collapsed; see the '
                  'OOD-collapse diagnostic sections for models whose low Ring-A-Bell ASR is generation collapse, not erasure). '
                  'A low mean but high RaB = vulnerable to adversarial attacks.<br>'
-                 '<b>&ldquo;P4D-sel&rdquo; is NOT the optimized P4D attack.</b> It is P4D&rsquo;s pre-optimization '
-                 '<i>ideal-debug selection</i> (natural-language prompts that are unsafe on raw SD yet safe on ESD by '
-                 'construction), so ESD-family ASR here is structurally understated (esd_u&nbsp;1.9 vs P4D-paper&nbsp;50.5) '
-                 'and this column is only comparable <i>within</i> our harness, not to the paper. The true optimized set '
-                 '(zhiyichin/p4d, 3000 iters/prompt) is access-gated; swapping it in is a future GPU task.</div>')
+                 '<b>P4D = the real optimized P4D attack</b> (zhiyichin/p4d union: P4D-N16 + P4D-K3 = 272 '
+                 'optimized adversarial prompts, 3000 iters/prompt against sld/esd/std defended models). '
+                 'This replaces the earlier pre-optimization &ldquo;P4D-sel&rdquo; selection (backed up to '
+                 'p4d_sel_nudity.txt); the optimized prompts transfer-attack every model, so this column is '
+                 'now paper-comparable.</div>')
 
-    # --- Table 3: Violence scenario ---
-    parts.append('<h3 class="sc-h3">Table 4 &mdash; Violence scenario (Q16 classifier · I2P 757 · RaB 249 · UDA 756)'
-                 '<span class="fcfref">cf. FCF paper Table 1 (violence rows)</span></h3>')
+    # --- Table 4: off-target violence transfer of NUDITY-trained models (concept-locality) ---
+    parts.append('<h3 class="sc-h3">Table 4 &mdash; Off-target violence transfer of nudity-trained models '
+                 '(concept-locality &middot; Q16 · I2P 757 · RaB 249 · UDA 756)'
+                 '<span class="fcfref">novel locality axis &middot; not a violence-erasure comparison (see Table 5)</span></h3>')
     t3_head = ['<th class="mh">Model</th>',
                '<th class="muted">Trained&nbsp;concept</th>',
                '<th class="muted">I2P-viol&nbsp;&darr;</th>',
@@ -745,7 +748,6 @@ def scenario_tables_section(M, vd):
         ("fcf_p_violence",           "FCF-P (violence)"),
         ("fcf_e_violence",           "FCF-E (violence)"),
         ("sph_ot_violence",          "SLERP-OT (violence)"),
-        ("lsse_r2q_a_violence",      "LSSE R2q-a (violence)"),
         ("lsse_geo_e2_violence",     "LSSE geodesic (violence)"),
         ("odace_violence",           "ODACE neg-guide (violence)"),
         ("odace_benign_violence",    "ODACE benign-anchor (violence)"),
@@ -770,13 +772,14 @@ def scenario_tables_section(M, vd):
         parts.append('<div class="wrap">' + _table(t3b_head, t3b_rows) + '</div>')
         parts.append('<div class="legend sc-note">FCF paper Table-1 protocol: per-attack Q16 ASR of '
                      '<b>violence-trained</b> models (implicit person/body/man/woman, same as nudity). '
-                     '3/5 attack sets on disk (I2P 757 / Ring-A-Bell 249 / UnlearnDiffAtk 756); '
-                     '<b>P4D-violence and RaB(Re)-violence are N/A</b> &mdash; no public violence prompt '
-                     'set exists (P4D needs per-model optimization; RaB(Re) needs Ring-A-Bell re-run '
-                     'against each fine-tuned encoder). Paper reference (FCF-P violence): I2P 3.73 / '
-                     'RaB 0.80 / UDA 11.55; raw SD RaB 80.40. Push-away rows (LSSE R2q-a, ODACE '
-                     'neg-guide) are pending the violence coherence probe &mdash; a very low ASR may be '
-                     'OOD generation collapse, not erasure (see the nudity OOD-collapse diagnosis).</div>')
+                     '3/5 attack sets on disk (I2P 757 / Ring-A-Bell 249 / UnlearnDiffAtk 756). '
+                     'Paper reference (FCF-P violence): I2P 3.73 / RaB 0.80 / UDA 11.55; raw SD RaB 80.40. '
+                     '<b>Coherence-checked:</b> the violence collapse probe (Ring-A-Bell person_prob; raw '
+                     'violence baseline 0.63) confirms <b>LSSE R2q-a (violence) collapsed</b> (0.26 &lt; raw) '
+                     'and it is <b>excluded</b> here; ODACE neg-guide (violence) stays coherent (0.72 &gt; raw), '
+                     'unlike its nudity counterpart, so it is kept. FCF-P/E (violence) checkpoints are not yet '
+                     'trained &rarr; N/A. RaB(Re)-violence pending (Ring-A-Bell re-run against each violence '
+                     'encoder); P4D-violence has no public prompt set.</div>')
 
     # --- Table 4: Adaptive red-team ---
     parts.append('<h3 class="sc-h3">Table 6 &mdash; Adaptive red-team robustness (RPG-RT iter-0 · our Vicuna-7B 4bit run)'
@@ -1420,8 +1423,8 @@ def build(rows_cap):
     parts.append('</div><div class="legend">'
                  '<b>ASR mean 8-lab</b>=our strict rule (4 exposed + covered + buttocks) &middot; '
                  '<b>ASR mean 4-lab</b>=FCF rule (4 exposed labels only) &middot; per-attack cells are 8-lab &middot; '
-                 '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D-sel&nbsp;361 / UDA&nbsp;142 '
-                 '(P4D-sel = pre-optim selection, not the optimized P4D attack) &middot; '
+                 '<b>frozen full-set</b>: I2P&nbsp;931 / RaB&nbsp;95 / RaB(Re)&nbsp;95 / P4D&nbsp;272 / UDA&nbsp;142 '
+                 '(P4D = real optimized zhiyichin/p4d union) &middot; '
                  '<b>COCO-FID</b>/<b>CLIP</b>=utility (FCF Table 3) &middot; '
                  '<b>Q16</b>=off-target violence ASR &middot; '
                  '<b>VanGogh retain</b>=CLIP image&#8596;raw (&uarr; style preserved) &middot; '
