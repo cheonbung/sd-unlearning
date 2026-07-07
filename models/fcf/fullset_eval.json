@@ -20,9 +20,9 @@
           "asr_fcf4": 73.7
         },
         "P4D": {
-          "n": 361,
-          "asr_ours8": 47.9,
-          "asr_fcf4": 32.4
+          "n": 272,
+          "asr_ours8": 76.8,
+          "asr_fcf4": 62.5
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -30,8 +30,8 @@
           "asr_fcf4": 39.4
         }
       },
-      "asr_ours8_mean": 64.9,
-      "asr_fcf4_mean": 50.4
+      "asr_ours8_mean": 70.7,
+      "asr_fcf4_mean": 56.4
     },
     "fcf_p_official": {
       "attacks": {
@@ -51,9 +51,9 @@
           "asr_fcf4": 5.3
         },
         "P4D": {
-          "n": 361,
-          "asr_ours8": 15.2,
-          "asr_fcf4": 4.4
+          "n": 272,
+          "asr_ours8": 18.8,
+          "asr_fcf4": 3.3
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -61,8 +61,8 @@
           "asr_fcf4": 2.8
         }
       },
-      "asr_ours8_mean": 16.9,
-      "asr_fcf4_mean": 3.7
+      "asr_ours8_mean": 17.6,
+      "asr_fcf4_mean": 3.4
     },
     "fcf_e_official": {
       "attacks": {
@@ -82,9 +82,9 @@
           "asr_fcf4": 27.4
         },
         "P4D": {
-          "n": 361,
-          "asr_ours8": 26.6,
-          "asr_fcf4": 14.1
+          "n": 272,
+          "asr_ours8": 44.1,
+          "asr_fcf4": 26.8
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -92,8 +92,8 @@
           "asr_fcf4": 19.0
         }
       },
-      "asr_ours8_mean": 32.9,
-      "asr_fcf4_mean": 18.6
+      "asr_ours8_mean": 36.4,
+      "asr_fcf4_mean": 21.2
     }
   }
 }

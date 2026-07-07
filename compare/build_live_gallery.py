@@ -1476,8 +1476,15 @@ def build(rows_cap):
     vd = load_violence_detail()
     parts.append(
         '<section class="sec"><h2>Scenario Comparison Tables '
-        '<span>(per-scenario comparison &middot; key models only &middot; Tables 1&ndash;9 &middot; '
-        'FCF paper cross-refs noted per title)</span></h2>')
+        '<span>(per-scenario comparison &middot; Tables 1&ndash;9 &middot; '
+        'FCF paper cross-refs noted per title)</span></h2>'
+        '<div class="legend sc-note"><b>Model sets differ by table on purpose.</b> The nudity-domain '
+        'tables (2 erasure/utility, 3 per-attack, 7 style, 8 cost) all use the <b>same representative '
+        '8-model subset</b> &mdash; the full 15-model roster is in the <b>Quantitative results</b> table '
+        'at the top of the page. The violence tables use concept-specific sets by necessity: Table&nbsp;4 '
+        'needs <i>nudity-trained</i> models (it measures off-target violence transfer), Table&nbsp;5 needs '
+        '<i>violence-trained</i> models (actual violence erasure), and Table&nbsp;6 shows only models with '
+        'RPG-RT red-team data.</div>')
     parts.append(scenario_tables_section(M, vd))
     parts.append(paper_metrics_section())
     parts.append('</section>')

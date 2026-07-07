@@ -97,10 +97,10 @@
           "ours8_p03": 1.1
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 1.9,
-          "fcf4_any": 2.8,
-          "ours8_p03": 10.8
+          "n": 272,
+          "fcf4_p03": 11.4,
+          "fcf4_any": 14.0,
+          "ours8_p03": 36.0
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -109,9 +109,9 @@
           "ours8_p03": 28.9
         }
       },
-      "fcf4_p03_mean": 5.9,
-      "fcf4_any_mean": 7.1,
-      "ours8_p03_mean": 15.0
+      "fcf4_p03_mean": 7.8,
+      "fcf4_any_mean": 9.4,
+      "ours8_p03_mean": 20.0
     },
     "sph_ot": {
       "attacks": {
@@ -134,10 +134,10 @@
           "ours8_p03": 16.8
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 1.1,
-          "fcf4_any": 1.7,
-          "ours8_p03": 16.1
+          "n": 272,
+          "fcf4_p03": 1.5,
+          "fcf4_any": 2.9,
+          "ours8_p03": 15.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -146,9 +146,9 @@
           "ours8_p03": 12.7
         }
       },
-      "fcf4_p03_mean": 0.7,
-      "fcf4_any_mean": 1.7,
-      "ours8_p03_mean": 14.0
+      "fcf4_p03_mean": 0.8,
+      "fcf4_any_mean": 1.9,
+      "ours8_p03_mean": 13.8
     },
     "lsse_plu_w2": {
       "attacks": {
@@ -208,10 +208,10 @@
           "ours8_p03": 16.8
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 1.9,
-          "fcf4_any": 2.8,
-          "ours8_p03": 14.4
+          "n": 272,
+          "fcf4_p03": 12.5,
+          "fcf4_any": 14.3,
+          "ours8_p03": 35.3
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -220,9 +220,9 @@
           "ours8_p03": 26.1
         }
       },
-      "fcf4_p03_mean": 12.0,
-      "fcf4_any_mean": 13.5,
-      "ours8_p03_mean": 23.0
+      "fcf4_p03_mean": 14.1,
+      "fcf4_any_mean": 15.8,
+      "ours8_p03_mean": 27.2
     },
     "lsse_plu": {
       "attacks": {
@@ -282,10 +282,10 @@
           "ours8_p03": 49.5
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 20.2,
-          "fcf4_any": 21.3,
-          "ours8_p03": 37.1
+          "n": 272,
+          "fcf4_p03": 42.3,
+          "fcf4_any": 43.4,
+          "ours8_p03": 62.1
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -294,9 +294,9 @@
           "ours8_p03": 49.3
         }
       },
-      "fcf4_p03_mean": 32.2,
-      "fcf4_any_mean": 33.5,
-      "ours8_p03_mean": 47.6
+      "fcf4_p03_mean": 36.6,
+      "fcf4_any_mean": 37.9,
+      "ours8_p03_mean": 52.6
     },
     "sld_max": {
       "attacks": {
@@ -319,10 +319,10 @@
           "ours8_p03": 58.9
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 4.7,
-          "fcf4_any": 5.3,
-          "ours8_p03": 39.1
+          "n": 272,
+          "fcf4_p03": 24.6,
+          "fcf4_any": 26.1,
+          "ours8_p03": 69.5
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -331,9 +331,9 @@
           "ours8_p03": 56.3
         }
       },
-      "fcf4_p03_mean": 18.9,
-      "fcf4_any_mean": 20.1,
-      "ours8_p03_mean": 54.1
+      "fcf4_p03_mean": 22.9,
+      "fcf4_any_mean": 24.3,
+      "ours8_p03_mean": 60.2
     },
     "vanilla_lsse": {
       "attacks": {
@@ -430,10 +430,10 @@
           "ours8_p03": 80.0
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 19.1,
-          "fcf4_any": 21.1,
-          "ours8_p03": 35.2
+          "n": 272,
+          "fcf4_p03": 41.9,
+          "fcf4_any": 43.4,
+          "ours8_p03": 65.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -442,9 +442,9 @@
           "ours8_p03": 50.7
         }
       },
-      "fcf4_p03_mean": 37.2,
-      "fcf4_any_mean": 39.0,
-      "ours8_p03_mean": 55.9
+      "fcf4_p03_mean": 41.8,
+      "fcf4_any_mean": 43.5,
+      "ours8_p03_mean": 61.9
     },
     "odace_v2": {
       "attacks": {
@@ -504,10 +504,10 @@
           "ours8_p03": 78.9
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 11.6,
-          "fcf4_any": 11.9,
-          "ours8_p03": 43.5
+          "n": 272,
+          "fcf4_p03": 36.0,
+          "fcf4_any": 36.4,
+          "ours8_p03": 77.6
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -516,9 +516,9 @@
           "ours8_p03": 57.0
         }
       },
-      "fcf4_p03_mean": 34.9,
-      "fcf4_any_mean": 36.0,
-      "ours8_p03_mean": 62.1
+      "fcf4_p03_mean": 39.8,
+      "fcf4_any_mean": 40.9,
+      "ours8_p03_mean": 68.9
     },
     "raw_v15": {
       "attacks": {
@@ -541,10 +541,10 @@
           "ours8_p03": 78.9
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 33.2,
-          "fcf4_any": 34.9,
-          "ours8_p03": 49.6
+          "n": 272,
+          "fcf4_p03": 59.9,
+          "fcf4_any": 61.0,
+          "ours8_p03": 75.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -553,9 +553,9 @@
           "ours8_p03": 64.8
         }
       },
-      "fcf4_p03_mean": 50.4,
-      "fcf4_any_mean": 52.7,
-      "ours8_p03_mean": 65.7
+      "fcf4_p03_mean": 55.7,
+      "fcf4_any_mean": 57.9,
+      "ours8_p03_mean": 70.8
     },
     "sld_medium": {
       "attacks": {
@@ -578,10 +578,10 @@
           "ours8_p03": 87.4
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 15.8,
-          "fcf4_any": 16.6,
-          "ours8_p03": 42.1
+          "n": 272,
+          "fcf4_p03": 51.1,
+          "fcf4_any": 53.3,
+          "ours8_p03": 78.7
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -590,9 +590,9 @@
           "ours8_p03": 65.5
         }
       },
-      "fcf4_p03_mean": 44.9,
-      "fcf4_any_mean": 46.3,
-      "ours8_p03_mean": 65.8
+      "fcf4_p03_mean": 52.0,
+      "fcf4_any_mean": 53.6,
+      "ours8_p03_mean": 73.1
     },
     "dace_plu": {
       "attacks": {
@@ -1281,10 +1281,10 @@
           "ours8_p03": 11.6
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 2.2,
-          "fcf4_any": 3.6,
-          "ours8_p03": 16.1
+          "n": 272,
+          "fcf4_p03": 1.5,
+          "fcf4_any": 2.6,
+          "ours8_p03": 21.3
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -1293,9 +1293,9 @@
           "ours8_p03": 22.5
         }
       },
-      "fcf4_p03_mean": 2.1,
-      "fcf4_any_mean": 2.7,
-      "ours8_p03_mean": 15.3
+      "fcf4_p03_mean": 1.9,
+      "fcf4_any_mean": 2.5,
+      "ours8_p03_mean": 16.3
     },
     "odace_ood": {
       "attacks": {
@@ -1503,10 +1503,10 @@
           "ours8_p03": 11.6
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 3.9,
-          "fcf4_any": 5.5,
-          "ours8_p03": 18.6
+          "n": 272,
+          "fcf4_p03": 11.4,
+          "fcf4_any": 13.6,
+          "ours8_p03": 33.5
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -1515,9 +1515,9 @@
           "ours8_p03": 21.8
         }
       },
-      "fcf4_p03_mean": 4.4,
-      "fcf4_any_mean": 5.3,
-      "ours8_p03_mean": 17.4
+      "fcf4_p03_mean": 5.9,
+      "fcf4_any_mean": 6.9,
+      "ours8_p03_mean": 20.4
     },
     "odace_benign_n05": {
       "attacks": {
@@ -1577,10 +1577,10 @@
           "ours8_p03": 9.5
         },
         "P4D": {
-          "n": 361,
-          "fcf4_p03": 2.5,
-          "fcf4_any": 2.5,
-          "ours8_p03": 15.5
+          "n": 272,
+          "fcf4_p03": 3.3,
+          "fcf4_any": 4.0,
+          "ours8_p03": 25.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
@@ -1589,9 +1589,9 @@
           "ours8_p03": 23.2
         }
       },
-      "fcf4_p03_mean": 2.1,
-      "fcf4_any_mean": 2.5,
-      "ours8_p03_mean": 15.7
+      "fcf4_p03_mean": 2.2,
+      "fcf4_any_mean": 2.8,
+      "ours8_p03_mean": 17.7
     },
     "odace_benign_noood": {
       "attacks": {
