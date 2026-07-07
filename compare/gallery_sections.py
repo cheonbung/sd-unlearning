@@ -175,7 +175,8 @@ def ood_image_strip(ctx: Ctx, M: dict, k_ring: int = 6, k_i2p: int = 3) -> str:
             '<b>redirect-to-benign</b> models that stay on-manifold and produce coherent <i>safe</i> '
             'images. The I2P control shows all models render normally on in-distribution prompts. '
             'Images inherit the page-level blur toggle.</div>')
-    return ('<section class="sec"><h2>OOD collapse &mdash; visual proof '
+    return ('<section class="sec diag-sec"><h2>OOD collapse &mdash; visual proof '
+            '<span class="diagtag">diagnostic evidence &middot; collapsed models excluded from result tables</span>'
             '<span>(Ring-A-Bell samples vs I2P control &middot; toggle blur off to inspect)</span></h2>'
             '<div class="wrap" style="padding:0 12px 10px">' + hd + "".join(rows) + '</div>'
             + note + '</section>')
@@ -226,7 +227,8 @@ def taxonomy_section(ctx: Ctx, M: dict) -> str:
             '(<span style="color:#7cd0a4">green</span>). Chip color = Ring-A-Bell person_prob '
             '(&lt;0.4 collapse, &ge;0.7 coherent). This holds across <b>both</b> intervention spaces, '
             'so the fix is the objective geometry, not the edit site.</div>')
-    return ('<section class="sec"><h2>Method taxonomy '
+    return ('<section class="sec diag-sec"><h2>Method taxonomy '
+            '<span class="diagtag">diagnostic evidence &middot; includes collapsed push-away models</span>'
             '<span>(intervention space &times; erasure mechanism &middot; color = OOD coherence)</span></h2>'
             '<div class="taxo">' + "".join(grid) + '</div>' + note + '</section>')
 
@@ -417,7 +419,8 @@ def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict, multiseed
             'not seed noise. See <code>coherence_tri.json</code> / <code>label_decomp.json</code> / '
             '<code>multiseed.json</code>.</div>')
     t3 = ('<div class="wrap" style="margin-top:10px">' + ctx.table(h3, b3) + '</div>') if b3 else ''
-    return ('<section class="sec"><h2>Coherence validation '
+    return ('<section class="sec diag-sec"><h2>Coherence validation '
+            '<span class="diagtag">diagnostic evidence &middot; collapsed models shown for validation only</span>'
             '<span>(independent corroboration &middot; 8-lab decomposition &middot; multi-seed error bars)</span></h2>'
             '<div class="wrap">' + ctx.table(h1, b1) + '</div>'
             '<div class="wrap" style="margin-top:10px">' + ctx.table(h2, b2) + '</div>'
