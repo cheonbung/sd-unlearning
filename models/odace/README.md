@@ -61,18 +61,33 @@ are selected in `methods/unet_edit.py`.
 
 ## Latest Local Result
 
-Latest unified comparison uses NudeNet v3, score threshold 0.3, 5 attacks x
-50 images, 50 steps, guidance 7.5, seed 42. Lower ASR is better.
+Full-set comparison (1622 prompts x 5 attacks; NudeNet v3, `fcf4` = paper
+4-label rule, `ours8` = project 8-label rule). Report ASR paired with
+**Ring-A-Bell coherence** (CLIP person-presence probability; ≥0.7 = the model
+still generates people under attack, i.e. no collapse):
 
-| Model | Base | Intervention | Mean ASR | COCO-FID | COCO-CLIP |
-|---|---|---|---:|---:|---:|
-| Raw SD v1.4 | v1.4 | none | 62.0 | 118.64 | 26.48 |
-| ODACE v2 | v1.4 | UNet K/V only, weak recipe | 56.0 | - | - |
-| ODACE v3 | v1.4 | full UNet cross-attn | 4.0 | 118.89 | 25.27 |
-| ODACE v1.5 | v1.5 | full UNet cross-attn | 4.0 | 117.90 | 25.23 |
-| SD2.1-base | v2.1 | no unlearning, filtered pretraining | 54.4 | 118.32 | 25.95 |
+| Model | Intervention | ASR 4-lab | ASR 8-lab | Ring-A-Bell coherence | COCO-CLIP |
+|---|---|---:|---:|---:|---:|
+| **ODACE benign-neg** (`odace_benign_n1`) | UNet cross-attn, redirect-to-benign | **2.1** | 15.7 | 1.00 (coherent) | 25.43 |
+| ODACE benign-anchor (`odace_benign`) | UNet cross-attn, redirect-to-benign | 4.4 | 17.4 | 0.99 (coherent) | 25.62 |
+| Raw SD v1.4 | none | ~50.4 | 64.9 | 0.97 | 26.48 |
+| SD2.1-base | no unlearning, filtered pretraining | — | 54.4 | — | 25.95 |
 
-ODACE v3 per-attack ASR:
+`odace_benign` / `odace_benign_n1` are the **current gallery-surviving ODACE
+points** — they redirect the UNet cross-attn target toward a benign latent
+instead of pushing away from the concept, which keeps generation coherent
+under adversarial attack. Configs: `configs/nudity_odace_benign.yaml`,
+`configs/nudity_odace_benign_n1.yaml`.
+
+### Excluded: ODACE v2 / v3 / v1.5 (OOD generation collapse)
+
+| Model | Base | Intervention | Mean ASR (old 8-lab) | Ring-A-Bell coherence |
+|---|---|---|---:|---:|
+| ODACE v2 | v1.4 | UNet K/V only, weak recipe | 56.0 | — |
+| ODACE v3 | v1.4 | full UNet cross-attn, negative-guidance | 4.0 | **0.12 (collapsed)** |
+| ODACE v1.5 | v1.5 | full UNet cross-attn, negative-guidance | 4.0 | not separately probed (same recipe as v3) |
+
+ODACE v3 per-attack ASR (original reading, pre-collapse-discovery):
 
 | Attack | ASR |
 |---|---:|
@@ -82,22 +97,35 @@ ODACE v3 per-attack ASR:
 | P4D | 2.0 |
 | UnlearnDiffAtk | 10.0 |
 
-Interpretation:
-
-- ODACE v3 and ODACE v1.5 are the strongest models in the project so far.
-- COCO-FID/CLIP shows that general non-nudity generation remains close to raw SD.
-- SD2.1-base has normal general quality but remains vulnerable to adversarial
-  nudity prompts, so filtered pretraining is not a robust unlearning substitute.
+**This table was experimented on but is excluded from current results and
+recommendations.** The negative-guidance recipe (`eta * (e_p - e_0)` pushing
+*away* from the concept — see Core Idea below) turned out to collapse image
+generation entirely on Ring-A-Bell prompts (CLIP person-presence probability
+0.12, vs ≥0.7 for a coherent model): the **Ring-A-Bell / Ring-A-Bell(Re) 0.0
+ASR above is not real erasure** — the model simply stopped generating people,
+so NudeNet had nothing to detect. COCO-FID/CLIP still looked normal because
+that eval uses non-adversarial COCO captions, which don't trigger the
+collapse. This is why the project moved to the **benign-anchor / benign-neg**
+redirect-to-benign variants above. `odace_v2` is unaffected by this finding
+(it under-edits rather than collapses) and remains excluded for the separate
+reason of being too weak.
 
 ## Run
 
-From the repository root:
+From the repository root, current gallery-surviving (non-collapsed) variants:
+
+```bash
+python odace/train_odace.py --config configs/nudity_odace_benign.yaml
+python odace/train_odace.py --config configs/nudity_odace_benign_n1.yaml
+```
+
+The original negative-guidance recipe (excluded, see above):
 
 ```bash
 python odace/train_odace.py --config configs/nudity_odace.yaml
 ```
 
-For the SD v1.5 transfer check:
+For the SD v1.5 transfer check (same excluded recipe on the v1.5 base):
 
 ```bash
 python odace/train_odace.py --config configs/nudity_odace_v15.yaml

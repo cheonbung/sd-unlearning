@@ -1,0 +1,8 @@
+{
+  "dace_a_proxy_asr": 38.0,
+  "baseline_dace_v2_proxy": 30.0,
+  "target_sph_ot_proxy": 14.0,
+  "improved": false,
+  "beats_sph_ot": false,
+  "next": "STOP/RECONSIDER: dace_a proxy 38.0 NOT < 22.0 -> A+B alone insufficient"
+}

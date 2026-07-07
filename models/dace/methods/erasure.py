@@ -73,6 +73,7 @@ def dace_concept_losses(
     U: torch.Tensor,        # (D,k) concept subspace (detached)
     *,
     pool_mode: str = "mean",
+    per_token: bool = False,
 ):
     """Concept-axis DACE losses (corrected after P0/P0b).
 
@@ -80,19 +81,33 @@ def dace_concept_losses(
               (drive concept_shift -> 0 within the live concept subspace).
     L_ortho : pin explicit's non-concept component to frozen (anti-rerouting).
     L_retain: preserve neutral content AND general retain (no content destruction).
+
+    Direction-A (per_token=True): compute L_forget/L_ortho on the FULL per-token sequence
+    (B,L,D) that the UNet cross-attention actually consumes, instead of the single pooled
+    vector. Pooled erasure underdetermines the per-token keys/values the UNet reads, so the
+    concept leaks back; erasing every token position closes that gap. per_token=False keeps
+    the legacy pooled behavior.
     """
     U = U.detach()
-    pe = pool(ze_cur, pool_mode)
-    pn = pool(zn_cur, pool_mode)
-    pe_fz = pool(ze_fz, pool_mode).detach()
+    if per_token:
+        shift = ze_cur - zn_cur                          # (B,L,D) per-token concept shift (grad)
+        proj = shift @ U                                 # (B,L,k)
+        L_forget = (proj ** 2).sum(dim=-1).mean()
+        oe = ze_cur - (ze_cur @ U) @ U.T                 # (B,L,D)
+        oe_fz = (ze_fz - (ze_fz @ U) @ U.T).detach()
+        L_ortho = ((oe - oe_fz) ** 2).sum(dim=-1).mean()
+    else:
+        pe = pool(ze_cur, pool_mode)
+        pn = pool(zn_cur, pool_mode)
+        pe_fz = pool(ze_fz, pool_mode).detach()
 
-    shift = pe - pn                                  # (B,D) concept shift (grad)
-    proj = shift @ U                                 # (B,k)
-    L_forget = (proj ** 2).sum(dim=1).mean()
+        shift = pe - pn                                  # (B,D) concept shift (grad)
+        proj = shift @ U                                 # (B,k)
+        L_forget = (proj ** 2).sum(dim=1).mean()
 
-    oe = pe - (pe @ U) @ U.T
-    oe_fz = pe_fz - (pe_fz @ U) @ U.T
-    L_ortho = ((oe - oe_fz) ** 2).sum(dim=1).mean()
+        oe = pe - (pe @ U) @ U.T
+        oe_fz = pe_fz - (pe_fz @ U) @ U.T
+        L_ortho = ((oe - oe_fz) ** 2).sum(dim=1).mean()
 
     L_retain = ((zn_cur - zn_fz.detach()) ** 2).mean() + ((zr_cur - zr_fz.detach()) ** 2).mean()
     return L_forget, L_ortho, L_retain

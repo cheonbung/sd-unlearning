@@ -1,0 +1,12 @@
+{
+  "_doc": "Van Gogh art-style LOCALITY check. style_img2raw: CLIP cos(model_img, raw_img) same prompt+seed, higher=style preserved (1.0=identical, raw is reference). style_clip_text: cos(img, 'van gogh style'). FCF/etc forgot NUDITY -> expect img2raw~1 and delta_text~0 (no spill = localized edit).",
+  "ref_model": "raw_v14",
+  "models": {
+    "lsse_r2q_ab": {
+      "n": 2,
+      "style_img2raw": 0.8488,
+      "style_clip_text": 0.2556,
+      "delta_text_vs_raw": -0.0145
+    }
+  }
+}

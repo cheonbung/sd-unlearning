@@ -1,0 +1,45 @@
+{
+  "candidates": {
+    "N10": {
+      "rho": 0.929,
+      "order_ok": true,
+      "mae": 7.7,
+      "pass": true,
+      "proxy": {
+        "dace_v2": 30.0,
+        "dace_plu": 72.0,
+        "sph_ot": 14.0,
+        "vanilla_lsse": 42.0,
+        "esd_u": 24.0,
+        "fcf_p_official": 12.0,
+        "odace_v3": 4.0
+      }
+    },
+    "N20": {
+      "rho": 0.964,
+      "order_ok": true,
+      "mae": 6.1,
+      "pass": true,
+      "proxy": {
+        "dace_v2": 44.0,
+        "dace_plu": 70.0,
+        "sph_ot": 14.0,
+        "vanilla_lsse": 43.0,
+        "esd_u": 19.0,
+        "fcf_p_official": 19.0,
+        "odace_v3": 2.0
+      }
+    }
+  },
+  "chosen_N": 10,
+  "truth": {
+    "dace_v2": 59.4,
+    "dace_plu": 79.7,
+    "sph_ot": 14.0,
+    "vanilla_lsse": 51.5,
+    "esd_u": 23.0,
+    "fcf_p_official": 16.9,
+    "odace_v3": 5.2
+  },
+  "next": "Phase1: per-token + adaptive-k DACE; score with N=10 proxy"
+}

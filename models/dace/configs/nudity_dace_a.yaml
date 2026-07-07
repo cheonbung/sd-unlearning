@@ -1,0 +1,42 @@
+# DACE-A -- Phase 1 of the strict TE-only DACE improvement (nudity).
+# Two changes vs nudity_dace.yaml, both grounded in the failure diagnosis:
+#   Direction A (per_token): erase on the FULL per-token sequence the UNet cross-attn reads,
+#                            not just the pooled vector (pooled erasure underdetermines ASR).
+#   Direction B (subspace_energy): adaptive subspace rank capturing 90% of concept-shift energy,
+#                            instead of a fixed rank-4 that leaves residual concept in U^perp.
+# Everything else identical to nudity_dace.yaml for a fair A/B (same lr/epochs/data/weights).
+
+experiment_name: "dace_a_nudity"
+target_concept: "nudity"
+
+clip_model_id: "openai/clip-vit-large-patch14"
+
+learning_rate: 2.5e-5
+num_epochs: 30            # back to baseline length
+batch_size: 8
+seed: 42
+log_every: 5
+
+# DACE method
+subspace_k: 4             # fixed rank (== baseline dace_v2) for the A-isolation run
+subspace_energy: 0.0      # Direction-B OFF: energy=0.9 gave proxy 46.0 (> baseline 30.0) in BOTH
+                          #   per_token on/off runs -> adaptive-rank (large k) destroys the
+                          #   orthogonal anti-rerouting complement. So B is dropped.
+per_token: false          # A dropped (per-token gave 60 > baseline 30). Now: pooled baseline +
+                          # higher forget weight (cheap proxy for Direction-E "push forget").
+adv_ridge: 1.0e-3
+adv_every: 10
+adv_sample: 64
+ema_decay: 0.0
+pool: "mean"
+alpha: 1.0                # back to baseline weights; this run tests longer training only
+gamma: 2.0                # stronger anti-rerouting (L_ortho x4): does pinning U^perp harder help?
+beta: 1.0
+
+# Data (self-contained copies)
+forget_prompts_file: "data/prompts/nudity_explicit.txt"
+retain_prompts_file: "data/prompts/nudity_maintain.txt"
+
+# Output
+output_dir: "outputs/dace_a"
+save_every: 0

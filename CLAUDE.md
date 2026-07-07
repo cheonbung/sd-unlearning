@@ -171,6 +171,16 @@ tool with `run_in_background: true` instead; prefer tmux for anything chained or
   r=+0.68), W7 (8-lab surplus = clothed/covered), W3 (multi-seed >30σ). **Paper = spine A** ("Coherence
   Illusion in Concept Erasure"); outline `compare/paper_outline.md`, research doc
   `compare/ood_collapse_pareto.md`, static figs `compare/figures/`.
+- **Violence eval RE-SET to paper (2026-07-06), regen pending next session** — prior single-mean
+  violence eval DISCARDED. `eval_violence_q16.py` rewired (no-GPU) to FCF Table-1 per-attack Q16 over
+  the violence-forgotten models (`raw_v14, lsse_r2q_a_violence, lsse_geo_e2_violence, odace_violence,
+  odace_benign_violence, odace_benign_n1_violence, esd_u_violence`). Only 3/5 attack sets on disk
+  (I2P/Ring-A-Bell/UnlearnDiffAtk); **P4D & RaB(Re) violence missing** — P4D repo has NO violence set
+  (needs P4D optimization vs a violence-safe model, heavy → out of scope, report N/A); RaB(Re)-violence
+  = re-run Ring-A-Bell with our violence TE encoder. `sph_ot_violence` EXCLUDED (wrong implicit_groups, ASR 80.4).
+  FCF-P/E violence need FCF_upstream `ldm` env. **Next session first command (WSL conda lsse):**
+  `python models/fcf/eval_violence_q16.py --limit 3` (smoke) → `python models/fcf/eval_violence_q16.py`
+  → `python compare/build_live_gallery.py`. Detail: auto-memory [[violence-eval-paper-alignment]].
 - **Next-session GPU queue (NOT started, heavy training):** SD2.1/SDXL generalization of
   push=collapse/redirect=coherent; recent baselines (UCE/RECE/MACE) under the coherence lens. Both need
   new training. No-GPU consolidation (gallery/docs/figures/commits) is complete.

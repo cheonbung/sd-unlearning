@@ -9,6 +9,15 @@
 최신 수치 표는 `compare/comparison_all_methods.md`를 기준으로 한다. 이 문서는 수치 순위보다
 **unlearning 방식의 차이**에 집중한다.
 
+> **⚠ 2026-07 정정 (OOD 붕괴 발견 이후):** 이 문서 곳곳에서 `ODACE v3/v1.5`(output-grounded UNet
+> negative-guidance)와 `LSSE +CAP-CNP R2q-ab/R2q-a`를 "가장 낮은 ASR"·"TE-only 최강점"으로 설명하는
+> 대목들은, 이후 이 두 계열이 Ring-A-Bell 적대 공격에서 **이미지 생성 자체를 붕괴**시켜(사람이 아예
+> 안 그려짐, CLIP person-presence probability 0.1대) ASR이 인위적으로 낮게 나온 것으로 밝혀지기 **이전
+> 시점의 서술**이다(방식 설명 자체는 여전히 정확하지만, "가장 강하다"는 순위 결론은 틀렸다). **정직한
+> (붕괴 없는) 현재 1위는 Sph+OT**(4-label 0.7, Ring-A-Bell coherence 0.79)와 **ODACE benign-anchor/
+> benign-neg 계열**(redirect-to-benign으로 UNet cross-attn을 다시 학습한 무붕괴 버전, 4-label 2.1–4.4,
+> coherence 0.99–1.00)이다. 최신 결과는 `README.md` Results·gallery 메인 결과표를 따를 것.
+
 ## 1. 공통 생성 파이프라인
 
 Stable Diffusion v1.x의 단순화된 흐름은 다음과 같다.
@@ -89,7 +98,7 @@ VAE decoder          : 마지막 출력 포맷으로 인쇄하는 후처리 장�
 | vanilla LSSE | 예 | CLIP text encoder 일부 layer | concept null-space 제거 + contrastive retain + layer masking |
 | LSSE +PLU | 예 | CLIP text encoder 일부 layer | LSSE에 progressive layer unlocking 추가 |
 | LSSE +PLU+W2 | 예 | CLIP text encoder 일부 layer | PLU에 margin CNP를 더해 concept rerouting 억제 |
-| LSSE +CAP-CNP (R2q-ab) | 예 | CLIP text encoder (UNet 읽기-공간) | erase를 UNet cross-attn 읽기-공간 R=C·M^½에서 수행(M=동결 UNet 상수, UNet 미편집); 방향=contrastive_ortho. **R2q-ab(flagship)**=읽기-공간 retain 앵커(`cap_retain_anchor`)+인과 레이어 가중(`perlayer_causal`) → 풀셋 ours8 **3.1**·논문4label **0.5**·CLIP **23.62**로 **S2(19.5/22.04)·Sph+OT(14.0/23.92)를 양축 지배**, ODACE v3(5.2)보다 낮은 ASR — TE-only 최강점. (R2q-a=앵커만, ours8 1.3/CLIP 20.13 max-forget; R2 perlayer-only는 ASR 0.7이나 CLIP 17.69로 효용 붕괴; S2 kv는 ours8≈baseline) |
+| LSSE +CAP-CNP (R2q-ab) ⚠ 붕괴, 제외 | 예 | CLIP text encoder (UNet 읽기-공간) | erase를 UNet cross-attn 읽기-공간 R=C·M^½에서 수행(M=동결 UNet 상수, UNet 미편집); 방향=contrastive_ortho. **R2q-ab**=읽기-공간 retain 앵커(`cap_retain_anchor`)+인과 레이어 가중(`perlayer_causal`) → 풀셋 ours8 3.1·논문4label 0.5·CLIP 23.62로 당시 S2·Sph+OT를 양축 지배하는 것처럼 보였으나, **Ring-A-Bell coherence 0.15로 사실상 생성 붕괴** — 결과표에서 제외, 갤러리 진단 섹션에만 증거로 남음. (R2q-a=앵커만, ours8 1.3/CLIP 20.13, coherence ~0.01로 더 심하게 붕괴) |
 | DACE v2 | 예 | CLIP text encoder | explicit-neutral concept shift subspace를 동적으로 줄임 |
 | DACE+PLU | 예 | CLIP text encoder 일부 layer | DACE에 progressive layer unlocking 추가 |
 | ODACE v2 | 예 | UNet cross-attn K/V | output loss를 쓰지만 K/V-only 약한 편집 |
@@ -946,8 +955,10 @@ safe_neg는 nudity에 특화되어 간단하고 강력한 편이다. SLD는 더 
 
 | 모델 | asr_prompt↓ | asr_query↓ |
 |---|---|---|
-| ODACE v3 (UNet, 단일) | 10.0 | **1.5** |
 | Sph+OT (TE, 단일) | 25.0 | **2.5** |
+| ODACE benign-neg (UNet, redirect) | 35.0 | 5.0 |
+| LSSE geodesic (TE, 무붕괴) | 35.0 | 7.0 |
+| ODACE benign-anchor (UNet, redirect) | 40.0 | 9.0 |
 | FCF-P (TE, 단일) | 45.0 | 9.0 |
 | ESD-u (UNet, 단일) | 65.0 | 10.5 |
 | ODACE-MC (UNet, 다개념) | 35.0 | 10.5 |
@@ -955,14 +966,19 @@ safe_neg는 nudity에 특화되어 간단하고 강력한 편이다. SLD는 더 
 | Safe-CLIP (CLIP TE 교체) | 90.0 | 34.0 |
 | raw v1.4 | 100.0 | 64.5 |
 
-- ODACE v3가 적응공격에도 1위(1.5). **Sph+OT는 TE 중 유일하게 강건**(2.5)으로 FCF-P(9.0)·ESD(10.5)를 앞섬.
+> ⚠ 위 표에는 붕괴 모델(`ODACE v3` asr_query 1.5, 겉보기 1위)을 의도적으로 뺐다 — Ring-A-Bell에서
+> 이미지 생성 자체가 무너져 공격자가 판별할 대상이 없어진 것이지 진짜 강건성이 아니다.
+
+- **Sph+OT가 TE 중 적응공격에 가장 강건**(2.5)으로 FCF-P(9.0)·ESD(10.5)를 앞섬. ODACE의 redirect
+  계열(benign-neg 5.0, benign-anchor 9.0)과 LSSE geodesic(7.0)도 붕괴 없이 근접한 강건성을 보인다.
 - ESD는 정적 21.6은 양호하나 LLM 재작성에 asr_prompt **65%** 뚫림(적응 취약). 다개념 ODACE는 강건성↔범위 트레이드오프(10.5).
 - **추론·CLIP교체가 적응공격에 가장 취약(신규 확정):** SLD-Max asr_query 22.0·Safe-CLIP 34.0(asr_prompt 80·90) —
   정적 ASR(45.2/44.0)이 적응공격에서 그대로 붕괴 = 개입 깊이 가설 직접 확인.
-- **DPO 적응 공격자 결과(확정, 4-iter/타깃, asr_query iter0→best):** ODACE v3 **0→1.5** < Sph+OT **3.0→3.0**
-  (격차 0, DPO가 iter0을 한 번도 못 넘음) < FCF-P 2.5→7.5 < ODACE-MC 8.5→9.5 < ESD 6.5→10.5 ≪ raw **52.5→75.0**.
-  가장 깊은 개입(ODACE)이 적응 학습 후에도 worst-case 최저, **Sph+OT는 DPO가 전혀 안 먹힘**(구조적 안정), raw는
-  폭발(공격자 정상 작동 검증). (`models/fcf/rpgrt_dpo.json`)
+- **DPO 적응 공격자 결과(확정, 4-iter/타깃, asr_query iter0→best):** Sph+OT **3.0→3.0**(격차 0, DPO가
+  iter0을 한 번도 못 넘음) < ODACE benign-neg 2.0→4.0 < LSSE geodesic 3.5→4.5 < ODACE benign-anchor
+  8.5→8.5(격차 0) < FCF-P 2.5→7.5 < ESD 6.5→10.5 ≪ raw **52.5→75.0**. Sph+OT와 ODACE benign-anchor는
+  DPO로 전혀 안 움직이는 구조적 안정 지점, raw는 폭발(공격자 정상 작동 검증). (붕괴 모델 `ODACE v3`도
+  겉보기엔 0→1.5로 낮지만 이는 강건성이 아니라 붕괴다.) (`models/fcf/rpgrt_dpo.json`)
 
 ### 다개념(nudity + 폭력 + Van Gogh, 3개념 동시) 소거
 
@@ -1148,8 +1164,10 @@ L_W2 = concept projection 제거 + orthogonal component 보존
 
 정리하면 `Sph+OT`는 FCF 계열을 더 정교하게 만든 기여, `LSSE+PLU+W2`는 noise prompt 없는 concept-direction
 소거의 가능성과 한계를 동시에 보여준 기여, `ODACE`는 text proxy를 넘어 output-grounded UNet editing으로
-넘어간 기여다. 세 방법 모두 기존 모델보다 나은 지점을 만들었지만, 최종적으로 ASR과 locality를 함께 보면
-ODACE v3/v1.5가 가장 강한 결론을 만든다.
+넘어간 기여다. 세 방법 모두 기존 모델보다 나은 지점을 만들었지만, **Ring-A-Bell 붕괴 검증까지 함께 보면**
+원조 negative-guidance `ODACE v3/v1.5`는 ASR 1위였던 것이 생성 붕괴였음이 드러났고, 최종적으로 ASR·
+locality·OOD coherence를 함께 보는 정직한 결론은 **`Sph+OT`(TE 중 가장 강건, 붕괴 없음)와 `ODACE`의
+redirect-to-benign 계열(benign-anchor/benign-neg, UNet 중 가장 강건, 붕괴 없음)**이 만든다.
 
 ## 17. 짧은 요약
 

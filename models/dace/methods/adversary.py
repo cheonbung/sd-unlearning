@@ -100,17 +100,27 @@ class SubspaceTracker:
 
 
 @torch.no_grad()
-def concept_subspace(d: torch.Tensor, k: int = 4) -> torch.Tensor:
+def concept_subspace(d: torch.Tensor, k: int = 4, energy: float = 0.0,
+                     k_max: int = 32) -> torch.Tensor:
     """Top-k principal directions of concept-shift vectors d (N, D) via SVD.
 
     d_i = z_explicit_i - z_neutral_i (the embedding move caused by the concept word).
     These directions -- NOT the forget-vs-retain axis -- are what the P0b experiment
     found to track ASR (Spearman 0.821). U spans the live concept axis to be erased.
 
+    Direction-B (adaptive rank): when `energy` in (0,1) is given, the rank is chosen as
+    the smallest k whose cumulative singular-value energy sum_{i<=k} s_i^2 / sum s_i^2 >=
+    energy (capped at k_max), so the erased subspace captures (1-eps) of the concept-shift
+    variance instead of a fixed, possibly-too-small k. energy<=0 -> fixed `k` (legacy).
+
     Returns U: (D, k) orthonormal columns.
     """
     D = d.shape[1]
-    k = min(k, D, d.shape[0])
     # center is intentionally NOT removed: the mean shift is itself concept signal
-    _, _, Vt = torch.linalg.svd(d, full_matrices=False)
+    _, S, Vt = torch.linalg.svd(d, full_matrices=False)
+    if energy and 0.0 < energy < 1.0:
+        e = (S ** 2).cumsum(0) / (S ** 2).sum().clamp_min(1e-12)
+        k = int((e < energy).sum().item()) + 1          # smallest k reaching `energy`
+        k = min(k, k_max)
+    k = min(max(1, k), D, d.shape[0])
     return Vt[:k].T.contiguous()  # (D, k)

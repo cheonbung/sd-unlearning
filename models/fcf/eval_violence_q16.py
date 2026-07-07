@@ -1,14 +1,12 @@
-"""Phase 5: violence + Q16 LOCALITY check (not a paper-row reproduction).
+"""Paper-aligned violence ASR eval (FCF Table-1 style): per-attack Q16 ASR of VIOLENCE-forgotten models.
 
-Our official FCF checkpoints forgot NUDITY, not violence (no violence training data on disk). So we
-cannot reproduce the paper's violence-forgotten Table-1 row. Instead this runs the meaningful cheap
-check: generate the FCF violence attack sets with the NUDITY-forgotten FCF-P/E and with raw SD v1.4,
-then Q16-score them. If nudity-unlearning is LOCALIZED, the FCF models' violence ASR should stay
-~ raw's (nudity erasure does not spill into violence). A large drop would instead mean the edit is
-non-specific. This is a specificity/locality result, reported as such.
+Matches the FCF paper's violence protocol: each violence-forgotten model (LSSE / ODACE / ESD violence
+variants) is generated on the violence red-team attack sets and scored with the self-contained Q16
+"blood & violence" classifier; ASR is reported PER ATTACK (not a single mean), alongside raw SD v1.4.
 
-Violence attack sets present in fcf/data/eval: i2p_violence (757), ring_a_bell_violence (249),
-unlearnDiffAtk_violence (756). (P4D / RaB(Re) violence not on disk -> omitted.)
+Paper reports 5 attack columns: I2P + P4D + Ring-A-Bell + Ring-A-Bell(Re) + UnlearnDiffAtk. We have 3
+on disk (I2P 757 / Ring-A-Bell 249 / UnlearnDiffAtk 756); P4D-violence and RaB(Re)-violence are NOT
+available (official FCF repo ships no eval prompts) -> reported as N/A until generated externally.
 
 Q16 scorer is SELF-CONTAINED here (not lsse's ASREvaluator): lsse/evaluation/q16_classifier.py:218
 calls .half() on get_image_features(), which under transformers 5.9 returns a ModelOutput (not a
@@ -45,19 +43,27 @@ logger = logging.getLogger("violence_q16")
 Q16_CLIP = "openai/clip-vit-large-patch14"
 Q16_PROMPTS = REPO / "models" / "lsse" / "evaluation" / "q16_weights" / "prompts.p"  # read-only
 EVAL_DIR = HERE / "data" / "eval"
-# NOTE: unlearnDiffAtk_violence.txt is a byte-dup of i2p_violence.txt (trailing-whitespace only ->
-# identical prompts & seeds -> identical images). Dropped to avoid double-counting; 2 distinct attacks.
+# Paper Table-1 violence reports 5 columns; 3 are on disk. P4D-violence & RaB(Re)-violence are NOT
+# available (official FCF repo ships NO eval prompts; only nudity P4D/RaB(Re) reconstructed here) ->
+# generate via P4D / Ring-A-Bell external repos (white-box) to fully match the paper.
+# NOTE: unlearnDiffAtk_violence.txt is DISTINCT from i2p_violence.txt (756 vs 757 lines; content
+# diverges after the shared opening prompts) -> included as its own column (the earlier byte-dup
+# claim was WRONG). Provenance of the shared prefix is unverified; sanity-check before trusting UDA.
 ATTACKS = [
-    ("I2P",         "i2p_violence.txt",         "i2p"),
-    ("Ring-A-Bell", "ring_a_bell_violence.txt", "ring_a_bell"),
+    ("I2P",            "i2p_violence.txt",            "i2p"),
+    ("Ring-A-Bell",    "ring_a_bell_violence.txt",    "ring_a_bell"),
+    ("UnlearnDiffAtk", "unlearnDiffAtk_violence.txt", "unlearndiffatk"),
 ]
-# All Table-A models -> uniform cross-model violence axis. The first 3 already have I2P/RaB images
-# (generation is resumable; they are just re-scored). Override with --models for a subset.
+# Paper-aligned violence eval: VIOLENCE-forgotten models (each trained on violence explicit/implicit)
+# scored on the violence attack sets, per-attack, vs raw SD baseline. Override with --models.
+# sph_ot_violence EXCLUDED (training failed: wrong implicit_groups -> ASR 80.4 > raw = no erasure;
+#   retrain with implicit person/body/man/woman per paper before re-including).
+# fcf_p_violence / fcf_e_violence: add once trained in FCF_upstream's own `ldm` env + .pt->final conv.
 MODELS = [
-    "raw_v14", "fcf_p_official", "fcf_e_official",
-    "odace_v3", "odace_v15", "safe_neg", "sph_ot", "lsse_plu_w2", "esd_u", "lsse_plu",
-    "safeclip", "sld_max", "vanilla_lsse", "dace_v2", "sd21base", "odace_v2", "sld_strong",
-    "raw_v15", "sld_medium", "dace_plu",
+    "raw_v14",
+    "lsse_r2q_a_violence", "lsse_geo_e2_violence",
+    "odace_violence", "odace_benign_violence", "odace_benign_n1_violence",
+    "esd_u_violence",
 ]
 
 
@@ -116,8 +122,9 @@ def load_result(path: Path) -> dict:
             return json.loads(path.read_text())
         except Exception:  # noqa: BLE001
             pass
-    return {"_doc": "Phase 5 violence Q16 LOCALITY check. asr_violence percent. FCF models forgot "
-                    "NUDITY -> expect violence ASR ~ raw (no transfer = localized edit).",
+    return {"_doc": "Paper-aligned violence Q16 eval (FCF Table-1 style). Per-attack asr_violence "
+                    "percent for VIOLENCE-forgotten models vs raw SD. 3/5 attack sets on disk "
+                    "(I2P/Ring-A-Bell/UnlearnDiffAtk); P4D & RaB(Re) violence pending generation.",
             "models": {}}
 
 

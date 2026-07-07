@@ -47,6 +47,7 @@ class DACETrainer:
         max_length: int = 77, batch_size: int = 8, enable_diagnostics: bool = True,
         adv_ridge: float = 1e-2, use_plu: bool = False,
         plu_k1_frac: float = 1 / 3, plu_k2_frac: float = 2 / 3,
+        per_token: bool = False, subspace_energy: float = 0.0,
     ):
         self.text_encoder = text_encoder.to(device)
         self.tokenizer = tokenizer
@@ -63,6 +64,8 @@ class DACETrainer:
         self.adv_ridge = adv_ridge
         self.use_plu = use_plu
         self.plu_k1_frac, self.plu_k2_frac = plu_k1_frac, plu_k2_frac
+        self.per_token = per_token              # Direction-A: per-token sequence erasure
+        self.subspace_energy = subspace_energy  # Direction-B: adaptive subspace rank by energy
 
         self.frozen_encoder = copy.deepcopy(text_encoder).to(device)
         self.frozen_encoder.requires_grad_(False)
@@ -112,10 +115,19 @@ class DACETrainer:
 
     @torch.no_grad()
     def refresh_subspace(self, explicit_sample, neutral_sample):
-        pe = self._pooled(explicit_sample)
-        pn = self._pooled(neutral_sample)
-        d = (pe - pn).float()
-        U = concept_subspace(d, self.subspace_k)
+        if self.per_token:
+            # Direction-A: per-token concept shifts (N*L, D) -> axis matches the UNet input
+            rows = []
+            for i in range(0, len(explicit_sample), self.batch_size):
+                ze = self._encode(explicit_sample[i:i + self.batch_size])
+                zn = self._encode(neutral_sample[i:i + self.batch_size])
+                rows.append((ze - zn).reshape(-1, ze.shape[-1]).float())
+            d = torch.cat(rows, dim=0)
+        else:
+            pe = self._pooled(explicit_sample)
+            pn = self._pooled(neutral_sample)
+            d = (pe - pn).float()
+        U = concept_subspace(d, self.subspace_k, energy=self.subspace_energy)
         self.U = self.tracker.update(U).to(self.text_encoder.dtype)
 
     def _train_step(self, b_exp, b_neu, b_ret) -> Dict[str, float]:
@@ -126,7 +138,7 @@ class DACETrainer:
             zn_fz = self._encode_frozen(b_neu)
             zr_fz = self._encode_frozen(b_ret)
         Lf, Lo, Lr = dace_concept_losses(ze, ze_fz, zn, zn_fz, zr, zr_fz, self.U,
-                                         pool_mode=self.pool_mode)
+                                         pool_mode=self.pool_mode, per_token=self.per_token)
         L = self.alpha * Lf + self.gamma * Lo + self.beta * Lr
         L.backward(); self.optimizer.step()
         return {"L_forget": Lf.item(), "L_ortho": Lo.item(),

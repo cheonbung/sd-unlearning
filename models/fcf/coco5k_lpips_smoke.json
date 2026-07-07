@@ -1,0 +1,21 @@
+{
+  "_doc": "Phase 4 COCO FID-5K. FID lower=better; CLIP x100 higher=better; LPIPS vs same-base raw; IQ=CLIP-IQA. Paper Table 3 FCF-P FID 15.07 / CLIP 31.03.",
+  "models": {
+    "raw_v14": {
+      "n_gen": 8,
+      "n_real": 8,
+      "coco_fid": 209.92,
+      "coco_clip": 25.15,
+      "coco_lpips": null,
+      "coco_iq": 0.5067
+    },
+    "fcf_p_official": {
+      "n_gen": 8,
+      "n_real": 8,
+      "coco_fid": 204.66,
+      "coco_clip": 25.02,
+      "coco_lpips": 0.4547,
+      "coco_iq": 0.5067
+    }
+  }
+}

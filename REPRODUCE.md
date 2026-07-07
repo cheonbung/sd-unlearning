@@ -69,13 +69,16 @@ python models/fcf/legacy_reimpl/train.py  --config models/fcf/legacy_reimpl/conf
 python models/fcf/legacy_reimpl/train.py  --config models/fcf/legacy_reimpl/configs/nudity_fcf_e.yaml          # FCF-E reimpl
 python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse.yaml     # LSSE (+ --use_plu etc.)
 python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_capcnp.yaml  # LSSE+CAP-CNP S2 (read-out-space erase; --cap_dir_mode/--cap_metric_mode for S1-S5/R variants)
-python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_capcnp_r2q.yaml  # LSSE+CAP-CNP R2q-ab FLAGSHIP (read-out retain anchor + causal per-layer; best TE-only: full-set ours8 3.1 / CLIP 23.62). Variants via eval/run_lsse_r2quality.sh (--cap_retain_anchor/--cap_loss_mode)
+python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_capcnp_r2q.yaml  # LSSE+CAP-CNP R2q-ab (⚠ OOD-collapses on Ring-A-Bell, EXCLUDED from results — see README.md "Excluded experiments"). Variants via eval/run_lsse_r2quality.sh (--cap_retain_anchor/--cap_loss_mode)
+python models/lsse/train_lsse.py --config models/lsse/configs/nudity_lsse_geo_e2.yaml  # LSSE geodesic (current gallery-surviving TE point, no collapse)
 python models/dace/train_dace.py --config models/dace/configs/nudity_dace.yaml     # DACE (negative result)
 python models/novel/train.py --config models/novel/configs/nudity_v2.yaml --manifold spherical
 
 # --- UNet tracks ---
-python models/odace/train_odace.py --config models/odace/configs/nudity_odace.yaml      # ODACE v3 (champion)
-python models/odace/train_odace.py --config models/odace/configs/nudity_odace_v15.yaml  # ODACE v1.5
+python models/odace/train_odace.py --config models/odace/configs/nudity_odace_benign.yaml     # ODACE benign-anchor (current gallery-surviving champion)
+python models/odace/train_odace.py --config models/odace/configs/nudity_odace_benign_n1.yaml  # ODACE benign-neg (current gallery-surviving, lowest ASR)
+python models/odace/train_odace.py --config models/odace/configs/nudity_odace.yaml      # ODACE v3 (⚠ OOD-collapses on Ring-A-Bell, EXCLUDED — see README.md)
+python models/odace/train_odace.py --config models/odace/configs/nudity_odace_v15.yaml  # ODACE v1.5 (same excluded recipe on SD1.5)
 python models/esd/train_esd.py --config models/esd/configs/nudity_esd_u.yaml   # ESD-u
 
 # --- FAITHFUL FCF (authors' code; uses only torch+transformers+pandas, no LDM) ---
@@ -96,7 +99,8 @@ ensure the trained model sits at the registered path, e.g.:
 
 | Key | Expected path (REGISTRY) |
 |---|---|
-| `odace_v3` / `odace_v15` | `models/odace/outputs/odace_v3/final` · `models/odace/outputs/odace_v15/final` (UNet) |
+| `odace_benign` / `odace_benign_n1` | `models/odace/outputs/odace_benign/final` · `models/odace/outputs/odace_benign_n1/final` (UNet, current gallery models) |
+| `odace_v3` / `odace_v15` | `models/odace/outputs/odace_v3/final` · `models/odace/outputs/odace_v15/final` (UNet, ⚠ excluded — OOD collapse) |
 | `esd_u` | `models/esd/outputs/esd_u/final` (UNet) |
 | `fcf_p` / `fcf_e` (reimpl) | `models/fcf/legacy_reimpl/outputs/fcf_{p,e}_nudity/final` (CLIPTextModel) |
 | `fcf_p_official` / `fcf_e_official` | `models/fcf/official_fcf_{p,e}/final` (CLIPTextModel) |
@@ -123,6 +127,12 @@ tables live in `compare/comparison_all_methods.md` (regenerate the live gallery 
 
 ## 6. Caveats / gotchas (verified)
 
+- **OOD generation collapse (2026-07):** the original `odace_v3`/`odace_v15` (negative-guidance
+  UNet) and `lsse_capcnp`'s aggressive read-out variants (`r2q_ab`, `r2q_a`) post low static ASR by
+  **collapsing image generation** on Ring-A-Bell adversarial prompts (CLIP person-presence
+  probability <0.3), not by real erasure. They are reproducible and documented above for
+  completeness, but are **excluded from current results** — reproduce `odace_benign`/`odace_benign_n1`
+  and `lsse_geo_e2` instead. See `README.md` → Results → "Excluded experiments".
 - **Run the documented commands above, not the `*.sh` wrappers.** Several `*/experiments/*.sh`,
   `models/run_eval.sh`, `eval/run_BC.sh`, and `models/novel/scripts/dispatch/*.sh` contain
   **machine-specific absolute paths** (e.g. `/mnt/d/...`, `/home/user/miniconda3/...`, and a legacy

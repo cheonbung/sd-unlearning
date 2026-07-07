@@ -104,7 +104,12 @@ which motivated moving the intervention into the UNet.
 Output-Distribution Adversarial Concept Erasure — the first method here to edit
 the **SD UNet cross-attention** (`to_q/k/v/out`) with the text encoder frozen.
 Instead of a text-embedding proxy, it optimizes the UNet noise prediction that
-actually drives the image. ODACE is the project's strongest eraser (see Results).
+actually drives the image. The original negative-guidance variant (`odace_v3`)
+pushes generation away from the concept and was later found to collapse
+generation on OOD Ring-A-Bell attacks (fake-low ASR from broken images, not real
+erasure). The **benign-anchor / benign-neg** variants redirect toward a benign
+target instead of pushing away, stay coherent under attack, and are the
+project's actual current-best UNet points (see Results).
 
 ### Reproduced Baselines (`models/{esd,sld,safeclip}/`)
 
@@ -118,38 +123,45 @@ Same-protocol reproductions for fair comparison:
 
 The single source of truth is **`compare/comparison_all_methods.md`** (Table A:
 all models, one ASR protocol; plus the FCF paper-alignment sections §③-정정-P1..P5).
-Headlines (mean nudity ASR, lower = safer; NudeNet v3, 5 attack suites):
 
-| Method | Intervention | mean ASR↓ | Note |
-|---|---|---|---|
-| **ODACE v3 / v1.5** | UNet cross-attn | **4.0** | strongest; raw-level COCO FID/CLIP |
-| safe_neg / Sph+OT | inference / text enc. | ~15 | |
-| **LSSE+CAP-CNP** (R2q-ab, flagship) | text enc. (read-out) | **3.1** (full-set)* | dominates Sph+OT & S2 on both axes; COCO-CLIP 23.62 |
-| **FCF-P** (official code) | text encoder | 17.2 | full-set 4-label **3.7 ≈ paper 3.43** |
-| ESD-u | UNet non-cross-attn | 21.6 | strongest reproduced canon baseline |
-| Safe-CLIP / SLD | text enc. / inference | 44–62 | broken by Ring-A-Bell attacks |
-| DACE | text enc. (concept axis) | 51–74 | negative result |
-| raw SD v1.4 | — | 62.0 | reference |
+> **⚠ Coherence-aware headline.** ASR alone is not sufficient: some low-ASR points
+> turn out to be **OOD generation collapse** on Ring-A-Bell adversarial prompts
+> (the model stops generating people at all, so nothing is left to detect as
+> nudity — see "Excluded experiments" below). All rows below are the
+> **non-collapsed** methods, reported as **4-lab ASR** (FCF exposed-only
+> convention) paired with **Ring-A-Bell coherence** (CLIP person-presence
+> probability; ≥0.7 = coherent, the model still generates people under attack).
 
-\* CAP-CNP uses the **full-set** `ours8` ASR (1622×5). The flagship **R2q-ab**
-(`+retain-anchor +perlayer_causal`) reaches `ours8` 3.1 / paper-4label 0.5 / COCO-CLIP 23.62 —
-**dominating both S2 (19.5/22.04) and Sph+OT (14.0/23.92) on both axes**, with lower ASR than
-ODACE v3 (5.2): the strongest text-encoder-only point here. It fixes the **R2** variant
-(`perlayer`, `ours8` 0.7 but COCO-CLIP collapsed to 17.69) by anchoring retain in the read-out
-space where erasure happens. **R2q-a** (`+retain-anchor` only) is the max-forget point
-(`ours8` 1.3, CLIP 20.13). An earlier N=10 proxy overstated S2 at ~10 and did not hold on the full
-set — numbers are validated full-set. See `models/lsse/README.md` for the full frontier.
+| Method | Intervention | ASR 4-lab↓ | Ring-A-Bell coherence | COCO-CLIP↑ | Note |
+|---|---|---|---|---|---|
+| **SLERP-OT (Sph+OT)** | inference / text enc. | **0.7** | 0.79 (coherent) | 23.65 | honest OOD-coherent winner; RPG-RT worst-case gap 0 |
+| **ODACE benign-neg** | UNet cross-attn (redirect) | **2.1** | 1.00 (coherent) | 25.43 | strongest coherent point overall |
+| LSSE geodesic | text enc. | 2.1 | 0.58 | 25.66 | coherent TE alternative to Sph+OT |
+| ODACE benign-anchor | UNet cross-attn (redirect) | 4.4 | 0.99 (coherent) | 25.62 | most adaptation-proof under DPO red-team |
+| FCF-P (official code) | text encoder | 3.7 ≈ paper 3.43 | 0.79 (coherent) | ~24.4 | reproduces paper (Spearman 0.9) |
+| ESD-u | UNet non-cross-attn | 12.0 | 0.85 (coherent) | 25.0 | strongest reproduced canon baseline |
+| Safe-CLIP | text enc. | 32.2 | 0.85 (coherent) | 25.5 | bypassed by Ring-A-Bell semantically, not via collapse |
+| SLD-Max | inference | 18.9 | 0.92 (coherent) | 24.1 | bypassed by Ring-A-Bell semantically, not via collapse |
+| DACE | text enc. (concept axis) | 51–74 (8-lab) | — | — | negative result |
+| raw SD v1.4 | — | 50.4 | 0.97 (coherent, unerased) | — | reference |
+
+See `models/lsse/README.md` and `models/odace/README.md` for the full per-variant
+frontier behind the LSSE geodesic / ODACE benign rows above.
 
 Key takeaways:
 
-- **Intervention point dominates.** Inference < text-encoder < UNet for adversarial
-  robustness; output-grounded cross-attention (ODACE) erases deepest, and edit
-  *magnitude* is not the driver (ESD edits 95% of the UNet yet trails ODACE 5×).
+- **Redirect-to-benign beats push-away once coherence is checked.** Methods that
+  push generation *away* from the concept (ODACE negative-guidance, LSSE
+  CAP-CNP's most aggressive variants) can collapse image generation on OOD
+  attacks and win on ASR for the wrong reason. Methods that redirect *toward* a
+  benign target (SLERP-OT, ODACE benign-anchor/benign-neg, LSSE geodesic) stay
+  coherent and are the honest current winners.
 - **FCF does reproduce** with the authors' official code + data: FCF-P reaches the
-  paper's low-ASR regime (full-set 4-label 3.7 vs paper 3.43; rank Spearman ~0.9).
-  The earlier in-repo `models/fcf/legacy_reimpl/` re-implementation was unfaithful, not the method.
+  paper's low-ASR regime (4-label 3.7 vs paper 3.43; rank Spearman ~0.9). The
+  earlier in-repo `models/fcf/legacy_reimpl/` re-implementation was unfaithful,
+  not the method.
 - **Text-encoder concept-axis erasure (DACE) underdetermines ASR** — a deliberate
-  negative result that motivated ODACE.
+  negative result that motivated moving the intervention into the UNet/read-out space.
 
 ### Adaptive robustness (RPG-RT), multi-concept, and training cost
 
@@ -157,17 +169,21 @@ Three further axes beyond static-attack ASR (full tables in
 `compare/comparison_all_methods.md` §⑥–⑧):
 
 - **Adaptive red-team (RPG-RT, vicuna-7b prompt-rewrite attacker), asr_query↓ =
-  worst-case bypass rate:** ODACE v3 **1.5** < Sph+OT **2.5** < FCF-P 9.0 < ESD-u
-  10.5 ≈ ODACE-MC 10.5 < SLD-Max 22.0 < Safe-CLIP 34.0 < raw 64.5. ODACE stays
-  strongest under adaptive attack; Sph+OT is the only text-encoder method that
-  resists it, while shallow interventions fall hard — ESD rewritten through at
-  asr_prompt 65, and SLD-Max / Safe-CLIP at 80 / 90 (static ASR 45.2 / 44.0
+  worst-case bypass rate:** Sph+OT **2.5** < ODACE benign-neg 5.0 < LSSE geodesic
+  7.0 < ODACE benign-anchor 9.0 ≈ FCF-P 9.0 < ESD-u 10.5 ≈ ODACE-MC 10.5 <
+  SLD-Max 22.0 < Safe-CLIP 34.0 < raw 64.5. Sph+OT is the most attack-resistant
+  text-encoder method; the ODACE benign/redirect variants and LSSE geodesic hold
+  up nearly as well, while shallow interventions fall hard — ESD rewritten
+  through at asr_prompt 65, and SLD-Max / Safe-CLIP at 80 / 90 (static ASR
   collapses under adaptive rewriting).
 - **DPO-fine-tuned adaptive attacker (4 iters/target), worst-case asr_query
-  iter0→best:** ODACE v3 **0.0→1.5** < Sph+OT **3.0→3.0** (gap 0 — DPO never beats
-  iter0) < FCF-P 2.5→7.5 < ODACE-MC 8.5→9.5 < ESD 6.5→10.5 ≪ raw **52.5→75.0**. The
-  deepest intervention stays lowest worst-case even after the attacker adapts, and
-  Sph+OT is structurally unmovable; raw explodes, confirming the attacker works.
+  iter0→best:** Sph+OT **3.0→3.0** (gap 0 — DPO never beats iter0) < ODACE
+  benign-neg 2.0→4.0 < LSSE geodesic 3.5→4.5 < ODACE benign-anchor 8.5→8.5
+  (gap 0) < FCF-P 2.5→7.5 < ESD 6.5→10.5 ≪ raw **52.5→75.0**. Sph+OT and ODACE
+  benign-anchor are structurally unmovable (DPO gains nothing over the frozen
+  attacker); raw explodes, confirming the attacker works. (The original
+  negative-guidance ODACE v3 posted a lower-looking 0.0→1.5 here too, but that
+  reflects OOD collapse, not robustness — see "Excluded experiments" below.)
 - **Multi-concept (nudity + violence + Van Gogh, one model):** only **ODACE-MC**
   erases all three while keeping utility (COCO-CLIP **24.8** ≈ raw 26.5). Text-encoder
   multi-concept (LSSE-MC, Sph+OT-MC) collapses the model (COCO-CLIP ~10–12, FID
@@ -180,6 +196,24 @@ Three further axes beyond static-attack ASR (full tables in
 > ASR is cross-model comparable (it is the nudity rate of attack images, independent
 > of base). FID/CLIP scales differ by protocol — see the report's warnings before
 > merging any quality numbers.
+
+### Excluded experiments (OOD generation collapse)
+
+The following variants were trained and evaluated but are **excluded from the
+results above** because their low ASR turned out to be a side effect of the
+model collapsing image generation on Ring-A-Bell adversarial prompts (CLIP
+person-presence probability < 0.3, vs. ≥0.7 for a coherent model) rather than
+genuine concept erasure. They remain in the live gallery's diagnostic sections
+as evidence of the collapse phenomenon itself, but are not comparison
+candidates:
+
+- **ODACE v3 / v1.5** (negative-guidance UNet cross-attn) — static ASR 4.0
+  looked strongest, but Ring-A-Bell coherence 0.12.
+- **LSSE CAP-CNP `r2q_ab` / `r2q_a` / `capcnp_zero`** (text-encoder read-out
+  erasure, aggressive variants) — `r2q_ab` ASR 3.1 / coherence 0.15; `r2q_a`
+  ASR 1.3 / coherence ~0.01.
+- **LSSE R2q (violence-trained)** — same read-out over-erasure failure mode on
+  the violence concept.
 
 ## Setup
 

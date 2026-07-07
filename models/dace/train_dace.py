@@ -87,6 +87,8 @@ def main():
         pool_mode=cfg.get("pool", "mean"),
         use_plu=bool(cfg.get("use_plu", False)),
         batch_size=int(cfg.get("batch_size", 8)),
+        per_token=bool(cfg.get("per_token", False)),
+        subspace_energy=float(cfg.get("subspace_energy", 0.0)),
     )
 
     out_dir = base / cfg.get("output_dir", "outputs/dace_nudity")

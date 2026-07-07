@@ -6,9 +6,16 @@
 
 ## 🎯 한눈에 보기 (TL;DR)
 
+> **⚠️ 2026-07 정정 (OOD-collapse 발견 이후):** 아래 TL;DR·표A·⑥·⑥-DPO의 **"ODACE v3(4.0)/LSSE R2q-ab(3.1)가
+> 최강"** 주장은 Ring-A-Bell OOD 공격에서 이 두 모델이 **생성 자체를 붕괴**시켜(person_prob 0.12/0.15) 낮은
+> ASR을 "따낸" 것으로 이후 밝혀졌다(§OOD 참조). **정직한(비붕괴) 승자는 SLERP-OT**(4-lab 0.7, ring 0.79)와
+> **ODACE benign-neg**(4-lab 2.1, ring 1.00) — 갤러리 메인 결과표엔 이 두 계열만 남아있다. 붕괴 모델(ODACE v3/v15,
+> LSSE capcnp_zero/r2q_a/r2q_ab)은 붕괴 현상 자체의 증거로만 갤러리 진단 섹션에 남아있고, 아래 표들은 **그
+> 발견 이전 시점의 연구 기록**이라 그대로 보존한다(각 표를 읽을 때 이 정정을 항상 함께 적용할 것).
+
 | 질문 | 답 |
 |---|---|
-| **최강 효능·강건성?** | **ODACE** (UNet cross-attn 출력접지) — 정적 ASR **4.0**, 적응형 RPG-RT asr_query **1.5**, 둘 다 1위 |
+| **최강 효능·강건성?** | **ODACE** (UNet cross-attn 출력접지) — 정적 ASR **4.0**, 적응형 RPG-RT asr_query **1.5**, 둘 다 1위 (⚠️ OOD 붕괴 확인, 위 정정 참조) |
 | **왜 ODACE가 이기나?** | 개입이 **출력(UNet)에 가까울수록 강건**: 추론(SLD 45~62) < 텍스트인코더(15~73) < UNet(ESD 21.6 · ODACE 4.0). 적응공격에서 더 극명(Safe-CLIP/SLD-Max asr_query 34/22 ↔ ODACE 1.5) |
 | **가성비 최고?** | **Sph+OT** (TE) — ASR 15.6·적응 2.5를 **0.026 GPU-h**(ESD의 1/50)로. 단 다개념에선 붕괴 |
 | **다개념(3개) 가능?** | **UNet만 생존** — ODACE-MC는 효용 보존(COCO-CLIP 24.8); TE 계열(LSSE/Sph+OT-MC)은 모델 붕괴(CLIP ~10) |

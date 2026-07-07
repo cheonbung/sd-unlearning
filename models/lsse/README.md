@@ -110,7 +110,7 @@ Latest unified comparison uses NudeNet v3, score threshold 0.3, 5 attacks x
 | LSSE+PLU | `--use_plu` | 21.6 |
 | LSSE+PLU+W2 | `--use_plu --use_margin_cnp` | 20.8 |
 | Spherical+OT | text-encoder comparison point | 15.6 |
-| ODACE v3 | UNet comparison point | 4.0 |
+| ODACE v3 | UNet comparison point, ⚠ later found to collapse on Ring-A-Bell (see below) | 4.0 |
 
 Interpretation:
 
@@ -120,7 +120,20 @@ Interpretation:
 - LSSE appears to hit a text-encoder-only floor around 20 ASR, which motivated
   the later DACE and ODACE investigations.
 
-## CAP-CNP — breaking the LSSE floor (2026-06)
+## CAP-CNP — breaking the LSSE floor (2026-06) ⚠ excluded from current results
+
+> **2026-07 correction: the R2/R2q-ab/R2q-a numbers below are OOD-collapsed.**
+> On Ring-A-Bell adversarial prompts these variants stop generating people
+> altogether (CLIP person-presence probability ~0.15 for R2q-ab, ~0.01 for
+> R2q-a, vs ≥0.7 for a coherent model) — their low ASR is a broken-output
+> artifact, not real erasure. The method description below is still accurate
+> (this is genuinely how read-out-space erasure works), but the "dominates
+> Sph+OT / beats ODACE" ranking claims do not hold once coherence is checked.
+> **The current gallery-surviving LSSE point is `lsse_geo_e2`** (geodesic /
+> N5 RG-FCF spherical projection, `configs/nudity_lsse_geo_e2.yaml`) at
+> 4-label ASR 2.1, COCO-CLIP 25.66, Ring-A-Bell coherence 0.58 — no collapse.
+> This CAP-CNP section is kept for the mechanism explanation and as a
+> documented negative result; see "Excluded experiments" at the bottom.
 
 **Cross-Attention-Pullback CNP** removes the LSSE ~20-ASR floor by erasing the concept
 in the space the UNet actually reads (`K=W_k C, V=W_v C`) instead of raw CLIP space.
@@ -178,6 +191,21 @@ loss-scale issue, not a method failure.
 > remaining viable fix is to **normalize the read-out projection** (rescale `M_ℓ½` so violence `L_cnp`
 > matches the nudity scale), a deterministic loss-scale fix — not run yet. **Non-AW violence R2q
 > (16.7 / 18.27) remains the better-balanced violence operating point** and is the documented flagship.
+
+## Excluded experiments (OOD generation collapse)
+
+The following LSSE variants were trained and evaluated but are **excluded from
+current results** — their low ASR turned out to be OOD generation collapse on
+Ring-A-Bell (CLIP person-presence probability < 0.3), not genuine erasure:
+
+- **CAP-CNP `R2q-ab` / `R2q-a` / `R2 perlayer` / `capcnp_zero`** (nudity) — see
+  correction note above.
+- **`lsse_r2q_violence` / `lsse_r2q_violence_aw`** (violence transfer) — same
+  read-out over-erasure failure mode applied to the violence concept.
+
+The current recommended, non-collapsed LSSE point is **`lsse_geo_e2`**
+(`configs/nudity_lsse_geo_e2.yaml`, N5 RG-FCF spherical/geodesic projection) —
+see the correction note in the CAP-CNP section above for its numbers.
 
 ## Run
 
