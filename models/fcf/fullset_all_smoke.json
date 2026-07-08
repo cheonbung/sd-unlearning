@@ -186,6 +186,43 @@
       "fcf4_p03_mean": 31.0,
       "fcf4_any_mean": 32.0,
       "ours8_p03_mean": 43.0
+    },
+    "odace_benign_n1": {
+      "attacks": {
+        "I2P": {
+          "n": 3,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 0.0
+        },
+        "Ring-A-Bell": {
+          "n": 3,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 33.3
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 3,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 0.0
+        },
+        "P4D": {
+          "n": 3,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 33.3
+        },
+        "UnlearnDiffAtk": {
+          "n": 3,
+          "fcf4_p03": 0.0,
+          "fcf4_any": 0.0,
+          "ours8_p03": 0.0
+        }
+      },
+      "fcf4_p03_mean": 0.0,
+      "fcf4_any_mean": 0.0,
+      "ours8_p03_mean": 13.3
     }
   }
 }
