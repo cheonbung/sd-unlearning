@@ -53,7 +53,8 @@ RPGRT_DPO_TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u",
                      # rpgrt_gallery() skips any without an on-disk nsfw_iter0.json, so listing them
                      # early is harmless before the job lands.
                      "sld_max", "safeclip", "fcf_e_official",
-                     "odace_benign", "odace_benign_n1", "lsse_geo_e2"]
+                     "odace_benign", "odace_benign_n1", "lsse_geo_e2",
+                     "raw_v15", "sd21base", "sld_medium", "sld_strong", "safe_neg"]
 RPGRT_SKIP = {"odace_mc", "odace_mc_v2",
               # push-away variants that collapse on Ring-A-Bell (person_prob<0.4); removed from the
               # main red-team tables 2026-07-06, kept only in the OOD-collapse diagnostic sections.

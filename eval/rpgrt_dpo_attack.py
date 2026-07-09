@@ -50,9 +50,17 @@ UNET_DIRS = {
 }
 TE_DIRS = {
     "fcf_p_official": "models/fcf/official_fcf_p/final",
+    "fcf_e_official": "models/fcf/official_fcf_e/final",  # nudity FCF-E (SD1.4 TE swap)
     "sph_ot":         "models/novel/outputs/fcf_p_v2_nudity_spherical_ot/final",
     "lsse_geo_e2":    "models/lsse/outputs/lsse_geo_e2/final",  # OOD-fix geodesic (SD1.4 TE swap)
 }
+# Baseline bases (mirror-fallback lists, cf. xeval.REGISTRY). safe_neg = SD1.5 + fixed nudity neg-prompt.
+SD15_IDS = ["stable-diffusion-v1-5/stable-diffusion-v1-5",
+            "sd-legacy/stable-diffusion-v1-5", "runwayml/stable-diffusion-v1-5"]
+SD21_IDS = ["stabilityai/stable-diffusion-2-1-base",
+            "Manojb/stable-diffusion-2-1-base", "sd2-community/stable-diffusion-2-1-base"]
+NEG_NUDITY = ("nudity, nude, naked, nsfw, explicit sexual content, genitalia, exposed breasts, "
+              "bare skin, erotic")
 
 p = argparse.ArgumentParser()
 p.add_argument("--target", required=True)
@@ -74,18 +82,37 @@ os.makedirs(f"{args.out}/img", exist_ok=True)
 random.seed(args.seed); torch.manual_seed(args.seed)
 
 
+def _load_pipe(ids):
+    """Load a StableDiffusionPipeline from the first working id in a mirror-fallback list."""
+    last = None
+    for mid in (ids if isinstance(ids, list) else [ids]):
+        try:
+            return StableDiffusionPipeline.from_pretrained(mid, torch_dtype=torch.float16)
+        except Exception as e:  # noqa: BLE001
+            last = e
+    raise last
+
+
 def build_target(name):
     """generate(prompt)->PIL.Image closure. Mirrors eval/rpgrt_attack_ours.build_target."""
-    if name == "sld_max":
+    # SLD guidance variants (training-free): medium / strong / max.
+    if name in ("sld_medium", "sld_strong", "sld_max"):
+        cfg = name.split("_")[1]
         pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float16, safety_checker=None)
         pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
         pipe.safety_checker = None; pipe.set_progress_bar_config(disable=True)
         pipe = pipe.to(device)
         gen = torch.Generator(device=device)
-        gfn = lambda pr: sld_generate(pipe, pr, SLD_CONFIGS["max"], generator=gen,
+        gfn = lambda pr: sld_generate(pipe, pr, SLD_CONFIGS[cfg], generator=gen,
                                       steps=50, guidance_scale=7.5, height=512, width=512)
         return pipe, gfn
-    pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float16)
+    # Base model: SD1.5 (raw_v15 / safe_neg), SD2.1 (sd21base), else SD1.4.
+    if name in ("raw_v15", "safe_neg"):
+        pipe = _load_pipe(SD15_IDS)
+    elif name == "sd21base":
+        pipe = _load_pipe(SD21_IDS)
+    else:
+        pipe = StableDiffusionPipeline.from_pretrained(SD14, torch_dtype=torch.float16)
     do_safeclip = False
     if name in UNET_DIRS:
         pipe.unet = UNet2DConditionModel.from_pretrained(f"{REPO}/{UNET_DIRS[name]}", torch_dtype=torch.float16)
@@ -93,13 +120,14 @@ def build_target(name):
         pipe.text_encoder = CLIPTextModel.from_pretrained(f"{REPO}/{TE_DIRS[name]}", torch_dtype=torch.float16)
     elif name == "safeclip":
         do_safeclip = True
-    elif name != "raw":
+    elif name not in ("raw", "raw_v15", "sd21base", "safe_neg"):
         raise ValueError(f"unknown target {name}")
     pipe.safety_checker = None; pipe.set_progress_bar_config(disable=True)
     pipe = pipe.to(device)
     if do_safeclip:
         load_safeclip_text_encoder(pipe, "aimagelab/safeclip_vit-l_14")
-    return pipe, (lambda pr: pipe(prompt=pr).images[0])
+    neg = NEG_NUDITY if name == "safe_neg" else None
+    return pipe, (lambda pr: pipe(prompt=pr, negative_prompt=neg).images[0])
 
 
 def rewrite_msg(original_prompt):

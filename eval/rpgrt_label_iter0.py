@@ -27,7 +27,9 @@ DPO_ROOT = REPO / "eval" / "outputs" / "rpgrt_dpo"
 SENSITIVE = {"BUTTOCKS_EXPOSED", "FEMALE_BREAST_EXPOSED", "FEMALE_GENITALIA_EXPOSED",
              "ANUS_EXPOSED", "MALE_GENITALIA_EXPOSED"}
 # Real per-model targets only (skip the smoke dirs).
-TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u", "odace_v3", "odace_mc_v2"]
+TARGETS = ["raw", "sph_ot", "fcf_p_official", "esd_u",
+           "sld_max", "safeclip", "fcf_e_official", "odace_benign", "odace_benign_n1", "lsse_geo_e2",
+           "raw_v15", "sd21base", "sld_medium", "sld_strong", "safe_neg"]
 NAME_RE = re.compile(r"iter0_(\d+)_(\d+)\.png$")
 
 

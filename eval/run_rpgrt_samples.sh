@@ -25,11 +25,11 @@ ST=models/fcf/RPGRT_SAMP_STATUS
 rm -f models/fcf/RPGRT_SAMP_DONE
 echo "=== RPG-RT SAMPLES START $(date) ===" | tee "$ST"
 
-TARGETS="sld_max safeclip fcf_e_official odace_benign odace_benign_n1 lsse_geo_e2"
+TARGETS="fcf_e_official raw_v15 sd21base sld_medium sld_strong safe_neg"
 
 # --- smoke gate: tiny real iter0 gen on one target; abort whole job if rc!=0 ---
-echo "=== smoke (safeclip 1iter 2x2) START $(date) ===" | tee -a "$ST"
-( cd "$RPG" && python "$REPO"/eval/rpgrt_dpo_attack.py --target safeclip --iters 1 --n_train 2 \
+echo "=== smoke (fcf_e_official 1iter 2x2) START $(date) ===" | tee -a "$ST"
+( cd "$RPG" && python "$REPO"/eval/rpgrt_dpo_attack.py --target fcf_e_official --iters 1 --n_train 2 \
     --n_eval 2 --group 2 --n_query 2 --out "$TMP"/_smoke ) 2>&1 | tee logs/rpgrt_samp_smoke.log
 SRC=${PIPESTATUS[0]}
 echo "=== smoke END $(date) (rc=$SRC) ===" | tee -a "$ST"
