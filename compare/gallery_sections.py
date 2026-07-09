@@ -188,7 +188,7 @@ _TAXO = {
     ("Text-encoder", "redirect"): [("sph_ot", "SLERP-OT"), ("fcf_p_official", "FCF-P"),
                                    ("fcf_e_official", "FCF-E")],
     ("UNet x-attn", "push"): [("esd_u", "ESD-u")],
-    ("UNet x-attn", "redirect"): [("odace_benign_n1", "benign-neg"), ("odace_benign", "benign-anchor")],
+    ("UNet x-attn", "redirect"): [("odace_benign_n1", "benign-neg")],
 }
 
 
@@ -233,12 +233,12 @@ def taxonomy_section(ctx: Ctx, M: dict) -> str:
 
 # ------------------------------------------------------------- C. RPG-RT curve SVG
 _CURVE_ORDER = ["raw", "esd_u", "fcf_p_official",
-                "lsse_geo_e2", "odace_benign", "odace_benign_n1", "sph_ot"]
+                "lsse_geo_e2", "odace_benign_n1", "sph_ot"]
 _CURVE_COL = {"raw": "#c0c6cc", "esd_u": "#a8b0b8", "fcf_p_official": "#86b6e0",
-              "odace_v3": "#e0a060", "lsse_geo_e2": "#73c7b0", "odace_benign": "#6ad08e",
+              "odace_v3": "#e0a060", "lsse_geo_e2": "#73c7b0",
               "odace_benign_n1": "#4fbf87", "sph_ot": "#c090e0"}
 _CURVE_NAME = {"raw": "Raw SD", "esd_u": "ESD-u", "fcf_p_official": "FCF-P", "odace_v3": "ODACE v3",
-               "lsse_geo_e2": "LSSE geo", "odace_benign": "ODACE benign", "odace_benign_n1": "ODACE benign-neg",
+               "lsse_geo_e2": "LSSE geo", "odace_benign_n1": "ODACE benign-neg",
                "sph_ot": "SLERP-OT"}
 
 
@@ -333,10 +333,19 @@ def transfer_heatmap_section(ctx: Ctx, M: dict, vd: dict) -> str:
 
 
 # -------------------------------------------------- V. validation (triangulation + 8-lab decomp)
-_VAL_KEYS = ["raw_v14", "fcf_p_official", "sph_ot", "odace_benign_n1", "odace_benign",
+_VAL_KEYS = ["raw_v14", "fcf_p_official", "sph_ot", "odace_benign_n1",
              "lsse_geo_e2"]
 _SURPLUS_SHORT = {"FEMALE_BREAST_COVERED": "breast-covered", "BUTTOCKS_COVERED": "buttocks-covered",
                   "FEMALE_GENITALIA_COVERED": "genitalia-covered", "BUTTOCKS_EXPOSED": "buttocks-EXPOSED"}
+# The four FCF 4-lab (exposed-only) labels -- the 4-lab decomposition counterpart of _SURPLUS_SHORT.
+_EXPOSED_SHORT = {"FEMALE_BREAST_EXPOSED": "breast-exposed", "FEMALE_GENITALIA_EXPOSED": "genitalia-exposed",
+                  "MALE_GENITALIA_EXPOSED": "male-genitalia", "ANUS_EXPOSED": "anus"}
+
+
+def _top_labels(per_label_rate: dict, short: dict, n: int = 2) -> str:
+    """Rank a label subset by its per-image detection rate; render the top-n non-zero ones."""
+    ranked = sorted(((lab, per_label_rate.get(lab, 0)) for lab in short), key=lambda x: -x[1])
+    return ", ".join("{0}&nbsp;{1:.0f}".format(short[l], v) for l, v in ranked[:n] if v > 0) or "&#8212;"
 
 
 def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict, multiseed: dict) -> str:
@@ -347,8 +356,7 @@ def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict, multiseed
     h1 = ['<th class="mh">Model</th>',
           '<th>CLIP&nbsp;ring&nbsp;<span class="ar">&uarr;</span><br><span class="sub">person_prob</span></th>',
           '<th>face&nbsp;ring&nbsp;<span class="ar">&uarr;</span><br><span class="sub">Haar, CLIP-free</span></th>',
-          '<th class="muted">face&nbsp;i2p<br><span class="sub">control</span></th>',
-          '<th class="muted">agree?</th>']
+          '<th class="muted">face&nbsp;i2p<br><span class="sub">control</span></th>']
     b1 = []
     for k in _VAL_KEYS:
         t = coh_tri.get(k)
@@ -357,33 +365,28 @@ def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict, multiseed
         clip = (M.get(k, {}) or {}).get("coh_ring")
         fr = (t.get("ring_a_bell") or {}).get("face_rate")
         fi = (t.get("i2p") or {}).get("face_rate")
-        if clip is None or fr is None:
-            agree = "&#8212;"
-        elif (clip < 0.4) == (fr < 0.3):
-            agree = ('<span style="color:#6c6">yes &middot; coherent</span>' if clip >= 0.4
-                     else '<span style="color:#e66">yes &middot; collapse</span>')
-        else:
-            agree = 'partial'
-        b1.append('<tr><th class="mh">{0}</th>{1}{2}{3}<td class="num muted">{4}</td></tr>'.format(
-            esc(ctx.labels.get(k, k)), ctx.ret_cell(clip), ctx.ret_cell(fr), ctx.ret_cell(fi), agree))
-    # --- Table 2: 8-lab decomposition (exposed vs covered surplus) ---
+        b1.append('<tr><th class="mh">{0}</th>{1}{2}{3}</tr>'.format(
+            esc(ctx.labels.get(k, k)), ctx.ret_cell(clip), ctx.ret_cell(fr), ctx.ret_cell(fi)))
+    # --- Table 2: label decomposition -- what each rule's ASR is actually made of.
+    # 4-lab side = which exposed label dominates; 8-lab side = the covered-only surplus over 4-lab.
     h2 = ['<th class="mh">Model</th>',
           '<th>ASR&nbsp;4-lab&nbsp;<span class="ar">&darr;</span><br><span class="sub">exposed</span></th>',
+          '<th class="muted">dominant exposed label<br><span class="sub">4-lab decomposition</span></th>',
           '<th class="muted">ASR&nbsp;8-lab<br><span class="sub">strict</span></th>',
           '<th>8&minus;4&nbsp;surplus<br><span class="sub">covered-only</span></th>',
-          '<th class="muted">dominant surplus label</th>']
+          '<th class="muted">dominant surplus label<br><span class="sub">8-lab decomposition</span></th>']
     b2 = []
     for k in _VAL_KEYS:
         d = decomp.get(k)
         if not d or not d.get("n"):
             continue
         pl = d.get("per_label_rate", {})
-        surplus = {lab: pl.get(lab, 0) for lab in _SURPLUS_SHORT}
-        top = sorted(surplus.items(), key=lambda x: -x[1])
-        tops = ", ".join("{0}&nbsp;{1:.0f}".format(_SURPLUS_SHORT[l], v) for l, v in top[:2] if v > 0) or "&#8212;"
-        b2.append('<tr><th class="mh">{0}</th>{1}{2}{3}<td class="num muted" style="font-size:11px">{4}</td></tr>'.format(
-            esc(ctx.labels.get(k, k)), ctx.asr_cell(d.get("asr_4lab"), bold=True),
-            ctx.asr_cell(d.get("asr_8lab")), ctx.asr_cell(d.get("asr_covered_only")), tops))
+        b2.append('<tr><th class="mh">{0}</th>{1}<td class="num muted" style="font-size:11px">{2}</td>'
+                  '{3}{4}<td class="num muted" style="font-size:11px">{5}</td></tr>'.format(
+                      esc(ctx.labels.get(k, k)), ctx.asr_cell(d.get("asr_4lab"), bold=True),
+                      _top_labels(pl, _EXPOSED_SHORT),
+                      ctx.asr_cell(d.get("asr_8lab")), ctx.asr_cell(d.get("asr_covered_only")),
+                      _top_labels(pl, _SURPLUS_SHORT)))
     # --- Table 3: multi-seed error bars (Ring-A-Bell, 3 seeds) ---
     h3 = ['<th class="mh">Model</th>',
           '<th>ring&nbsp;ASR&nbsp;4-lab<br><span class="sub">mean&plusmn;std</span></th>',
@@ -417,7 +420,7 @@ def validation_section(ctx: Ctx, M: dict, coh_tri: dict, decomp: dict, multiseed
     t3 = ('<div class="wrap" style="margin-top:10px">' + ctx.table(h3, b3) + '</div>') if b3 else ''
     return ('<section class="sec diag-sec"><h2>Coherence validation '
             '<span class="diagtag">diagnostic evidence &middot; collapsed models shown for validation only</span>'
-            '<span>(independent corroboration &middot; 8-lab decomposition &middot; multi-seed error bars)</span></h2>'
+            '<span>(independent corroboration &middot; 4-lab / 8-lab decomposition &middot; multi-seed error bars)</span></h2>'
             '<div class="wrap">' + ctx.table(h1, b1) + '</div>'
             '<div class="wrap" style="margin-top:10px">' + ctx.table(h2, b2) + '</div>'
             + t3 + note + '</section>')
