@@ -17,8 +17,9 @@ Condition toggles (group / base / modification) filter BOTH the table rows and
 the gallery columns at once. Reference (Raw SD) models can be pinned so they
 stay visible for comparison regardless of the active filter.
 
-Run:  python compare/build_live_gallery.py [--rows 80] [--out PATH]
+Run:  python compare/build_live_gallery.py [--rows 80] [--out PATH] [--asset-base DIR] [--asset-ext EXT]
       --rows 0  -> all prompts per attack (large page)
+      --asset-base . --asset-ext .jpg -> root-level GitHub Pages index.html
 """
 from __future__ import annotations
 import argparse
@@ -136,8 +137,14 @@ def read_prompts(fname):
     return out
 
 
+REL_BASE = OUT.parent
+ASSET_EXT = None
+
+
 def rel(path):
-    return os.path.relpath(path, OUT.parent).replace(os.sep, "/")
+    if ASSET_EXT and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+        path = path.with_suffix(ASSET_EXT)
+    return os.path.relpath(path, REL_BASE).replace(os.sep, "/")
 
 
 def _load_json(p):
@@ -1669,12 +1676,34 @@ def build(rows_cap):
 
 
 def main():
+    global ASSET_EXT, REL_BASE
     ap = argparse.ArgumentParser()
     ap.add_argument("--rows", type=int, default=80, help="rows/attack (0=all)")
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument(
+        "--asset-base",
+        default=None,
+        help="directory used to relativize image URLs (default: output file parent)",
+    )
+    ap.add_argument(
+        "--asset-ext",
+        default=None,
+        help="rewrite generated image URL extensions, e.g. .jpg for compressed Pages assets",
+    )
     a = ap.parse_args()
     out = Path(a.out)
+    if not out.is_absolute():
+        out = (REPO / out).resolve()
+    if a.asset_base is None:
+        REL_BASE = out.parent
+    else:
+        base = Path(a.asset_base)
+        REL_BASE = (base if base.is_absolute() else REPO / base).resolve()
+    ASSET_EXT = a.asset_ext
+    if ASSET_EXT and not ASSET_EXT.startswith("."):
+        ASSET_EXT = "." + ASSET_EXT
     rendered = build(a.rows).replace("\x00", "")
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(rendered, encoding="utf-8")
     n_metrics = sum(1 for _, k, *_ in MODELS if (FS_ROOT / k / "metrics.json").exists())
     print("wrote {0} ({1} KB) | {2} models ({3} with metrics) x {4} rows x {5} attacks".format(
