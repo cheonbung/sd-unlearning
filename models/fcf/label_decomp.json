@@ -15,132 +15,169 @@
   ],
   "models": {
     "raw_v14": {
-      "n": 1624,
-      "asr_4lab": 33.25,
-      "asr_8lab": 51.66,
-      "asr_covered_only": 18.41,
+      "n": 1535,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "p4d": 272,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 38.63,
+      "asr_8lab": 57.0,
+      "asr_covered_only": 18.37,
       "per_label_rate": {
         "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 1.23,
-        "BUTTOCKS_EXPOSED": 7.39,
-        "FEMALE_BREAST_COVERED": 15.09,
-        "FEMALE_BREAST_EXPOSED": 31.16,
-        "FEMALE_GENITALIA_COVERED": 4.0,
-        "FEMALE_GENITALIA_EXPOSED": 8.56,
-        "MALE_GENITALIA_EXPOSED": 2.46
-      }
-    },
-    "sph_ot": {
-      "n": 1624,
-      "asr_4lab": 1.42,
-      "asr_8lab": 13.61,
-      "asr_covered_only": 12.19,
-      "per_label_rate": {
-        "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 0.25,
-        "BUTTOCKS_EXPOSED": 0.43,
-        "FEMALE_BREAST_COVERED": 11.7,
-        "FEMALE_BREAST_EXPOSED": 0.8,
-        "FEMALE_GENITALIA_COVERED": 0.37,
-        "FEMALE_GENITALIA_EXPOSED": 0.06,
-        "MALE_GENITALIA_EXPOSED": 0.55
+        "BUTTOCKS_COVERED": 0.98,
+        "BUTTOCKS_EXPOSED": 8.66,
+        "FEMALE_BREAST_COVERED": 14.59,
+        "FEMALE_BREAST_EXPOSED": 36.35,
+        "FEMALE_GENITALIA_COVERED": 4.76,
+        "FEMALE_GENITALIA_EXPOSED": 11.34,
+        "MALE_GENITALIA_EXPOSED": 3.0
       }
     },
     "fcf_p_official": {
-      "n": 1624,
-      "asr_4lab": 3.2,
-      "asr_8lab": 14.41,
-      "asr_covered_only": 11.21,
+      "n": 1535,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "p4d": 272,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 2.93,
+      "asr_8lab": 14.98,
+      "asr_covered_only": 12.05,
       "per_label_rate": {
         "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 0.74,
-        "BUTTOCKS_EXPOSED": 0.25,
-        "FEMALE_BREAST_COVERED": 10.78,
-        "FEMALE_BREAST_EXPOSED": 2.09,
-        "FEMALE_GENITALIA_COVERED": 0.62,
-        "FEMALE_GENITALIA_EXPOSED": 0.25,
-        "MALE_GENITALIA_EXPOSED": 0.92
+        "BUTTOCKS_COVERED": 0.59,
+        "BUTTOCKS_EXPOSED": 0.26,
+        "FEMALE_BREAST_COVERED": 11.6,
+        "FEMALE_BREAST_EXPOSED": 2.35,
+        "FEMALE_GENITALIA_COVERED": 0.98,
+        "FEMALE_GENITALIA_EXPOSED": 0.2,
+        "MALE_GENITALIA_EXPOSED": 0.46
+      }
+    },
+    "sph_ot": {
+      "n": 1535,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "p4d": 272,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 1.5,
+      "asr_8lab": 13.36,
+      "asr_covered_only": 11.86,
+      "per_label_rate": {
+        "ANUS_EXPOSED": 0.0,
+        "BUTTOCKS_COVERED": 0.39,
+        "BUTTOCKS_EXPOSED": 0.39,
+        "FEMALE_BREAST_COVERED": 11.27,
+        "FEMALE_BREAST_EXPOSED": 0.91,
+        "FEMALE_GENITALIA_COVERED": 0.65,
+        "FEMALE_GENITALIA_EXPOSED": 0.07,
+        "MALE_GENITALIA_EXPOSED": 0.52
       }
     },
     "odace_benign_n1": {
-      "n": 1624,
-      "asr_4lab": 2.4,
-      "asr_8lab": 17.36,
-      "asr_covered_only": 14.96,
+      "n": 1535,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "p4d": 272,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 2.54,
+      "asr_8lab": 19.22,
+      "asr_covered_only": 16.68,
       "per_label_rate": {
         "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 0.68,
-        "BUTTOCKS_EXPOSED": 0.31,
-        "FEMALE_BREAST_COVERED": 14.22,
-        "FEMALE_BREAST_EXPOSED": 1.79,
-        "FEMALE_GENITALIA_COVERED": 1.42,
-        "FEMALE_GENITALIA_EXPOSED": 0.31,
-        "MALE_GENITALIA_EXPOSED": 0.43
-      }
-    },
-    "odace_benign": {
-      "n": 1624,
-      "asr_4lab": 4.43,
-      "asr_8lab": 18.66,
-      "asr_covered_only": 14.22,
-      "per_label_rate": {
-        "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 1.48,
-        "BUTTOCKS_EXPOSED": 0.8,
-        "FEMALE_BREAST_COVERED": 12.44,
-        "FEMALE_BREAST_EXPOSED": 3.69,
-        "FEMALE_GENITALIA_COVERED": 1.05,
-        "FEMALE_GENITALIA_EXPOSED": 0.55,
-        "MALE_GENITALIA_EXPOSED": 0.37
+        "BUTTOCKS_COVERED": 0.59,
+        "BUTTOCKS_EXPOSED": 0.2,
+        "FEMALE_BREAST_COVERED": 16.16,
+        "FEMALE_BREAST_EXPOSED": 2.02,
+        "FEMALE_GENITALIA_COVERED": 1.82,
+        "FEMALE_GENITALIA_EXPOSED": 0.33,
+        "MALE_GENITALIA_EXPOSED": 0.33
       }
     },
     "lsse_geo_e2": {
-      "n": 1624,
-      "asr_4lab": 1.6,
-      "asr_8lab": 17.0,
-      "asr_covered_only": 15.39,
+      "n": 1535,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "p4d": 272,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 1.43,
+      "asr_8lab": 17.98,
+      "asr_covered_only": 16.55,
       "per_label_rate": {
         "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 0.49,
-        "BUTTOCKS_EXPOSED": 0.37,
-        "FEMALE_BREAST_COVERED": 15.09,
-        "FEMALE_BREAST_EXPOSED": 1.23,
-        "FEMALE_GENITALIA_COVERED": 1.29,
-        "FEMALE_GENITALIA_EXPOSED": 0.12,
-        "MALE_GENITALIA_EXPOSED": 0.25
+        "BUTTOCKS_COVERED": 0.59,
+        "BUTTOCKS_EXPOSED": 0.39,
+        "FEMALE_BREAST_COVERED": 15.9,
+        "FEMALE_BREAST_EXPOSED": 0.98,
+        "FEMALE_GENITALIA_COVERED": 1.63,
+        "FEMALE_GENITALIA_EXPOSED": 0.26,
+        "MALE_GENITALIA_EXPOSED": 0.2
       }
     },
     "odace_v3": {
-      "n": 1624,
-      "asr_4lab": 0.99,
-      "asr_8lab": 7.08,
-      "asr_covered_only": 6.1,
+      "n": 1263,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 1.11,
+      "asr_8lab": 7.28,
+      "asr_covered_only": 6.18,
       "per_label_rate": {
         "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 0.12,
-        "BUTTOCKS_EXPOSED": 0.06,
-        "FEMALE_BREAST_COVERED": 5.97,
-        "FEMALE_BREAST_EXPOSED": 0.62,
-        "FEMALE_GENITALIA_COVERED": 0.62,
+        "BUTTOCKS_COVERED": 0.16,
+        "BUTTOCKS_EXPOSED": 0.08,
+        "FEMALE_BREAST_COVERED": 6.02,
+        "FEMALE_BREAST_EXPOSED": 0.79,
+        "FEMALE_GENITALIA_COVERED": 0.55,
         "FEMALE_GENITALIA_EXPOSED": 0.0,
-        "MALE_GENITALIA_EXPOSED": 0.37
-      }
+        "MALE_GENITALIA_EXPOSED": 0.32
+      },
+      "missing_attacks": [
+        "p4d"
+      ]
     },
     "lsse_r2q_ab": {
-      "n": 1624,
-      "asr_4lab": 1.05,
-      "asr_8lab": 6.16,
-      "asr_covered_only": 5.11,
+      "n": 1263,
+      "attack_n": {
+        "i2p": 931,
+        "ring_a_bell": 95,
+        "ring_a_bell_re": 95,
+        "unlearndiffatk": 142
+      },
+      "asr_4lab": 1.19,
+      "asr_8lab": 5.86,
+      "asr_covered_only": 4.67,
       "per_label_rate": {
         "ANUS_EXPOSED": 0.0,
-        "BUTTOCKS_COVERED": 0.49,
-        "BUTTOCKS_EXPOSED": 0.18,
-        "FEMALE_BREAST_COVERED": 4.37,
-        "FEMALE_BREAST_EXPOSED": 0.74,
-        "FEMALE_GENITALIA_COVERED": 0.31,
-        "FEMALE_GENITALIA_EXPOSED": 0.06,
-        "MALE_GENITALIA_EXPOSED": 0.25
-      }
+        "BUTTOCKS_COVERED": 0.32,
+        "BUTTOCKS_EXPOSED": 0.24,
+        "FEMALE_BREAST_COVERED": 4.04,
+        "FEMALE_BREAST_EXPOSED": 0.95,
+        "FEMALE_GENITALIA_COVERED": 0.4,
+        "FEMALE_GENITALIA_EXPOSED": 0.0,
+        "MALE_GENITALIA_EXPOSED": 0.24
+      },
+      "missing_attacks": [
+        "p4d"
+      ]
     }
   }
 }

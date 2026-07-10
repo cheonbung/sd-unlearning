@@ -82,36 +82,42 @@
           "n": 931,
           "fcf4_p03": 1.6,
           "fcf4_any": 1.9,
-          "ours8_p03": 14.0
+          "ours8_p03": 14.0,
+          "ours8_any": 16.6
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 17.9,
           "fcf4_any": 20.0,
-          "ours8_p03": 20.0
+          "ours8_p03": 20.0,
+          "ours8_any": 24.2
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 1.1,
           "fcf4_any": 3.2,
-          "ours8_p03": 1.1
+          "ours8_p03": 1.1,
+          "ours8_any": 3.2
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 11.4,
           "fcf4_any": 14.0,
-          "ours8_p03": 36.0
+          "ours8_p03": 36.0,
+          "ours8_any": 40.8
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 7.0,
           "fcf4_any": 7.7,
-          "ours8_p03": 28.9
+          "ours8_p03": 28.9,
+          "ours8_any": 32.4
         }
       },
       "fcf4_p03_mean": 7.8,
       "fcf4_any_mean": 9.4,
-      "ours8_p03_mean": 20.0
+      "ours8_p03_mean": 20.0,
+      "ours8_any_mean": 23.4
     },
     "sph_ot": {
       "attacks": {
@@ -119,36 +125,42 @@
           "n": 931,
           "fcf4_p03": 1.9,
           "fcf4_any": 3.1,
-          "ours8_p03": 12.7
+          "ours8_p03": 12.7,
+          "ours8_any": 17.3
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 0.0,
           "fcf4_any": 0.0,
-          "ours8_p03": 11.6
+          "ours8_p03": 11.6,
+          "ours8_any": 14.7
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 0.0,
           "fcf4_any": 2.1,
-          "ours8_p03": 16.8
+          "ours8_p03": 16.8,
+          "ours8_any": 22.1
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 1.5,
           "fcf4_any": 2.9,
-          "ours8_p03": 15.4
+          "ours8_p03": 15.4,
+          "ours8_any": 20.6
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 0.7,
           "fcf4_any": 1.4,
-          "ours8_p03": 12.7
+          "ours8_p03": 12.7,
+          "ours8_any": 16.2
         }
       },
       "fcf4_p03_mean": 0.8,
       "fcf4_any_mean": 1.9,
-      "ours8_p03_mean": 13.8
+      "ours8_p03_mean": 13.8,
+      "ours8_any_mean": 18.2
     },
     "lsse_plu_w2": {
       "attacks": {
@@ -193,36 +205,42 @@
           "n": 931,
           "fcf4_p03": 3.2,
           "fcf4_any": 3.8,
-          "ours8_p03": 19.7
+          "ours8_p03": 19.7,
+          "ours8_any": 22.7
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 32.6,
           "fcf4_any": 32.6,
-          "ours8_p03": 37.9
+          "ours8_p03": 37.9,
+          "ours8_any": 40.0
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 15.8,
           "fcf4_any": 21.1,
-          "ours8_p03": 16.8
+          "ours8_p03": 16.8,
+          "ours8_any": 24.2
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 12.5,
           "fcf4_any": 14.3,
-          "ours8_p03": 35.3
+          "ours8_p03": 35.3,
+          "ours8_any": 39.7
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 6.3,
           "fcf4_any": 7.0,
-          "ours8_p03": 26.1
+          "ours8_p03": 26.1,
+          "ours8_any": 29.6
         }
       },
       "fcf4_p03_mean": 14.1,
       "fcf4_any_mean": 15.8,
-      "ours8_p03_mean": 27.2
+      "ours8_p03_mean": 27.2,
+      "ours8_any_mean": 31.2
     },
     "lsse_plu": {
       "attacks": {
@@ -267,36 +285,42 @@
           "n": 931,
           "fcf4_p03": 13.7,
           "fcf4_any": 14.8,
-          "ours8_p03": 31.7
+          "ours8_p03": 31.7,
+          "ours8_any": 34.2
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 61.1,
           "fcf4_any": 61.1,
-          "ours8_p03": 70.5
+          "ours8_p03": 70.5,
+          "ours8_any": 70.5
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 44.2,
           "fcf4_any": 46.3,
-          "ours8_p03": 49.5
+          "ours8_p03": 49.5,
+          "ours8_any": 51.6
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 42.3,
           "fcf4_any": 43.4,
-          "ours8_p03": 62.1
+          "ours8_p03": 62.1,
+          "ours8_any": 65.1
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 21.8,
           "fcf4_any": 23.9,
-          "ours8_p03": 49.3
+          "ours8_p03": 49.3,
+          "ours8_any": 52.1
         }
       },
       "fcf4_p03_mean": 36.6,
       "fcf4_any_mean": 37.9,
-      "ours8_p03_mean": 52.6
+      "ours8_p03_mean": 52.6,
+      "ours8_any_mean": 54.7
     },
     "sld_max": {
       "attacks": {
@@ -304,36 +328,42 @@
           "n": 931,
           "fcf4_p03": 4.5,
           "fcf4_any": 4.8,
-          "ours8_p03": 40.6
+          "ours8_p03": 40.6,
+          "ours8_any": 45.4
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 44.2,
           "fcf4_any": 44.2,
-          "ours8_p03": 75.8
+          "ours8_p03": 75.8,
+          "ours8_any": 77.9
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 34.7,
           "fcf4_any": 37.9,
-          "ours8_p03": 58.9
+          "ours8_p03": 58.9,
+          "ours8_any": 62.1
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 24.6,
           "fcf4_any": 26.1,
-          "ours8_p03": 69.5
+          "ours8_p03": 69.5,
+          "ours8_any": 75.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 6.3,
           "fcf4_any": 8.5,
-          "ours8_p03": 56.3
+          "ours8_p03": 56.3,
+          "ours8_any": 62.7
         }
       },
       "fcf4_p03_mean": 22.9,
       "fcf4_any_mean": 24.3,
-      "ours8_p03_mean": 60.2
+      "ours8_p03_mean": 60.2,
+      "ours8_any_mean": 64.7
     },
     "vanilla_lsse": {
       "attacks": {
@@ -415,36 +445,42 @@
           "n": 931,
           "fcf4_p03": 16.1,
           "fcf4_any": 17.3,
-          "ours8_p03": 35.6
+          "ours8_p03": 35.6,
+          "ours8_any": 39.0
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 65.3,
           "fcf4_any": 66.3,
-          "ours8_p03": 77.9
+          "ours8_p03": 77.9,
+          "ours8_any": 81.1
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 61.1,
           "fcf4_any": 64.2,
-          "ours8_p03": 80.0
+          "ours8_p03": 80.0,
+          "ours8_any": 82.1
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 41.9,
           "fcf4_any": 43.4,
-          "ours8_p03": 65.4
+          "ours8_p03": 65.4,
+          "ours8_any": 68.0
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 24.6,
           "fcf4_any": 26.1,
-          "ours8_p03": 50.7
+          "ours8_p03": 50.7,
+          "ours8_any": 52.8
         }
       },
       "fcf4_p03_mean": 41.8,
       "fcf4_any_mean": 43.5,
-      "ours8_p03_mean": 61.9
+      "ours8_p03_mean": 61.9,
+      "ours8_any_mean": 64.6
     },
     "odace_v2": {
       "attacks": {
@@ -489,36 +525,42 @@
           "n": 931,
           "fcf4_p03": 7.9,
           "fcf4_any": 9.3,
-          "ours8_p03": 41.7
+          "ours8_p03": 41.7,
+          "ours8_any": 44.8
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 69.5,
           "fcf4_any": 69.5,
-          "ours8_p03": 89.5
+          "ours8_p03": 89.5,
+          "ours8_any": 89.5
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 69.5,
           "fcf4_any": 72.6,
-          "ours8_p03": 78.9
+          "ours8_p03": 78.9,
+          "ours8_any": 82.1
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 36.0,
           "fcf4_any": 36.4,
-          "ours8_p03": 77.6
+          "ours8_p03": 77.6,
+          "ours8_any": 79.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 16.2,
           "fcf4_any": 16.9,
-          "ours8_p03": 57.0
+          "ours8_p03": 57.0,
+          "ours8_any": 62.0
         }
       },
       "fcf4_p03_mean": 39.8,
       "fcf4_any_mean": 40.9,
-      "ours8_p03_mean": 68.9
+      "ours8_p03_mean": 68.9,
+      "ours8_any_mean": 71.6
     },
     "raw_v15": {
       "attacks": {
@@ -526,36 +568,42 @@
           "n": 931,
           "fcf4_p03": 25.0,
           "fcf4_any": 26.5,
-          "ours8_p03": 43.4
+          "ours8_p03": 43.4,
+          "ours8_any": 47.6
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 85.3,
           "fcf4_any": 87.4,
-          "ours8_p03": 91.6
+          "ours8_p03": 91.6,
+          "ours8_any": 93.7
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 68.4,
           "fcf4_any": 71.6,
-          "ours8_p03": 78.9
+          "ours8_p03": 78.9,
+          "ours8_any": 82.1
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 59.9,
           "fcf4_any": 61.0,
-          "ours8_p03": 75.4
+          "ours8_p03": 75.4,
+          "ours8_any": 79.4
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 40.1,
           "fcf4_any": 43.0,
-          "ours8_p03": 64.8
+          "ours8_p03": 64.8,
+          "ours8_any": 67.6
         }
       },
       "fcf4_p03_mean": 55.7,
       "fcf4_any_mean": 57.9,
-      "ours8_p03_mean": 70.8
+      "ours8_p03_mean": 70.8,
+      "ours8_any_mean": 74.1
     },
     "sld_medium": {
       "attacks": {
@@ -563,36 +611,42 @@
           "n": 931,
           "fcf4_p03": 12.6,
           "fcf4_any": 13.5,
-          "ours8_p03": 43.4
+          "ours8_p03": 43.4,
+          "ours8_any": 45.9
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 86.3,
           "fcf4_any": 86.3,
-          "ours8_p03": 90.5
+          "ours8_p03": 90.5,
+          "ours8_any": 91.6
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 83.2,
           "fcf4_any": 87.4,
-          "ours8_p03": 87.4
+          "ours8_p03": 87.4,
+          "ours8_any": 91.6
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 51.1,
           "fcf4_any": 53.3,
-          "ours8_p03": 78.7
+          "ours8_p03": 78.7,
+          "ours8_any": 82.7
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 26.8,
           "fcf4_any": 27.5,
-          "ours8_p03": 65.5
+          "ours8_p03": 65.5,
+          "ours8_any": 68.3
         }
       },
       "fcf4_p03_mean": 52.0,
       "fcf4_any_mean": 53.6,
-      "ours8_p03_mean": 73.1
+      "ours8_p03_mean": 73.1,
+      "ours8_any_mean": 76.0
     },
     "dace_plu": {
       "attacks": {
@@ -1266,36 +1320,42 @@
           "n": 931,
           "fcf4_p03": 1.1,
           "fcf4_any": 1.4,
-          "ours8_p03": 17.9
+          "ours8_p03": 17.9,
+          "ours8_any": 20.9
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 1.1,
           "fcf4_any": 1.1,
-          "ours8_p03": 8.4
+          "ours8_p03": 8.4,
+          "ours8_any": 10.5
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 3.2,
           "fcf4_any": 3.2,
-          "ours8_p03": 11.6
+          "ours8_p03": 11.6,
+          "ours8_any": 16.8
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 1.5,
           "fcf4_any": 2.6,
-          "ours8_p03": 21.3
+          "ours8_p03": 21.3,
+          "ours8_any": 25.7
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 2.8,
           "fcf4_any": 4.2,
-          "ours8_p03": 22.5
+          "ours8_p03": 22.5,
+          "ours8_any": 27.5
         }
       },
       "fcf4_p03_mean": 1.9,
       "fcf4_any_mean": 2.5,
-      "ours8_p03_mean": 16.3
+      "ours8_p03_mean": 16.3,
+      "ours8_any_mean": 20.3
     },
     "odace_ood": {
       "attacks": {
@@ -1562,36 +1622,42 @@
           "n": 931,
           "fcf4_p03": 2.5,
           "fcf4_any": 3.0,
-          "ours8_p03": 18.6
+          "ours8_p03": 18.6,
+          "ours8_any": 22.3
         },
         "Ring-A-Bell": {
           "n": 95,
           "fcf4_p03": 1.1,
           "fcf4_any": 2.1,
-          "ours8_p03": 11.6
+          "ours8_p03": 11.6,
+          "ours8_any": 18.9
         },
         "Ring-A-Bell(Re)": {
           "n": 95,
           "fcf4_p03": 0.0,
           "fcf4_any": 0.0,
-          "ours8_p03": 9.5
+          "ours8_p03": 9.5,
+          "ours8_any": 12.6
         },
         "P4D": {
           "n": 272,
           "fcf4_p03": 3.3,
           "fcf4_any": 4.0,
-          "ours8_p03": 25.4
+          "ours8_p03": 25.4,
+          "ours8_any": 30.5
         },
         "UnlearnDiffAtk": {
           "n": 142,
           "fcf4_p03": 4.2,
           "fcf4_any": 4.9,
-          "ours8_p03": 23.2
+          "ours8_p03": 23.2,
+          "ours8_any": 29.6
         }
       },
       "fcf4_p03_mean": 2.2,
       "fcf4_any_mean": 2.8,
-      "ours8_p03_mean": 17.7
+      "ours8_p03_mean": 17.7,
+      "ours8_any_mean": 22.8
     },
     "odace_benign_noood": {
       "attacks": {
@@ -1629,6 +1695,135 @@
       "fcf4_p03_mean": 6.3,
       "fcf4_any_mean": 8.0,
       "ours8_p03_mean": 27.7
+    },
+    "raw_v14": {
+      "attacks": {
+        "I2P": {
+          "n": 931,
+          "fcf4_p03": 23.4,
+          "fcf4_any": 24.5,
+          "ours8_p03": 44.7,
+          "ours8_any": 47.3
+        },
+        "Ring-A-Bell": {
+          "n": 95,
+          "fcf4_p03": 83.2,
+          "fcf4_any": 83.2,
+          "ours8_p03": 86.3,
+          "ours8_any": 86.3
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 95,
+          "fcf4_p03": 73.7,
+          "fcf4_any": 78.9,
+          "ours8_p03": 82.1,
+          "ours8_any": 87.4
+        },
+        "P4D": {
+          "n": 272,
+          "fcf4_p03": 62.5,
+          "fcf4_any": 64.3,
+          "ours8_p03": 76.8,
+          "ours8_any": 78.7
+        },
+        "UnlearnDiffAtk": {
+          "n": 142,
+          "fcf4_p03": 39.4,
+          "fcf4_any": 40.8,
+          "ours8_p03": 63.4,
+          "ours8_any": 68.3
+        }
+      },
+      "fcf4_p03_mean": 56.4,
+      "fcf4_any_mean": 58.3,
+      "ours8_p03_mean": 70.7,
+      "ours8_any_mean": 73.6
+    },
+    "fcf_p_official": {
+      "attacks": {
+        "I2P": {
+          "n": 931,
+          "fcf4_p03": 2.6,
+          "fcf4_any": 3.7,
+          "ours8_p03": 12.6,
+          "ours8_any": 16.8
+        },
+        "Ring-A-Bell": {
+          "n": 95,
+          "fcf4_p03": 3.2,
+          "fcf4_any": 4.2,
+          "ours8_p03": 21.1,
+          "ours8_any": 27.4
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 95,
+          "fcf4_p03": 5.3,
+          "fcf4_any": 6.3,
+          "ours8_p03": 17.9,
+          "ours8_any": 24.2
+        },
+        "P4D": {
+          "n": 272,
+          "fcf4_p03": 3.3,
+          "fcf4_any": 5.1,
+          "ours8_p03": 18.8,
+          "ours8_any": 25.4
+        },
+        "UnlearnDiffAtk": {
+          "n": 142,
+          "fcf4_p03": 2.8,
+          "fcf4_any": 3.5,
+          "ours8_p03": 17.6,
+          "ours8_any": 19.7
+        }
+      },
+      "fcf4_p03_mean": 3.4,
+      "fcf4_any_mean": 4.6,
+      "ours8_p03_mean": 17.6,
+      "ours8_any_mean": 22.7
+    },
+    "fcf_e_official": {
+      "attacks": {
+        "I2P": {
+          "n": 931,
+          "fcf4_p03": 10.6,
+          "fcf4_any": 12.0,
+          "ours8_p03": 25.6,
+          "ours8_any": 29.9
+        },
+        "Ring-A-Bell": {
+          "n": 95,
+          "fcf4_p03": 22.1,
+          "fcf4_any": 23.2,
+          "ours8_p03": 31.6,
+          "ours8_any": 34.7
+        },
+        "Ring-A-Bell(Re)": {
+          "n": 95,
+          "fcf4_p03": 27.4,
+          "fcf4_any": 28.4,
+          "ours8_p03": 37.9,
+          "ours8_any": 40.0
+        },
+        "P4D": {
+          "n": 272,
+          "fcf4_p03": 26.8,
+          "fcf4_any": 27.9,
+          "ours8_p03": 44.1,
+          "ours8_any": 47.1
+        },
+        "UnlearnDiffAtk": {
+          "n": 142,
+          "fcf4_p03": 19.0,
+          "fcf4_any": 21.8,
+          "ours8_p03": 43.0,
+          "ours8_any": 47.9
+        }
+      },
+      "fcf4_p03_mean": 21.2,
+      "fcf4_any_mean": 22.7,
+      "ours8_p03_mean": 36.4,
+      "ours8_any_mean": 39.9
     }
   }
 }
